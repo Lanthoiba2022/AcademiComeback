@@ -40,7 +40,15 @@ export const Dashboard = () => {
 
       try {
         // Load user profile
-        const { data: profile } = await getProfile(authUser.id)
+        const { data: profile, error: profileError } = await getProfile(authUser.id)
+        
+        // If profile doesn't exist, redirect to profile page
+        if (!profile || profileError) {
+          console.log('Profile not found, redirecting to profile page')
+          navigate('/profile')
+          return
+        }
+
         if (profile) {
           setUser({
             id: profile.id,
@@ -59,21 +67,31 @@ export const Dashboard = () => {
           })
         }
 
-        // Load rooms
-        await loadRooms()
+        // Load rooms - temporarily disabled due to RLS policy issue
+        // await loadRooms()
       } catch (error) {
         console.error('Error loading dashboard data:', error)
+        // If there's an error loading profile, redirect to profile page
+        navigate('/profile')
       } finally {
         setLoading(false)
       }
     }
 
     loadData()
-  }, [authUser])
+  }, [authUser, navigate])
 
   const loadRooms = async () => {
     try {
-      const { data: roomsData } = await getRooms(filters)
+      const { data: roomsData, error } = await getRooms(filters)
+      
+      // Handle the infinite recursion error gracefully
+      if (error) {
+        console.error('Error loading rooms (likely RLS policy issue):', error)
+        setRooms([]) // Set empty array to prevent crashes
+        return
+      }
+      
       if (roomsData) {
         const formattedRooms: Room[] = roomsData.map((room: RoomData) => ({
           id: room.id,
@@ -102,20 +120,40 @@ export const Dashboard = () => {
       }
     } catch (error) {
       console.error('Error loading rooms:', error)
+      setRooms([]) // Set empty array to prevent crashes
     }
   }
 
-  // Reload rooms when filters change
+  // Reload rooms when filters change - temporarily disabled
   useEffect(() => {
-    if (authUser) {
-      loadRooms()
+    if (authUser && user) {
+      // loadRooms() - Temporarily disabled due to RLS policy issue
     }
-  }, [filters, authUser])
+  }, [filters, authUser, user])
 
-  if (loading || !user) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-hero-gradient flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-2 border-primary-500 border-t-transparent"></div>
+      </div>
+    )
+  }
+
+  // If user is still null after loading, show error state
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-hero-gradient flex items-center justify-center">
+        <Card className="max-w-md mx-auto text-center">
+          <div className="p-8">
+            <h2 className="text-xl font-semibold text-white mb-4">Profile Setup Required</h2>
+            <p className="text-dark-300 mb-6">
+              Please complete your profile setup to access the dashboard.
+            </p>
+            <Button onClick={() => navigate('/profile')}>
+              Complete Profile
+            </Button>
+          </div>
+        </Card>
       </div>
     )
   }
@@ -180,10 +218,15 @@ export const Dashboard = () => {
 
   const handleCreateRoom = async (roomData: any) => {
     try {
-      const { data } = await createRoom({
+      const { data, error } = await createRoom({
         ...roomData,
         admin_id: user.id
       })
+      
+      if (error) {
+        console.error('Error creating room:', error)
+        return
+      }
       
       if (data) {
         await loadRooms() // Reload rooms
@@ -196,12 +239,15 @@ export const Dashboard = () => {
 
   const handleJoinRoom = async (code: string) => {
     try {
-      const { data: room } = await getRoomByCode(code)
-      if (room) {
-        await joinRoom(room.id, user.id)
-        await loadRooms() // Reload rooms
-        setJoinRoomModal(false)
+      const { data: room, error } = await getRoomByCode(code)
+      if (error || !room) {
+        console.error('Error finding room:', error)
+        return
       }
+      
+      await joinRoom(room.id, user.id)
+      await loadRooms() // Reload rooms
+      setJoinRoomModal(false)
     } catch (error) {
       console.error('Error joining room:', error)
     }
@@ -347,6 +393,27 @@ export const Dashboard = () => {
             Discover Rooms
           </button>
         </div>
+
+        {/* Database Issue Notice */}
+        {rooms.length === 0 && (
+          <Card className="mb-6 border-l-4 border-yellow-500">
+            <div className="p-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-yellow-400">Database Configuration Issue</h3>
+                  <div className="mt-2 text-sm text-yellow-300">
+                    <p>Room loading is temporarily disabled due to a database policy configuration issue. Please check your Supabase RLS policies for the room_members table.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Content based on active tab */}
         {activeTab === 'overview' ? (
