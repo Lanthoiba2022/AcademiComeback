@@ -128,7 +128,7 @@ export const RoomFilters = ({ filters, onFiltersChange }: RoomFiltersProps) => {
                 onClick={() => onFiltersChange({ ...filters, maxMembers: 25 })}
                 icon={Users}
               >
-                Large (>10)
+                Large (&gt;10)
               </Button>
             </div>
           </div>
