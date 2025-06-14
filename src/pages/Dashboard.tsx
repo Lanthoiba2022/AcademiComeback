@@ -12,7 +12,10 @@ import {
   Search, Trophy, Target, Zap, BookOpen 
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { getRooms, getProfile, createRoom, getRoomByCode, joinRoom, createProfile } from '../lib/supabase'
+import { 
+  getRooms, getProfile, createRoom, getRoomByCode, joinRoom, createProfile,
+  getUserStudyStats, getTotalFocusTimeForUser
+} from '../lib/supabase'
 import { getRankProgress, getRankColor } from '../utils/roomUtils'
 import { Room, RoomFilters as RoomFiltersType, User, RoomData, Profile } from '../types'
 
@@ -22,6 +25,12 @@ export const Dashboard = () => {
   
   const [user, setUser] = useState<User | null>(null)
   const [rooms, setRooms] = useState<Room[]>([])
+  const [studyStats, setStudyStats] = useState({
+    totalFocusMinutes: 0,
+    totalSessions: 0,
+    completedTasks: 0,
+    activeSessions: 0
+  })
   const [loading, setLoading] = useState(true)
   const [createRoomModal, setCreateRoomModal] = useState(false)
   const [joinRoomModal, setJoinRoomModal] = useState(false)
@@ -92,6 +101,9 @@ export const Dashboard = () => {
           })
         }
 
+        // Load study statistics
+        await loadStudyStats()
+        
         // Load rooms
         await loadRooms()
       } catch (error) {
@@ -103,6 +115,30 @@ export const Dashboard = () => {
 
     loadData()
   }, [authUser, navigate])
+
+  const loadStudyStats = async () => {
+    if (!authUser) return
+    
+    try {
+      const { data: stats, error } = await getUserStudyStats(authUser.id)
+      
+      if (error) {
+        console.error('Error loading study stats:', error)
+        return
+      }
+      
+      if (stats) {
+        setStudyStats({
+          totalFocusMinutes: stats.total_focus_minutes || 0,
+          totalSessions: stats.total_sessions || 0,
+          completedTasks: stats.completed_tasks || 0,
+          activeSessions: stats.active_sessions || 0
+        })
+      }
+    } catch (error) {
+      console.error('Error loading study stats:', error)
+    }
+  }
 
   const loadRooms = async () => {
     try {
@@ -152,6 +188,17 @@ export const Dashboard = () => {
       loadRooms()
     }
   }, [filters, authUser, user])
+
+  // Reload study stats periodically
+  useEffect(() => {
+    if (!authUser) return
+    
+    const interval = setInterval(() => {
+      loadStudyStats()
+    }, 30000) // Update every 30 seconds
+    
+    return () => clearInterval(interval)
+  }, [authUser])
 
   if (loading) {
     return (
@@ -212,11 +259,14 @@ export const Dashboard = () => {
     return true
   })
 
+  // Convert focus time from minutes to hours for display
+  const studyHours = Math.round(studyStats.totalFocusMinutes / 60 * 10) / 10 // Round to 1 decimal place
+
   const stats = [
     {
       name: 'Study Sessions',
-      value: userRooms.length.toString(),
-      change: '+2 this week',
+      value: studyStats.totalSessions.toString(),
+      change: studyStats.activeSessions > 0 ? `${studyStats.activeSession} active` : 'No active sessions',
       icon: Users,
       color: 'text-primary-400'
     },
@@ -229,15 +279,15 @@ export const Dashboard = () => {
     },
     {
       name: 'Study Hours',
-      value: '127',
-      change: '+8.1% this week',
+      value: studyHours.toString(),
+      change: studyStats.totalSessions > 0 ? `${studyStats.totalSessions} sessions` : 'Start studying!',
       icon: Clock,
       color: 'text-accent-400'
     },
     {
       name: 'Achievements',
       value: user.achievements.length.toString(),
-      change: 'Latest: Helper',
+      change: user.achievements.length > 0 ? `Latest: ${user.achievements[user.achievements.length - 1]}` : 'None yet',
       icon: Star,
       color: 'text-primary-400'
     }

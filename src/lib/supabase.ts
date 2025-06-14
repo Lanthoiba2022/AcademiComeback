@@ -97,6 +97,44 @@ export const updateProfile = async (userId: string, updates: any) => {
   return { data, error }
 }
 
+// Study session functions
+export const getUserStudyStats = async (userId: string) => {
+  const { data, error } = await supabase.rpc('get_user_study_stats', {
+    user_uuid: userId
+  })
+  
+  return { data, error }
+}
+
+export const getTotalFocusTimeForUser = async (userId: string) => {
+  const { data, error } = await supabase.rpc('get_user_total_focus_time', {
+    user_uuid: userId
+  })
+  
+  return { data, error }
+}
+
+export const createStudySession = async (sessionData: any) => {
+  const { data, error } = await supabase
+    .from('study_sessions')
+    .insert(sessionData)
+    .select()
+    .single()
+  
+  return { data, error }
+}
+
+export const updateStudySession = async (sessionId: string, updates: any) => {
+  const { data, error } = await supabase
+    .from('study_sessions')
+    .update(updates)
+    .eq('id', sessionId)
+    .select()
+    .single()
+  
+  return { data, error }
+}
+
 // Room functions
 export const createRoom = async (roomData: any) => {
   const { data, error } = await supabase
@@ -134,7 +172,19 @@ export const createRoom = async (roomData: any) => {
 export const getRooms = async (filters?: any) => {
   let query = supabase
     .from('rooms')
-    .select('*')
+    .select(`
+      id,
+      name,
+      code,
+      description,
+      tags,
+      admin_id,
+      max_members,
+      is_private,
+      is_active,
+      created_at,
+      updated_at
+    `)
     .eq('is_active', true)
   
   if (filters?.search) {
@@ -169,7 +219,7 @@ export const getRooms = async (filters?: any) => {
   // Create a map of admin profiles for quick lookup
   const adminProfilesMap = new Map(adminProfilesData?.map(profile => [profile.id, profile]) || [])
   
-  // Get room members separately to avoid RLS recursion - fetch only user_id first
+  // Get room members separately - simplified query to avoid recursion
   const roomIds = roomsData.map(room => room.id)
   const { data: membersData, error: membersError } = await supabase
     .from('room_members')
@@ -220,7 +270,19 @@ export const getRooms = async (filters?: any) => {
 export const getRoomByCode = async (code: string) => {
   const { data: roomData, error } = await supabase
     .from('rooms')
-    .select('*')
+    .select(`
+      id,
+      name,
+      code,
+      description,
+      tags,
+      admin_id,
+      max_members,
+      is_private,
+      is_active,
+      created_at,
+      updated_at
+    `)
     .eq('code', code)
     .single()
   
@@ -239,7 +301,7 @@ export const getRoomByCode = async (code: string) => {
     console.error('Error loading admin profile:', adminError)
   }
   
-  // Get room members separately - fetch only user_id first
+  // Get room members separately - simplified query
   const { data: membersData, error: membersError } = await supabase
     .from('room_members')
     .select('user_id, is_online, last_seen')
