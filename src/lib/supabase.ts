@@ -62,7 +62,7 @@ export const getProfile = async (userId: string) => {
     .from('profiles')
     .select('*')
     .eq('id', userId)
-    .single()
+    .maybeSingle()
   
   return { data, error }
 }
@@ -86,7 +86,10 @@ export const createProfile = async (userId: string, fullName: string) => {
 export const updateProfile = async (userId: string, updates: any) => {
   const { data, error } = await supabase
     .from('profiles')
-    .update(updates)
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString()
+    })
     .eq('id', userId)
     .select()
     .single()
@@ -127,10 +130,7 @@ export const getRooms = async (filters?: any) => {
     .from('rooms')
     .select(`
       *,
-      admin:profiles!admin_id(*),
-      members:room_members(
-        user:profiles(*)
-      )
+      admin:profiles!admin_id(id, full_name, avatar_url, total_points, rank, achievements, created_at)
     `)
     .eq('is_active', true)
   
@@ -146,27 +146,71 @@ export const getRooms = async (filters?: any) => {
     query = query.eq('is_active', filters.isActive)
   }
   
-  const { data, error } = await query.order('created_at', { ascending: false })
+  const { data: roomsData, error } = await query.order('created_at', { ascending: false })
   
-  return { data, error }
+  if (error || !roomsData) {
+    return { data: [], error }
+  }
+  
+  // Get room members separately to avoid RLS recursion
+  const roomIds = roomsData.map(room => room.id)
+  const { data: membersData, error: membersError } = await supabase
+    .from('room_members')
+    .select(`
+      room_id,
+      user:profiles!user_id(id, full_name, avatar_url, total_points, rank, achievements, created_at),
+      is_online,
+      last_seen
+    `)
+    .in('room_id', roomIds)
+  
+  if (membersError) {
+    console.error('Error loading room members:', membersError)
+  }
+  
+  // Combine rooms with their members
+  const roomsWithMembers = roomsData.map(room => ({
+    ...room,
+    members: membersData?.filter(member => member.room_id === room.id) || []
+  }))
+  
+  return { data: roomsWithMembers, error: null }
 }
 
 export const getRoomByCode = async (code: string) => {
-  const { data, error } = await supabase
+  const { data: roomData, error } = await supabase
     .from('rooms')
     .select(`
       *,
-      admin:profiles!admin_id(*),
-      members:room_members(
-        user:profiles(*),
-        is_online,
-        last_seen
-      )
+      admin:profiles!admin_id(id, full_name, avatar_url, total_points, rank, achievements, created_at)
     `)
     .eq('code', code)
     .single()
   
-  return { data, error }
+  if (error || !roomData) {
+    return { data: null, error }
+  }
+  
+  // Get room members separately
+  const { data: membersData, error: membersError } = await supabase
+    .from('room_members')
+    .select(`
+      user:profiles!user_id(id, full_name, avatar_url, total_points, rank, achievements, created_at),
+      is_online,
+      last_seen
+    `)
+    .eq('room_id', roomData.id)
+  
+  if (membersError) {
+    console.error('Error loading room members:', membersError)
+  }
+  
+  const roomWithMembers = {
+    ...roomData,
+    members: membersData || []
+  }
+  
+  return { data: roomWithMembers, error: null }
 }
 
 export const joinRoom = async (roomId: string, userId: string) => {
