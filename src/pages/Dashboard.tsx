@@ -12,7 +12,7 @@ import {
   Search, Trophy, Target, Zap, BookOpen 
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { getRooms, getProfile, createRoom, getRoomByCode, joinRoom } from '../lib/supabase'
+import { getRooms, getProfile, createRoom, getRoomByCode, joinRoom, createProfile } from '../lib/supabase'
 import { getRankProgress, getRankColor } from '../utils/roomUtils'
 import { Room, RoomFilters as RoomFiltersType, User, RoomData, Profile } from '../types'
 
@@ -42,14 +42,39 @@ export const Dashboard = () => {
         // Load user profile
         const { data: profile, error: profileError } = await getProfile(authUser.id)
         
-        // If profile doesn't exist, redirect to profile page
+        // If profile doesn't exist, create one
         if (!profile || profileError) {
-          console.log('Profile not found, redirecting to profile page')
-          navigate('/profile')
-          return
-        }
-
-        if (profile) {
+          console.log('Profile not found, creating new profile...')
+          
+          // Get user metadata from auth
+          const fullName = authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User'
+          
+          const { data: newProfile, error: createError } = await createProfile(authUser.id, fullName)
+          
+          if (createError) {
+            console.error('Error creating profile:', createError)
+            navigate('/profile')
+            return
+          }
+          
+          if (newProfile) {
+            setUser({
+              id: newProfile.id,
+              name: newProfile.full_name || 'User',
+              email: authUser.email || '',
+              avatar: newProfile.avatar_url || undefined,
+              totalPoints: newProfile.total_points,
+              rank: newProfile.rank,
+              achievements: newProfile.achievements,
+              createdAt: newProfile.created_at,
+              university: newProfile.university || undefined,
+              major: newProfile.major || undefined,
+              year: newProfile.year || undefined,
+              location: newProfile.location || undefined,
+              bio: newProfile.bio || undefined
+            })
+          }
+        } else {
           setUser({
             id: profile.id,
             name: profile.full_name || 'User',
@@ -67,12 +92,10 @@ export const Dashboard = () => {
           })
         }
 
-        // Load rooms - temporarily disabled due to RLS policy issue
-        // await loadRooms()
+        // Load rooms
+        await loadRooms()
       } catch (error) {
         console.error('Error loading dashboard data:', error)
-        // If there's an error loading profile, redirect to profile page
-        navigate('/profile')
       } finally {
         setLoading(false)
       }
@@ -85,10 +108,9 @@ export const Dashboard = () => {
     try {
       const { data: roomsData, error } = await getRooms(filters)
       
-      // Handle the infinite recursion error gracefully
       if (error) {
-        console.error('Error loading rooms (likely RLS policy issue):', error)
-        setRooms([]) // Set empty array to prevent crashes
+        console.error('Error loading rooms:', error)
+        setRooms([])
         return
       }
       
@@ -120,14 +142,14 @@ export const Dashboard = () => {
       }
     } catch (error) {
       console.error('Error loading rooms:', error)
-      setRooms([]) // Set empty array to prevent crashes
+      setRooms([])
     }
   }
 
-  // Reload rooms when filters change - temporarily disabled
+  // Reload rooms when filters change
   useEffect(() => {
     if (authUser && user) {
-      // loadRooms() - Temporarily disabled due to RLS policy issue
+      loadRooms()
     }
   }, [filters, authUser, user])
 
@@ -147,11 +169,16 @@ export const Dashboard = () => {
           <div className="p-8">
             <h2 className="text-xl font-semibold text-white mb-4">Profile Setup Required</h2>
             <p className="text-dark-300 mb-6">
-              Please complete your profile setup to access the dashboard.
+              There was an issue setting up your profile. Please try again.
             </p>
-            <Button onClick={() => navigate('/profile')}>
-              Complete Profile
-            </Button>
+            <div className="space-y-3">
+              <Button onClick={() => window.location.reload()}>
+                Retry
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/profile')}>
+                Complete Profile Manually
+              </Button>
+            </div>
           </div>
         </Card>
       </div>
@@ -393,27 +420,6 @@ export const Dashboard = () => {
             Discover Rooms
           </button>
         </div>
-
-        {/* Database Issue Notice */}
-        {rooms.length === 0 && (
-          <Card className="mb-6 border-l-4 border-yellow-500">
-            <div className="p-4">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-yellow-400">Database Configuration Issue</h3>
-                  <div className="mt-2 text-sm text-yellow-300">
-                    <p>Room loading is temporarily disabled due to a database policy configuration issue. Please check your Supabase RLS policies for the room_members table.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Card>
-        )}
 
         {/* Content based on active tab */}
         {activeTab === 'overview' ? (

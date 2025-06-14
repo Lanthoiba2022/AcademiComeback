@@ -67,6 +67,22 @@ export const getProfile = async (userId: string) => {
   return { data, error }
 }
 
+export const createProfile = async (userId: string, fullName: string) => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .insert({
+      id: userId,
+      full_name: fullName,
+      total_points: 0,
+      rank: 'Beginner',
+      achievements: []
+    })
+    .select()
+    .single()
+  
+  return { data, error }
+}
+
 export const updateProfile = async (userId: string, updates: any) => {
   const { data, error } = await supabase
     .from('profiles')
