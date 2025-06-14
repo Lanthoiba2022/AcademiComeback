@@ -137,18 +137,21 @@ export const updateStudySession = async (sessionId: string, updates: any) => {
 
 // Room functions
 export const createRoom = async (roomData: any) => {
+  // Generate unique room code
+  const roomCode = await generateRoomCode()
+  
   const { data, error } = await supabase
     .from('rooms')
     .insert({
       ...roomData,
-      code: await generateRoomCode()
+      code: roomCode
     })
     .select()
     .single()
   
   if (data && !error) {
     // Add creator as first member
-    await supabase
+    const { error: memberError } = await supabase
       .from('room_members')
       .insert({
         room_id: data.id,
@@ -156,14 +159,9 @@ export const createRoom = async (roomData: any) => {
         is_online: true
       })
     
-    // Fetch admin profile separately
-    const { data: adminProfile } = await supabase
-      .from('profiles')
-      .select('id, full_name, avatar_url, total_points, rank, achievements, created_at')
-      .eq('id', roomData.admin_id)
-      .single()
-    
-    return { data: { ...data, admin: adminProfile }, error }
+    if (memberError) {
+      console.error('Error adding room member:', memberError)
+    }
   }
   
   return { data, error }
@@ -267,6 +265,84 @@ export const getRooms = async (filters?: any) => {
   return { data: roomsWithMembers, error: null }
 }
 
+export const getRoomById = async (roomId: string) => {
+  const { data: roomData, error } = await supabase
+    .from('rooms')
+    .select(`
+      id,
+      name,
+      code,
+      description,
+      tags,
+      admin_id,
+      max_members,
+      is_private,
+      is_active,
+      created_at,
+      updated_at
+    `)
+    .eq('id', roomId)
+    .single()
+  
+  if (error || !roomData) {
+    return { data: null, error }
+  }
+  
+  // Fetch admin profile separately
+  const { data: adminProfile, error: adminError } = await supabase
+    .from('profiles')
+    .select('id, full_name, avatar_url, total_points, rank, achievements, created_at')
+    .eq('id', roomData.admin_id)
+    .single()
+  
+  if (adminError) {
+    console.error('Error loading admin profile:', adminError)
+  }
+  
+  // Get room members separately - simplified query
+  const { data: membersData, error: membersError } = await supabase
+    .from('room_members')
+    .select('user_id, is_online, last_seen')
+    .eq('room_id', roomData.id)
+  
+  if (membersError) {
+    console.error('Error loading room members:', membersError)
+    return { 
+      data: { 
+        ...roomData, 
+        admin: adminProfile || null,
+        members: [] 
+      }, 
+      error: null 
+    }
+  }
+  
+  // Get unique user IDs and fetch their profiles separately
+  const userIds = [...new Set(membersData?.map(member => member.user_id) || [])]
+  const { data: profilesData, error: profilesError } = await supabase
+    .from('profiles')
+    .select('id, full_name, avatar_url, total_points, rank, achievements, created_at')
+    .in('id', userIds)
+  
+  if (profilesError) {
+    console.error('Error loading profiles:', profilesError)
+  }
+  
+  // Create a map of profiles for quick lookup
+  const profilesMap = new Map(profilesData?.map(profile => [profile.id, profile]) || [])
+  
+  const roomWithMembers = {
+    ...roomData,
+    admin: adminProfile || null,
+    members: membersData?.map(member => ({
+      ...member,
+      user: profilesMap.get(member.user_id) || null
+    })) || []
+  }
+  
+  return { data: roomWithMembers, error: null }
+}
+
 export const getRoomByCode = async (code: string) => {
   const { data: roomData, error } = await supabase
     .from('rooms')
@@ -346,6 +422,18 @@ export const getRoomByCode = async (code: string) => {
 }
 
 export const joinRoom = async (roomId: string, userId: string) => {
+  // Check if user is already a member
+  const { data: existingMember } = await supabase
+    .from('room_members')
+    .select('id')
+    .eq('room_id', roomId)
+    .eq('user_id', userId)
+    .single()
+  
+  if (existingMember) {
+    return { data: existingMember, error: null }
+  }
+  
   const { data, error } = await supabase
     .from('room_members')
     .insert({
@@ -354,6 +442,7 @@ export const joinRoom = async (roomId: string, userId: string) => {
       is_online: true
     })
     .select()
+    .single()
   
   return { data, error }
 }
@@ -474,23 +563,41 @@ export const subscribeToRooms = (callback: (payload: any) => void) => {
       { event: '*', schema: 'public', table: 'rooms' },
       callback
     )
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'room_members' },
+      callback
+    )
     .subscribe()
 }
 
 // Utility functions
 const generateRoomCode = async (): Promise<string> => {
-  const { data, error } = await supabase.rpc('generate_room_code')
-  if (error) {
-    console.error('Error generating room code:', error)
-    // Fallback to client-side generation
+  let attempts = 0
+  const maxAttempts = 10
+  
+  while (attempts < maxAttempts) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
     let result = ''
     for (let i = 0; i < 6; i++) {
       result += chars.charAt(Math.floor(Math.random() * chars.length))
     }
-    return result
+    
+    // Check if code already exists
+    const { data } = await supabase
+      .from('rooms')
+      .select('id')
+      .eq('code', result)
+      .single()
+    
+    if (!data) {
+      return result
+    }
+    
+    attempts++
   }
-  return data
+  
+  // Fallback if all attempts fail
+  return `ROOM${Date.now().toString().slice(-6)}`
 }
 
 export const updateUserPresence = async (roomId: string, userId: string, isOnline: boolean) => {

@@ -133,3 +133,14 @@ export interface ChatMessageData {
   created_at: string
   user?: Profile
 }
+
+export interface StudySessionData {
+  id: string
+  room_id: string
+  user_id: string
+  start_time: string
+  end_time: string | null
+  focus_time: number
+  completed_tasks: number
+  is_active: boolean
+}

@@ -14,7 +14,7 @@ import {
 import { useAuth } from '../contexts/AuthContext'
 import { 
   getRooms, getProfile, createRoom, getRoomByCode, joinRoom, createProfile,
-  getUserStudyStats, getTotalFocusTimeForUser
+  getUserStudyStats, getTotalFocusTimeForUser, subscribeToRooms
 } from '../lib/supabase'
 import { getRankProgress, getRankColor } from '../utils/roomUtils'
 import { Room, RoomFilters as RoomFiltersType, User, RoomData, Profile } from '../types'
@@ -158,14 +158,14 @@ export const Dashboard = () => {
           description: room.description,
           tags: room.tags,
           members: room.members?.map(member => ({
-            id: member.user.id,
-            name: member.user.full_name || 'User',
+            id: member.user?.id || '',
+            name: member.user?.full_name || 'User',
             email: '',
-            avatar: member.user.avatar_url || undefined,
-            totalPoints: member.user.total_points,
-            rank: member.user.rank,
-            achievements: member.user.achievements,
-            createdAt: member.user.created_at
+            avatar: member.user?.avatar_url || undefined,
+            totalPoints: member.user?.total_points || 0,
+            rank: member.user?.rank || 'Beginner',
+            achievements: member.user?.achievements || [],
+            createdAt: member.user?.created_at || new Date().toISOString()
           })) || [],
           adminId: room.admin_id,
           maxMembers: room.max_members,
@@ -199,6 +199,26 @@ export const Dashboard = () => {
     
     return () => clearInterval(interval)
   }, [authUser])
+
+  // Setup real-time subscription for rooms
+  useEffect(() => {
+    if (!authUser) return
+
+    const subscription = subscribeToRooms((payload) => {
+      console.log('Rooms real-time update:', payload)
+      
+      // Reload rooms when there are changes
+      if (user) {
+        loadRooms()
+      }
+    })
+
+    return () => {
+      if (subscription) {
+        subscription.unsubscribe()
+      }
+    }
+  }, [authUser, user])
 
   if (loading) {
     return (
@@ -266,7 +286,7 @@ export const Dashboard = () => {
     {
       name: 'Study Sessions',
       value: studyStats.totalSessions.toString(),
-      change: studyStats.activeSessions > 0 ? `${studyStats.activeSession} active` : 'No active sessions',
+      change: studyStats.activeSessions > 0 ? `${studyStats.activeSessions} active` : 'No active sessions',
       icon: Users,
       color: 'text-primary-400'
     },
@@ -306,8 +326,11 @@ export const Dashboard = () => {
       }
       
       if (data) {
-        await loadRooms() // Reload rooms
+        // Room will be updated via real-time subscription
         setCreateRoomModal(false)
+        
+        // Navigate to the new room
+        navigate(`/room/${data.id}`)
       }
     } catch (error) {
       console.error('Error creating room:', error)
@@ -322,9 +345,16 @@ export const Dashboard = () => {
         return
       }
       
-      await joinRoom(room.id, user.id)
-      await loadRooms() // Reload rooms
+      const { error: joinError } = await joinRoom(room.id, user.id)
+      if (joinError) {
+        console.error('Error joining room:', joinError)
+        return
+      }
+      
       setJoinRoomModal(false)
+      
+      // Navigate to the room
+      navigate(`/room/${room.id}`)
     } catch (error) {
       console.error('Error joining room:', error)
     }
@@ -332,8 +362,14 @@ export const Dashboard = () => {
 
   const handleJoinRoomById = async (roomId: string) => {
     try {
-      await joinRoom(roomId, user.id)
-      await loadRooms() // Reload rooms
+      const { error } = await joinRoom(roomId, user.id)
+      if (error) {
+        console.error('Error joining room:', error)
+        return
+      }
+      
+      // Navigate to the room
+      navigate(`/room/${roomId}`)
     } catch (error) {
       console.error('Error joining room:', error)
     }

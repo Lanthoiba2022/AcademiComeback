@@ -9,82 +9,36 @@ import {
   Video, VideoOff, MoreVertical, Edit3, Trash2, User, Timer,
   Volume2, VolumeX, ArrowLeft, Crown, Dot
 } from 'lucide-react'
-import { mockRooms, mockUser } from '../data/mockData'
-import { Task, ChatMessage, StudySession } from '../types'
+import { Task, ChatMessage, StudySession, User as UserType, Room } from '../types'
 import { TaskItem } from '../components/room/TaskItem'
 import { ChatArea } from '../components/room/ChatArea'
 import { MemberList } from '../components/room/MemberList'
 import { TimerControls } from '../components/room/TimerControls'
 import { RoomHeader } from '../components/room/RoomHeader'
+import { useAuth } from '../contexts/AuthContext'
+import { 
+  getRoomById, getTasks, createTask, updateTask, deleteTask,
+  getChatMessages, sendChatMessage, subscribeToRoom, updateUserPresence,
+  getProfile, createStudySession, updateStudySession
+} from '../lib/supabase'
 
 export const StudyRoom = () => {
   const { roomId } = useParams()
   const navigate = useNavigate()
+  const { user: authUser } = useAuth()
   
-  // Find room data
-  const room = mockRooms.find(r => r.id === roomId)
-  const currentUser = mockUser
-
   // State management
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: '1',
-      title: 'Review JavaScript Closures',
-      description: 'Go through closure examples and practice problems',
-      duration: 45,
-      assigneeId: currentUser.id,
-      status: 'in-progress',
-      createdAt: new Date().toISOString(),
-      order: 0
-    },
-    {
-      id: '2',
-      title: 'Complete Array Methods Exercise',
-      description: 'Practice map, filter, reduce methods',
-      duration: 30,
-      assigneeId: '2',
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-      order: 1
-    },
-    {
-      id: '3',
-      title: 'Study Async/Await Patterns',
-      description: 'Learn modern asynchronous JavaScript',
-      duration: 60,
-      assigneeId: '3',
-      status: 'completed',
-      createdAt: new Date().toISOString(),
-      order: 2
-    }
-  ])
-
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: '1',
-      userId: '2',
-      userName: 'Sarah Chen',
-      userAvatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2',
-      message: 'Hey everyone! Ready to tackle these JavaScript concepts?',
-      timestamp: new Date(Date.now() - 300000).toISOString(),
-      type: 'message'
-    },
-    {
-      id: '2',
-      userId: currentUser.id,
-      userName: currentUser.name,
-      userAvatar: currentUser.avatar,
-      message: 'Absolutely! I\'m working on the closures section now.',
-      timestamp: new Date(Date.now() - 120000).toISOString(),
-      type: 'message'
-    }
-  ])
-
+  const [room, setRoom] = useState<Room | null>(null)
+  const [currentUser, setCurrentUser] = useState<UserType | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [typingUsers, setTypingUsers] = useState<string[]>([])
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [showAddTask, setShowAddTask] = useState(false)
+  const [studySession, setStudySession] = useState<StudySession | null>(null)
   
   // Timer state
   const [timerState, setTimerState] = useState({
@@ -96,16 +50,6 @@ export const StudyRoom = () => {
     totalCycles: 4
   })
 
-  const [studySession, setStudySession] = useState<StudySession>({
-    id: '1',
-    roomId: roomId || '',
-    startTime: new Date().toISOString(),
-    participants: room?.members || [],
-    totalFocusTime: 0,
-    completedTasks: 0,
-    isActive: true
-  })
-
   // Audio settings
   const [audioEnabled, setAudioEnabled] = useState(true)
   const [micEnabled, setMicEnabled] = useState(false)
@@ -114,21 +58,196 @@ export const StudyRoom = () => {
   // Refs
   const chatEndRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<NodeJS.Timeout>()
+  const subscriptionRef = useRef<any>(null)
 
-  // Redirect if room not found
-  if (!room) {
-    return (
-      <div className="min-h-screen bg-hero-gradient flex items-center justify-center">
-        <Card className="text-center p-8">
-          <h2 className="text-xl font-semibold text-white mb-4">Room Not Found</h2>
-          <p className="text-dark-300 mb-6">The study room you're looking for doesn't exist.</p>
-          <Button onClick={() => navigate('/dashboard')}>
-            Back to Dashboard
-          </Button>
-        </Card>
-      </div>
-    )
-  }
+  // Load room data and setup real-time subscriptions
+  useEffect(() => {
+    if (!roomId || !authUser) return
+
+    const loadRoomData = async () => {
+      try {
+        // Load current user profile
+        const { data: profile } = await getProfile(authUser.id)
+        if (profile) {
+          setCurrentUser({
+            id: profile.id,
+            name: profile.full_name || 'User',
+            email: authUser.email || '',
+            avatar: profile.avatar_url || undefined,
+            totalPoints: profile.total_points,
+            rank: profile.rank,
+            achievements: profile.achievements,
+            createdAt: profile.created_at
+          })
+        }
+
+        // Load room data
+        const { data: roomData, error: roomError } = await getRoomById(roomId)
+        if (roomError || !roomData) {
+          console.error('Error loading room:', roomError)
+          navigate('/dashboard')
+          return
+        }
+
+        // Transform room data to match expected format
+        const transformedRoom: Room = {
+          id: roomData.id,
+          name: roomData.name,
+          code: roomData.code,
+          description: roomData.description,
+          tags: roomData.tags,
+          members: roomData.members?.map(member => ({
+            id: member.user?.id || '',
+            name: member.user?.full_name || 'User',
+            email: '',
+            avatar: member.user?.avatar_url || undefined,
+            totalPoints: member.user?.total_points || 0,
+            rank: member.user?.rank || 'Beginner',
+            achievements: member.user?.achievements || [],
+            createdAt: member.user?.created_at || new Date().toISOString()
+          })) || [],
+          adminId: roomData.admin_id,
+          maxMembers: roomData.max_members,
+          isPrivate: roomData.is_private,
+          isActive: roomData.is_active,
+          createdAt: roomData.created_at,
+          lastActivity: roomData.updated_at
+        }
+
+        setRoom(transformedRoom)
+
+        // Load tasks
+        const { data: tasksData } = await getTasks(roomId)
+        if (tasksData) {
+          const transformedTasks: Task[] = tasksData.map(task => ({
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            duration: task.duration,
+            assigneeId: task.assignee_id,
+            status: task.status,
+            createdAt: task.created_at,
+            order: task.order_index,
+            roomId: task.room_id,
+            createdBy: task.created_by
+          }))
+          setTasks(transformedTasks)
+        }
+
+        // Load chat messages
+        const { data: messagesData } = await getChatMessages(roomId)
+        if (messagesData) {
+          const transformedMessages: ChatMessage[] = messagesData.map(msg => ({
+            id: msg.id,
+            userId: msg.user_id,
+            userName: msg.user?.full_name || 'User',
+            userAvatar: msg.user?.avatar_url || undefined,
+            message: msg.message,
+            timestamp: msg.created_at,
+            type: msg.message_type,
+            roomId: msg.room_id
+          }))
+          setMessages(transformedMessages)
+        }
+
+        // Create or update study session
+        if (profile) {
+          const { data: sessionData } = await createStudySession({
+            room_id: roomId,
+            user_id: profile.id,
+            start_time: new Date().toISOString(),
+            focus_time: 0,
+            completed_tasks: 0,
+            is_active: true
+          })
+
+          if (sessionData) {
+            setStudySession({
+              id: sessionData.id,
+              roomId: sessionData.room_id,
+              startTime: sessionData.start_time,
+              participants: transformedRoom.members,
+              totalFocusTime: sessionData.focus_time,
+              completedTasks: sessionData.completed_tasks,
+              isActive: sessionData.is_active
+            })
+          }
+
+          // Update user presence
+          await updateUserPresence(roomId, profile.id, true)
+        }
+
+        setLoading(false)
+      } catch (error) {
+        console.error('Error loading room data:', error)
+        navigate('/dashboard')
+      }
+    }
+
+    loadRoomData()
+
+    // Setup real-time subscription
+    subscriptionRef.current = subscribeToRoom(roomId, (payload) => {
+      console.log('Real-time update:', payload)
+      
+      if (payload.table === 'tasks') {
+        if (payload.eventType === 'INSERT') {
+          const newTask: Task = {
+            id: payload.new.id,
+            title: payload.new.title,
+            description: payload.new.description,
+            duration: payload.new.duration,
+            assigneeId: payload.new.assignee_id,
+            status: payload.new.status,
+            createdAt: payload.new.created_at,
+            order: payload.new.order_index,
+            roomId: payload.new.room_id,
+            createdBy: payload.new.created_by
+          }
+          setTasks(prev => [...prev, newTask])
+        } else if (payload.eventType === 'UPDATE') {
+          setTasks(prev => prev.map(task => 
+            task.id === payload.new.id 
+              ? { ...task, ...payload.new, order: payload.new.order_index }
+              : task
+          ))
+        } else if (payload.eventType === 'DELETE') {
+          setTasks(prev => prev.filter(task => task.id !== payload.old.id))
+        }
+      } else if (payload.table === 'chat_messages') {
+        if (payload.eventType === 'INSERT') {
+          // Reload messages to get user data
+          getChatMessages(roomId).then(({ data: messagesData }) => {
+            if (messagesData) {
+              const transformedMessages: ChatMessage[] = messagesData.map(msg => ({
+                id: msg.id,
+                userId: msg.user_id,
+                userName: msg.user?.full_name || 'User',
+                userAvatar: msg.user?.avatar_url || undefined,
+                message: msg.message,
+                timestamp: msg.created_at,
+                type: msg.message_type,
+                roomId: msg.room_id
+              }))
+              setMessages(transformedMessages)
+            }
+          })
+        }
+      }
+    })
+
+    // Cleanup function
+    return () => {
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe()
+      }
+      
+      // Update user presence to offline when leaving
+      if (authUser && roomId) {
+        updateUserPresence(roomId, authUser.id, false)
+      }
+    }
+  }, [roomId, authUser, navigate])
 
   // Timer effect
   useEffect(() => {
@@ -142,7 +261,6 @@ export const StudyRoom = () => {
           } else {
             // Timer finished
             if (audioEnabled) {
-              // Play notification sound (mock)
               console.log('Timer finished!')
             }
             
@@ -190,92 +308,130 @@ export const StudyRoom = () => {
     return () => clearTimeout(timeout)
   }, [isTyping])
 
+  if (loading || !room || !currentUser) {
+    return (
+      <div className="min-h-screen bg-hero-gradient flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-2 border-primary-500 border-t-transparent"></div>
+      </div>
+    )
+  }
+
   // Task management functions
-  const addTask = () => {
-    if (!newTaskTitle.trim()) return
+  const addTask = async () => {
+    if (!newTaskTitle.trim() || !roomId) return
 
-    const newTask: Task = {
-      id: Date.now().toString(),
-      title: newTaskTitle,
-      description: '',
-      duration: 30,
-      assigneeId: currentUser.id,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-      order: tasks.length
+    try {
+      const { data, error } = await createTask({
+        room_id: roomId,
+        title: newTaskTitle,
+        description: '',
+        duration: 30,
+        assignee_id: currentUser.id,
+        status: 'pending',
+        order_index: tasks.length,
+        created_by: currentUser.id
+      })
+
+      if (error) {
+        console.error('Error creating task:', error)
+        return
+      }
+
+      setNewTaskTitle('')
+      setShowAddTask(false)
+      addSystemMessage(`${currentUser.name} added a new task: "${newTaskTitle}"`)
+    } catch (error) {
+      console.error('Error creating task:', error)
     }
-
-    setTasks(prev => [...prev, newTask])
-    setNewTaskTitle('')
-    setShowAddTask(false)
-
-    // Add system message
-    addSystemMessage(`${currentUser.name} added a new task: "${newTaskTitle}"`)
   }
 
-  const updateTask = (taskId: string, updates: Partial<Task>) => {
-    setTasks(prev => prev.map(task => 
-      task.id === taskId ? { ...task, ...updates } : task
-    ))
+  const updateTaskHandler = async (taskId: string, updates: Partial<Task>) => {
+    try {
+      const dbUpdates: any = {}
+      
+      if (updates.title !== undefined) dbUpdates.title = updates.title
+      if (updates.description !== undefined) dbUpdates.description = updates.description
+      if (updates.duration !== undefined) dbUpdates.duration = updates.duration
+      if (updates.status !== undefined) dbUpdates.status = updates.status
+      if (updates.assigneeId !== undefined) dbUpdates.assignee_id = updates.assigneeId
+      if (updates.order !== undefined) dbUpdates.order_index = updates.order
 
-    // Add system message for status changes
-    if (updates.status) {
+      const { error } = await updateTask(taskId, dbUpdates)
+      
+      if (error) {
+        console.error('Error updating task:', error)
+        return
+      }
+
+      // Add system message for status changes
+      if (updates.status) {
+        const task = tasks.find(t => t.id === taskId)
+        const assignee = room.members.find(m => m.id === task?.assigneeId)
+        addSystemMessage(`${assignee?.name || 'Someone'} marked "${task?.title}" as ${updates.status}`)
+      }
+    } catch (error) {
+      console.error('Error updating task:', error)
+    }
+  }
+
+  const deleteTaskHandler = async (taskId: string) => {
+    try {
       const task = tasks.find(t => t.id === taskId)
-      const assignee = room.members.find(m => m.id === task?.assigneeId)
-      addSystemMessage(`${assignee?.name || 'Someone'} marked "${task?.title}" as ${updates.status}`)
-    }
-  }
+      const { error } = await deleteTask(taskId)
+      
+      if (error) {
+        console.error('Error deleting task:', error)
+        return
+      }
 
-  const deleteTask = (taskId: string) => {
-    const task = tasks.find(t => t.id === taskId)
-    setTasks(prev => prev.filter(t => t.id !== taskId))
-    addSystemMessage(`Task "${task?.title}" was deleted`)
+      addSystemMessage(`Task "${task?.title}" was deleted`)
+    } catch (error) {
+      console.error('Error deleting task:', error)
+    }
   }
 
   const reorderTasks = (startIndex: number, endIndex: number) => {
-    const result = Array.from(tasks)
-    const [removed] = result.splice(startIndex, 1)
-    result.splice(endIndex, 0, removed)
-    
-    // Update order property
-    const reorderedTasks = result.map((task, index) => ({
-      ...task,
-      order: index
-    }))
-    
-    setTasks(reorderedTasks)
+    // This would need more complex implementation for real drag-and-drop
+    console.log('Reorder tasks:', startIndex, endIndex)
   }
 
   // Chat functions
-  const sendMessage = () => {
-    if (!newMessage.trim()) return
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !roomId) return
 
-    const message: ChatMessage = {
-      id: Date.now().toString(),
-      userId: currentUser.id,
-      userName: currentUser.name,
-      userAvatar: currentUser.avatar,
-      message: newMessage,
-      timestamp: new Date().toISOString(),
-      type: 'message'
+    try {
+      const { error } = await sendChatMessage({
+        room_id: roomId,
+        user_id: currentUser.id,
+        message: newMessage,
+        message_type: 'message'
+      })
+
+      if (error) {
+        console.error('Error sending message:', error)
+        return
+      }
+
+      setNewMessage('')
+      setIsTyping(false)
+    } catch (error) {
+      console.error('Error sending message:', error)
     }
-
-    setMessages(prev => [...prev, message])
-    setNewMessage('')
-    setIsTyping(false)
   }
 
-  const addSystemMessage = (message: string) => {
-    const systemMessage: ChatMessage = {
-      id: Date.now().toString(),
-      userId: 'system',
-      userName: 'System',
-      message,
-      timestamp: new Date().toISOString(),
-      type: 'system'
-    }
+  const addSystemMessage = async (message: string) => {
+    if (!roomId) return
 
-    setMessages(prev => [...prev, systemMessage])
+    try {
+      await sendChatMessage({
+        room_id: roomId,
+        user_id: null,
+        message,
+        message_type: 'system'
+      })
+    } catch (error) {
+      console.error('Error sending system message:', error)
+    }
   }
 
   // Timer functions
@@ -392,8 +548,8 @@ export const StudyRoom = () => {
                     key={task.id}
                     task={task}
                     members={room.members}
-                    onUpdate={updateTask}
-                    onDelete={deleteTask}
+                    onUpdate={updateTaskHandler}
+                    onDelete={deleteTaskHandler}
                     onReorder={reorderTasks}
                     index={index}
                   />
