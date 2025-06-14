@@ -223,6 +223,23 @@ export interface Database {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_user_study_stats: {
+        Args: {
+          user_uuid: string
+        }
+        Returns: {
+          total_focus_minutes: number
+          total_sessions: number
+          completed_tasks: number
+          active_sessions: number
+        }
+      }
+      get_user_total_focus_time: {
+        Args: {
+          user_uuid: string
+        }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never

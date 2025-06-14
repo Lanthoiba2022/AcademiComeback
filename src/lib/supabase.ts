@@ -137,14 +137,19 @@ export const updateStudySession = async (sessionId: string, updates: any) => {
 
 // Room functions
 export const createRoom = async (roomData: any) => {
-  // Generate unique room code
-  const roomCode = await generateRoomCode()
+  // Generate unique room code using database function
+  const { data: codeData, error: codeError } = await supabase.rpc('generate_room_code')
+  
+  if (codeError) {
+    console.error('Error generating room code:', codeError)
+    return { data: null, error: codeError }
+  }
   
   const { data, error } = await supabase
     .from('rooms')
     .insert({
       ...roomData,
-      code: roomCode
+      code: codeData
     })
     .select()
     .single()
@@ -203,63 +208,55 @@ export const getRooms = async (filters?: any) => {
     return { data: [], error }
   }
   
-  // Get unique admin IDs and fetch their profiles separately
+  // Get room members and admin profiles separately to avoid recursion
+  const roomIds = roomsData.map(room => room.id)
+  
+  // Get all room members
+  const { data: membersData } = await supabase
+    .from('room_members')
+    .select(`
+      room_id,
+      user_id,
+      is_online,
+      last_seen,
+      profiles!inner(
+        id,
+        full_name,
+        avatar_url,
+        total_points,
+        rank,
+        achievements,
+        created_at
+      )
+    `)
+    .in('room_id', roomIds)
+  
+  // Get admin profiles
   const adminIds = [...new Set(roomsData.map(room => room.admin_id))]
-  const { data: adminProfilesData, error: adminProfilesError } = await supabase
+  const { data: adminProfiles } = await supabase
     .from('profiles')
     .select('id, full_name, avatar_url, total_points, rank, achievements, created_at')
     .in('id', adminIds)
   
-  if (adminProfilesError) {
-    console.error('Error loading admin profiles:', adminProfilesError)
-  }
+  // Create maps for quick lookup
+  const adminProfilesMap = new Map(adminProfiles?.map(profile => [profile.id, profile]) || [])
+  const membersByRoom = new Map()
   
-  // Create a map of admin profiles for quick lookup
-  const adminProfilesMap = new Map(adminProfilesData?.map(profile => [profile.id, profile]) || [])
-  
-  // Get room members separately - simplified query to avoid recursion
-  const roomIds = roomsData.map(room => room.id)
-  const { data: membersData, error: membersError } = await supabase
-    .from('room_members')
-    .select('room_id, user_id, is_online, last_seen')
-    .in('room_id', roomIds)
-  
-  if (membersError) {
-    console.error('Error loading room members:', membersError)
-    return { 
-      data: roomsData.map(room => ({ 
-        ...room, 
-        admin: adminProfilesMap.get(room.admin_id) || null,
-        members: [] 
-      })), 
-      error: null 
+  membersData?.forEach(member => {
+    if (!membersByRoom.has(member.room_id)) {
+      membersByRoom.set(member.room_id, [])
     }
-  }
+    membersByRoom.get(member.room_id).push({
+      ...member,
+      user: member.profiles
+    })
+  })
   
-  // Get unique user IDs and fetch their profiles separately
-  const userIds = [...new Set(membersData?.map(member => member.user_id) || [])]
-  const { data: profilesData, error: profilesError } = await supabase
-    .from('profiles')
-    .select('id, full_name, avatar_url, total_points, rank, achievements, created_at')
-    .in('id', userIds)
-  
-  if (profilesError) {
-    console.error('Error loading profiles:', profilesError)
-  }
-  
-  // Create a map of profiles for quick lookup
-  const profilesMap = new Map(profilesData?.map(profile => [profile.id, profile]) || [])
-  
-  // Combine rooms with their admin profiles and members
+  // Combine rooms with their data
   const roomsWithMembers = roomsData.map(room => ({
     ...room,
     admin: adminProfilesMap.get(room.admin_id) || null,
-    members: membersData
-      ?.filter(member => member.room_id === room.id)
-      .map(member => ({
-        ...member,
-        user: profilesMap.get(member.user_id) || null
-      })) || []
+    members: membersByRoom.get(room.id) || []
   }))
   
   return { data: roomsWithMembers, error: null }
@@ -288,55 +285,38 @@ export const getRoomById = async (roomId: string) => {
     return { data: null, error }
   }
   
-  // Fetch admin profile separately
-  const { data: adminProfile, error: adminError } = await supabase
+  // Get admin profile
+  const { data: adminProfile } = await supabase
     .from('profiles')
     .select('id, full_name, avatar_url, total_points, rank, achievements, created_at')
     .eq('id', roomData.admin_id)
     .single()
   
-  if (adminError) {
-    console.error('Error loading admin profile:', adminError)
-  }
-  
-  // Get room members separately - simplified query
-  const { data: membersData, error: membersError } = await supabase
+  // Get room members with profiles
+  const { data: membersData } = await supabase
     .from('room_members')
-    .select('user_id, is_online, last_seen')
+    .select(`
+      user_id,
+      is_online,
+      last_seen,
+      profiles!inner(
+        id,
+        full_name,
+        avatar_url,
+        total_points,
+        rank,
+        achievements,
+        created_at
+      )
+    `)
     .eq('room_id', roomData.id)
-  
-  if (membersError) {
-    console.error('Error loading room members:', membersError)
-    return { 
-      data: { 
-        ...roomData, 
-        admin: adminProfile || null,
-        members: [] 
-      }, 
-      error: null 
-    }
-  }
-  
-  // Get unique user IDs and fetch their profiles separately
-  const userIds = [...new Set(membersData?.map(member => member.user_id) || [])]
-  const { data: profilesData, error: profilesError } = await supabase
-    .from('profiles')
-    .select('id, full_name, avatar_url, total_points, rank, achievements, created_at')
-    .in('id', userIds)
-  
-  if (profilesError) {
-    console.error('Error loading profiles:', profilesError)
-  }
-  
-  // Create a map of profiles for quick lookup
-  const profilesMap = new Map(profilesData?.map(profile => [profile.id, profile]) || [])
   
   const roomWithMembers = {
     ...roomData,
     admin: adminProfile || null,
     members: membersData?.map(member => ({
       ...member,
-      user: profilesMap.get(member.user_id) || null
+      user: member.profiles
     })) || []
   }
   
@@ -366,55 +346,38 @@ export const getRoomByCode = async (code: string) => {
     return { data: null, error }
   }
   
-  // Fetch admin profile separately
-  const { data: adminProfile, error: adminError } = await supabase
+  // Get admin profile
+  const { data: adminProfile } = await supabase
     .from('profiles')
     .select('id, full_name, avatar_url, total_points, rank, achievements, created_at')
     .eq('id', roomData.admin_id)
     .single()
   
-  if (adminError) {
-    console.error('Error loading admin profile:', adminError)
-  }
-  
-  // Get room members separately - simplified query
-  const { data: membersData, error: membersError } = await supabase
+  // Get room members with profiles
+  const { data: membersData } = await supabase
     .from('room_members')
-    .select('user_id, is_online, last_seen')
+    .select(`
+      user_id,
+      is_online,
+      last_seen,
+      profiles!inner(
+        id,
+        full_name,
+        avatar_url,
+        total_points,
+        rank,
+        achievements,
+        created_at
+      )
+    `)
     .eq('room_id', roomData.id)
-  
-  if (membersError) {
-    console.error('Error loading room members:', membersError)
-    return { 
-      data: { 
-        ...roomData, 
-        admin: adminProfile || null,
-        members: [] 
-      }, 
-      error: null 
-    }
-  }
-  
-  // Get unique user IDs and fetch their profiles separately
-  const userIds = [...new Set(membersData?.map(member => member.user_id) || [])]
-  const { data: profilesData, error: profilesError } = await supabase
-    .from('profiles')
-    .select('id, full_name, avatar_url, total_points, rank, achievements, created_at')
-    .in('id', userIds)
-  
-  if (profilesError) {
-    console.error('Error loading profiles:', profilesError)
-  }
-  
-  // Create a map of profiles for quick lookup
-  const profilesMap = new Map(profilesData?.map(profile => [profile.id, profile]) || [])
   
   const roomWithMembers = {
     ...roomData,
     admin: adminProfile || null,
     members: membersData?.map(member => ({
       ...member,
-      user: profilesMap.get(member.user_id) || null
+      user: member.profiles
     })) || []
   }
   
@@ -568,36 +531,6 @@ export const subscribeToRooms = (callback: (payload: any) => void) => {
       callback
     )
     .subscribe()
-}
-
-// Utility functions
-const generateRoomCode = async (): Promise<string> => {
-  let attempts = 0
-  const maxAttempts = 10
-  
-  while (attempts < maxAttempts) {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    let result = ''
-    for (let i = 0; i < 6; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
-    
-    // Check if code already exists
-    const { data } = await supabase
-      .from('rooms')
-      .select('id')
-      .eq('code', result)
-      .single()
-    
-    if (!data) {
-      return result
-    }
-    
-    attempts++
-  }
-  
-  // Fallback if all attempts fail
-  return `ROOM${Date.now().toString().slice(-6)}`
 }
 
 export const updateUserPresence = async (roomId: string, userId: string, isOnline: boolean) => {
