@@ -7,6 +7,11 @@ export interface User {
   rank: string
   achievements: string[]
   createdAt: string
+  university?: string
+  major?: string
+  year?: string
+  location?: string
+  bio?: string
 }
 
 export interface Room {
@@ -40,16 +45,19 @@ export interface Task {
   status: 'pending' | 'in-progress' | 'completed'
   createdAt: string
   order: number
+  roomId: string
+  createdBy: string
 }
 
 export interface ChatMessage {
   id: string
-  userId: string
+  userId: string | null
   userName: string
   userAvatar?: string
   message: string
   timestamp: string
   type: 'message' | 'system'
+  roomId: string
 }
 
 export interface StudySession {
@@ -61,4 +69,67 @@ export interface StudySession {
   totalFocusTime: number // in minutes
   completedTasks: number
   isActive: boolean
+}
+
+// Database types for Supabase
+export interface Profile {
+  id: string
+  full_name: string | null
+  avatar_url: string | null
+  total_points: number
+  rank: string
+  achievements: string[]
+  university: string | null
+  major: string | null
+  year: string | null
+  location: string | null
+  bio: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface RoomData {
+  id: string
+  name: string
+  code: string
+  description: string
+  tags: string[]
+  admin_id: string
+  max_members: number
+  is_private: boolean
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  admin?: Profile
+  members?: Array<{
+    user: Profile
+    is_online: boolean
+    last_seen: string
+  }>
+}
+
+export interface TaskData {
+  id: string
+  room_id: string
+  title: string
+  description: string
+  duration: number
+  assignee_id: string
+  status: 'pending' | 'in-progress' | 'completed'
+  order_index: number
+  created_by: string
+  created_at: string
+  updated_at: string
+  assignee?: Profile
+  creator?: Profile
+}
+
+export interface ChatMessageData {
+  id: string
+  room_id: string
+  user_id: string | null
+  message: string
+  message_type: 'message' | 'system'
+  created_at: string
+  user?: Profile
 }

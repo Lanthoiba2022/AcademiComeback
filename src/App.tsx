@@ -5,6 +5,7 @@ import { Landing } from './pages/Landing'
 import { Dashboard } from './pages/Dashboard'
 import { Profile } from './pages/Profile'
 import { StudyRoom } from './pages/StudyRoom'
+import { UnderDevelopment } from './pages/UnderDevelopment'
 
 function App() {
   return (
@@ -33,6 +34,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <StudyRoom />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/under-development" 
+            element={
+              <ProtectedRoute>
+                <UnderDevelopment />
               </ProtectedRoute>
             } 
           />

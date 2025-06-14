@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Sidebar } from '../components/dashboard/Sidebar'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
@@ -10,14 +11,18 @@ import {
   Users, FileText, Calendar, TrendingUp, Clock, Star, Plus, UserPlus, 
   Search, Trophy, Target, Zap, BookOpen 
 } from 'lucide-react'
-import { mockUser, mockRooms } from '../data/mockData'
+import { useAuth } from '../contexts/AuthContext'
+import { getRooms, getProfile, createRoom, getRoomByCode, joinRoom } from '../lib/supabase'
 import { getRankProgress, getRankColor } from '../utils/roomUtils'
-import { Room, RoomFilters as RoomFiltersType } from '../types'
-import { useNavigate } from 'react-router-dom'
+import { Room, RoomFilters as RoomFiltersType, User, RoomData, Profile } from '../types'
 
 export const Dashboard = () => {
   const navigate = useNavigate()
-  const [rooms, setRooms] = useState<Room[]>(mockRooms)
+  const { user: authUser } = useAuth()
+  
+  const [user, setUser] = useState<User | null>(null)
+  const [rooms, setRooms] = useState<Room[]>([])
+  const [loading, setLoading] = useState(true)
   const [createRoomModal, setCreateRoomModal] = useState(false)
   const [joinRoomModal, setJoinRoomModal] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'discover'>('overview')
@@ -28,7 +33,93 @@ export const Dashboard = () => {
     maxMembers: undefined
   })
 
-  const user = mockUser
+  // Load user profile and rooms
+  useEffect(() => {
+    const loadData = async () => {
+      if (!authUser) return
+
+      try {
+        // Load user profile
+        const { data: profile } = await getProfile(authUser.id)
+        if (profile) {
+          setUser({
+            id: profile.id,
+            name: profile.full_name || 'User',
+            email: authUser.email || '',
+            avatar: profile.avatar_url || undefined,
+            totalPoints: profile.total_points,
+            rank: profile.rank,
+            achievements: profile.achievements,
+            createdAt: profile.created_at,
+            university: profile.university || undefined,
+            major: profile.major || undefined,
+            year: profile.year || undefined,
+            location: profile.location || undefined,
+            bio: profile.bio || undefined
+          })
+        }
+
+        // Load rooms
+        await loadRooms()
+      } catch (error) {
+        console.error('Error loading dashboard data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [authUser])
+
+  const loadRooms = async () => {
+    try {
+      const { data: roomsData } = await getRooms(filters)
+      if (roomsData) {
+        const formattedRooms: Room[] = roomsData.map((room: RoomData) => ({
+          id: room.id,
+          name: room.name,
+          code: room.code,
+          description: room.description,
+          tags: room.tags,
+          members: room.members?.map(member => ({
+            id: member.user.id,
+            name: member.user.full_name || 'User',
+            email: '',
+            avatar: member.user.avatar_url || undefined,
+            totalPoints: member.user.total_points,
+            rank: member.user.rank,
+            achievements: member.user.achievements,
+            createdAt: member.user.created_at
+          })) || [],
+          adminId: room.admin_id,
+          maxMembers: room.max_members,
+          isPrivate: room.is_private,
+          isActive: room.is_active,
+          createdAt: room.created_at,
+          lastActivity: room.updated_at
+        }))
+        setRooms(formattedRooms)
+      }
+    } catch (error) {
+      console.error('Error loading rooms:', error)
+    }
+  }
+
+  // Reload rooms when filters change
+  useEffect(() => {
+    if (authUser) {
+      loadRooms()
+    }
+  }, [filters, authUser])
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen bg-hero-gradient flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-2 border-primary-500 border-t-transparent"></div>
+      </div>
+    )
+  }
+
   const rankProgress = getRankProgress(user.totalPoints)
   const userRooms = rooms.filter(room => room.members.some(member => member.id === user.id))
   const recentRooms = userRooms.slice(0, 4)
@@ -87,29 +178,42 @@ export const Dashboard = () => {
     }
   ]
 
-  const handleCreateRoom = (roomData: any) => {
-    const newRoom: Room = {
-      ...roomData,
-      members: [user]
+  const handleCreateRoom = async (roomData: any) => {
+    try {
+      const { data } = await createRoom({
+        ...roomData,
+        admin_id: user.id
+      })
+      
+      if (data) {
+        await loadRooms() // Reload rooms
+        setCreateRoomModal(false)
+      }
+    } catch (error) {
+      console.error('Error creating room:', error)
     }
-    setRooms(prev => [newRoom, ...prev])
   }
 
-  const handleJoinRoom = (code: string) => {
-    // Find room by code and add user to members
-    setRooms(prev => prev.map(room => 
-      room.code === code 
-        ? { ...room, members: [...room.members, user] }
-        : room
-    ))
+  const handleJoinRoom = async (code: string) => {
+    try {
+      const { data: room } = await getRoomByCode(code)
+      if (room) {
+        await joinRoom(room.id, user.id)
+        await loadRooms() // Reload rooms
+        setJoinRoomModal(false)
+      }
+    } catch (error) {
+      console.error('Error joining room:', error)
+    }
   }
 
-  const handleJoinRoomById = (roomId: string) => {
-    setRooms(prev => prev.map(room => 
-      room.id === roomId 
-        ? { ...room, members: [...room.members, user] }
-        : room
-    ))
+  const handleJoinRoomById = async (roomId: string) => {
+    try {
+      await joinRoom(roomId, user.id)
+      await loadRooms() // Reload rooms
+    } catch (error) {
+      console.error('Error joining room:', error)
+    }
   }
 
   const handleViewRoom = (roomId: string) => {
@@ -120,12 +224,12 @@ export const Dashboard = () => {
     <div className="min-h-screen bg-hero-gradient">
       <Sidebar />
       
-      <div className="ml-64 p-8">
+      <div className="lg:ml-64 p-4 lg:p-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-white mb-2">
+              <h1 className="text-2xl lg:text-3xl font-bold text-white mb-2">
                 Welcome back, {user.name.split(' ')[0]}!
               </h1>
               <p className="text-dark-300">Ready to continue your learning journey?</p>
@@ -137,6 +241,7 @@ export const Dashboard = () => {
                 onClick={() => setCreateRoomModal(true)}
                 icon={Plus}
                 size="lg"
+                className="flex-1 lg:flex-none"
               >
                 Create Room
               </Button>
@@ -145,6 +250,7 @@ export const Dashboard = () => {
                 variant="outline"
                 icon={UserPlus}
                 size="lg"
+                className="flex-1 lg:flex-none"
               >
                 Join Room
               </Button>
@@ -154,9 +260,9 @@ export const Dashboard = () => {
 
         {/* User Progress Card */}
         <Card className="mb-8 animate-slide-up">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 rounded-full overflow-hidden">
+              <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
                 {user.avatar ? (
                   <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                 ) : (
@@ -173,7 +279,7 @@ export const Dashboard = () => {
               </div>
             </div>
             
-            <div className="flex-1 max-w-md mx-8">
+            <div className="flex-1 max-w-md">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-dark-300">Progress to {rankProgress.next}</span>
                 <span className="text-sm text-primary-400">{Math.round(rankProgress.progress)}%</span>
@@ -201,17 +307,17 @@ export const Dashboard = () => {
         </Card>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
           {stats.map((stat, index) => (
             <Card key={index} className="animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-dark-400 mb-1">{stat.name}</p>
-                  <p className="text-2xl font-bold text-white">{stat.value}</p>
-                  <p className="text-sm text-accent-400">{stat.change}</p>
+                  <p className="text-xs lg:text-sm text-dark-400 mb-1">{stat.name}</p>
+                  <p className="text-lg lg:text-2xl font-bold text-white">{stat.value}</p>
+                  <p className="text-xs lg:text-sm text-accent-400">{stat.change}</p>
                 </div>
-                <div className={`p-3 bg-dark-800 rounded-xl ${stat.color}`}>
-                  <stat.icon className="w-6 h-6" />
+                <div className={`p-2 lg:p-3 bg-dark-800 rounded-xl ${stat.color}`}>
+                  <stat.icon className="w-4 h-4 lg:w-6 lg:h-6" />
                 </div>
               </div>
             </Card>
@@ -219,10 +325,10 @@ export const Dashboard = () => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex space-x-1 mb-6">
+        <div className="flex space-x-1 mb-6 overflow-x-auto">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+            className={`px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
               activeTab === 'overview'
                 ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
                 : 'text-dark-300 hover:text-white hover:bg-dark-800'
@@ -232,7 +338,7 @@ export const Dashboard = () => {
           </button>
           <button
             onClick={() => setActiveTab('discover')}
-            className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+            className={`px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
               activeTab === 'discover'
                 ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
                 : 'text-dark-300 hover:text-white hover:bg-dark-800'
@@ -248,7 +354,7 @@ export const Dashboard = () => {
             {/* Recent Rooms */}
             <div>
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold text-white">Your Study Rooms</h2>
+                <h2 className="text-xl lg:text-2xl font-semibold text-white">Your Study Rooms</h2>
                 {userRooms.length > 4 && (
                   <Button variant="ghost" size="sm">
                     View All ({userRooms.length})
@@ -257,7 +363,7 @@ export const Dashboard = () => {
               </div>
               
               {recentRooms.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
                   {recentRooms.map((room, index) => (
                     <div
                       key={room.id}
@@ -280,7 +386,7 @@ export const Dashboard = () => {
                   <p className="text-dark-300 mb-6">
                     Create your first study room or join an existing one to get started
                   </p>
-                  <div className="flex justify-center gap-3">
+                  <div className="flex flex-col sm:flex-row justify-center gap-3">
                     <Button onClick={() => setCreateRoomModal(true)} icon={Plus}>
                       Create Room
                     </Button>
@@ -294,36 +400,42 @@ export const Dashboard = () => {
 
             {/* Quick Actions Grid */}
             <div>
-              <h2 className="text-2xl font-semibold text-white mb-6">Quick Actions</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <h2 className="text-xl lg:text-2xl font-semibold text-white mb-6">Quick Actions</h2>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <button
                   onClick={() => setCreateRoomModal(true)}
-                  className="p-6 bg-dark-800/50 rounded-lg hover:bg-dark-800/70 transition-colors duration-200 text-center group"
+                  className="p-4 lg:p-6 bg-dark-800/50 rounded-lg hover:bg-dark-800/70 transition-colors duration-200 text-center group"
                 >
-                  <Plus className="w-8 h-8 text-primary-400 mx-auto mb-3 group-hover:scale-110 transition-transform duration-200" />
-                  <p className="text-white font-medium">Create Room</p>
-                  <p className="text-sm text-dark-400">Start a new study session</p>
+                  <Plus className="w-6 lg:w-8 h-6 lg:h-8 text-primary-400 mx-auto mb-3 group-hover:scale-110 transition-transform duration-200" />
+                  <p className="text-white font-medium text-sm lg:text-base">Create Room</p>
+                  <p className="text-xs lg:text-sm text-dark-400">Start a new study session</p>
                 </button>
                 
                 <button
                   onClick={() => setActiveTab('discover')}
-                  className="p-6 bg-dark-800/50 rounded-lg hover:bg-dark-800/70 transition-colors duration-200 text-center group"
+                  className="p-4 lg:p-6 bg-dark-800/50 rounded-lg hover:bg-dark-800/70 transition-colors duration-200 text-center group"
                 >
-                  <Search className="w-8 h-8 text-secondary-400 mx-auto mb-3 group-hover:scale-110 transition-transform duration-200" />
-                  <p className="text-white font-medium">Discover</p>
-                  <p className="text-sm text-dark-400">Find study partners</p>
+                  <Search className="w-6 lg:w-8 h-6 lg:h-8 text-secondary-400 mx-auto mb-3 group-hover:scale-110 transition-transform duration-200" />
+                  <p className="text-white font-medium text-sm lg:text-base">Discover</p>
+                  <p className="text-xs lg:text-sm text-dark-400">Find study partners</p>
                 </button>
                 
-                <button className="p-6 bg-dark-800/50 rounded-lg hover:bg-dark-800/70 transition-colors duration-200 text-center group">
-                  <FileText className="w-8 h-8 text-accent-400 mx-auto mb-3 group-hover:scale-110 transition-transform duration-200" />
-                  <p className="text-white font-medium">My Notes</p>
-                  <p className="text-sm text-dark-400">Access your notes</p>
+                <button 
+                  onClick={() => navigate('/under-development')}
+                  className="p-4 lg:p-6 bg-dark-800/50 rounded-lg hover:bg-dark-800/70 transition-colors duration-200 text-center group"
+                >
+                  <FileText className="w-6 lg:w-8 h-6 lg:h-8 text-accent-400 mx-auto mb-3 group-hover:scale-110 transition-transform duration-200" />
+                  <p className="text-white font-medium text-sm lg:text-base">My Notes</p>
+                  <p className="text-xs lg:text-sm text-dark-400">Access your notes</p>
                 </button>
                 
-                <button className="p-6 bg-dark-800/50 rounded-lg hover:bg-dark-800/70 transition-colors duration-200 text-center group">
-                  <Target className="w-8 h-8 text-primary-400 mx-auto mb-3 group-hover:scale-110 transition-transform duration-200" />
-                  <p className="text-white font-medium">Goals</p>
-                  <p className="text-sm text-dark-400">Track your progress</p>
+                <button 
+                  onClick={() => navigate('/under-development')}
+                  className="p-4 lg:p-6 bg-dark-800/50 rounded-lg hover:bg-dark-800/70 transition-colors duration-200 text-center group"
+                >
+                  <Target className="w-6 lg:w-8 h-6 lg:h-8 text-primary-400 mx-auto mb-3 group-hover:scale-110 transition-transform duration-200" />
+                  <p className="text-white font-medium text-sm lg:text-base">Goals</p>
+                  <p className="text-xs lg:text-sm text-dark-400">Track your progress</p>
                 </button>
               </div>
             </div>
@@ -338,16 +450,16 @@ export const Dashboard = () => {
             {/* Rooms Grid */}
             <div>
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold text-white">
+                <h2 className="text-xl lg:text-2xl font-semibold text-white">
                   Discover Study Rooms
-                  <span className="text-lg text-dark-400 ml-2">
+                  <span className="text-base lg:text-lg text-dark-400 ml-2">
                     ({filteredRooms.length} rooms)
                   </span>
                 </h2>
               </div>
               
               {filteredRooms.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
                   {filteredRooms.map((room, index) => (
                     <div
                       key={room.id}

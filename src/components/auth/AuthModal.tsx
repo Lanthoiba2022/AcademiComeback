@@ -32,12 +32,16 @@ export const AuthModal = ({ isOpen, onClose, mode, onModeChange }: AuthModalProp
           setError('Passwords do not match')
           return
         }
-        const { error } = await signUp(email, password)
+        if (!fullName.trim()) {
+          setError('Full name is required')
+          return
+        }
+        const { error } = await signUp(email, password, fullName)
         if (error) {
           setError(error.message)
         } else {
           onClose()
-          // Show success message or redirect
+          // Show success message
         }
       } else {
         const { error } = await signIn(email, password)
