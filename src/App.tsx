@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { Landing } from './pages/Landing'
 import { Dashboard } from './pages/Dashboard'
 import { Profile } from './pages/Profile'
+import { StudyRoom } from './pages/StudyRoom'
 
 function App() {
   return (
@@ -24,6 +25,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/room/:roomId" 
+            element={
+              <ProtectedRoute>
+                <StudyRoom />
               </ProtectedRoute>
             } 
           />

@@ -13,8 +13,10 @@ import {
 import { mockUser, mockRooms } from '../data/mockData'
 import { getRankProgress, getRankColor } from '../utils/roomUtils'
 import { Room, RoomFilters as RoomFiltersType } from '../types'
+import { useNavigate } from 'react-router-dom'
 
 export const Dashboard = () => {
+  const navigate = useNavigate()
   const [rooms, setRooms] = useState<Room[]>(mockRooms)
   const [createRoomModal, setCreateRoomModal] = useState(false)
   const [joinRoomModal, setJoinRoomModal] = useState(false)
@@ -111,8 +113,7 @@ export const Dashboard = () => {
   }
 
   const handleViewRoom = (roomId: string) => {
-    // Navigate to room details or enter room
-    console.log('Viewing room:', roomId)
+    navigate(`/room/${roomId}`)
   }
 
   return (
