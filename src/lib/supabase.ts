@@ -649,12 +649,10 @@ export const updateFocusSession = async (sessionId: string, focusTime: number, c
 
 // Validate room code in real-time
 export const validateRoomCode = async (code: string) => {
-  const { data, error } = await supabase
-    .from('rooms')
-    .select('id, name, is_private, is_active')
-    .eq('code', code.toUpperCase())
-    .eq('is_active', true)
-    .single()
+  const { data, error } = await supabase.rpc('get_room_details_for_join', { room_code: code })
   
-  return { data, error }
+  // RPC returns an array of results, even if it's a single row, so we take the first element
+  const roomData = data ? data[0] : null
+
+  return { data: roomData, error }
 }
