@@ -76,16 +76,13 @@ export const CreateRoomModal = ({ isOpen, onClose, onCreateRoom }: CreateRoomMod
   const handleSubmit = async () => {
     setLoading(true)
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
       onCreateRoom({
-        ...formData,
-        id: Date.now().toString(),
-        members: [],
-        adminId: '1', // Current user ID
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        lastActivity: new Date().toISOString()
+        name: formData.name,
+        description: formData.description,
+        tags: formData.tags,
+        max_members: formData.maxMembers,
+        is_private: formData.isPrivate
       })
       
       // Reset form
@@ -101,7 +98,10 @@ export const CreateRoomModal = ({ isOpen, onClose, onCreateRoom }: CreateRoomMod
       setErrors({})
       setLoading(false)
       onClose()
-    }, 1000)
+    } catch (error) {
+      console.error('Error creating room:', error)
+      setLoading(false)
+    }
   }
 
   const addTag = (tag: string) => {

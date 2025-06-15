@@ -27,11 +27,14 @@ export const signUp = async (email: string, password: string, fullName: string) 
         full_name: fullName,
         total_points: 0,
         rank: 'Beginner',
-        achievements: []
+        achievements: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
     
     if (profileError) {
       console.error('Error creating profile:', profileError)
+      return { data: null, error: profileError }
     }
   }
   
@@ -84,6 +87,33 @@ export const createProfile = async (userId: string, fullName: string) => {
 }
 
 export const updateProfile = async (userId: string, updates: any) => {
+  // First check if profile exists
+  const { data: existingProfile, error: checkError } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', userId)
+    .single()
+
+  if (checkError || !existingProfile) {
+    // Profile doesn't exist, create it
+    const { data: newProfile, error: createError } = await supabase
+      .from('profiles')
+      .insert({
+        id: userId,
+        ...updates,
+        total_points: 0,
+        rank: 'Beginner',
+        achievements: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single()
+    
+    return { data: newProfile, error: createError }
+  }
+
+  // Profile exists, update it
   const { data, error } = await supabase
     .from('profiles')
     .update({
