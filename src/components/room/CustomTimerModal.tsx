@@ -50,24 +50,24 @@ export const CustomTimerModal = ({ isOpen, onClose, onSetTimer, currentMode }: C
       isOpen={isOpen} 
       onClose={handleClose}
       title="Set Custom Timer"
-      size="lg"
+      size="md"
     >
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Preset Timers */}
         <div>
-          <h3 className="text-lg font-semibold text-white mb-4">Quick Presets</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <h3 className="text-sm font-semibold text-white mb-3">Quick Presets</h3>
+          <div className="grid grid-cols-3 gap-2">
             {presetTimers.map((preset, index) => (
               <button
                 key={index}
                 onClick={() => handlePresetSelect(preset)}
-                className="p-4 bg-dark-800/50 hover:bg-dark-700/50 border border-dark-600 hover:border-dark-500 rounded-lg transition-all duration-200 group"
+                className="p-2 bg-dark-800/50 hover:bg-dark-700/50 border border-dark-600 hover:border-dark-500 rounded-lg transition-all duration-200 group"
               >
-                <div className={`w-8 h-8 mx-auto mb-2 ${preset.color} group-hover:scale-110 transition-transform duration-200`}>
+                <div className={`w-6 h-6 mx-auto mb-1 ${preset.color} group-hover:scale-110 transition-transform duration-200`}>
                   <preset.icon className="w-full h-full" />
                 </div>
                 <div className="text-center">
-                  <p className="text-white font-medium text-sm">{preset.label}</p>
+                  <p className="text-white font-medium text-xs">{preset.label}</p>
                   <p className="text-dark-400 text-xs">{preset.minutes} min</p>
                 </div>
               </button>
@@ -76,13 +76,12 @@ export const CustomTimerModal = ({ isOpen, onClose, onSetTimer, currentMode }: C
         </div>
 
         {/* Custom Timer */}
-        <div className="border-t border-dark-700 pt-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Custom Timer</h3>
-          
-          <form onSubmit={handleCustomSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <h3 className="text-sm font-semibold text-white mb-3">Custom Timer</h3>
+          <form onSubmit={handleCustomSubmit} className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-dark-300 mb-2">
+                <label className="block text-xs font-medium text-dark-300 mb-1">
                   Duration (minutes)
                 </label>
                 <input
@@ -91,19 +90,19 @@ export const CustomTimerModal = ({ isOpen, onClose, onSetTimer, currentMode }: C
                   max="180"
                   value={customMinutes}
                   onChange={(e) => setCustomMinutes(parseInt(e.target.value) || 1)}
-                  className="w-full px-4 py-3 bg-dark-800/50 border border-dark-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-3 py-2 bg-dark-800/50 border border-dark-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                 />
                 <p className="text-xs text-dark-400 mt-1">1-180 minutes</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-dark-300 mb-2">
+                <label className="block text-xs font-medium text-dark-300 mb-1">
                   Timer Type
                 </label>
                 <select
                   value={customMode}
                   onChange={(e) => setCustomMode(e.target.value as 'work' | 'break')}
-                  className="w-full px-4 py-3 bg-dark-800/50 border border-dark-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-3 py-2 bg-dark-800/50 border border-dark-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                 >
                   <option value="work">Focus Session</option>
                   <option value="break">Break Time</option>
@@ -111,41 +110,46 @@ export const CustomTimerModal = ({ isOpen, onClose, onSetTimer, currentMode }: C
               </div>
             </div>
 
-            <Input
-              label="Label (Optional)"
-              placeholder="e.g., Math homework, Reading session"
-              value={customLabel}
-              onChange={(e) => setCustomLabel(e.target.value)}
-              icon={Clock}
-            />
+            <div>
+              <label className="block text-xs font-medium text-dark-300 mb-1">
+                Label (Optional)
+              </label>
+              <Input
+                value={customLabel}
+                onChange={(e) => setCustomLabel(e.target.value)}
+                placeholder="e.g., Math homework, Reading session"
+                className="text-sm"
+              />
+            </div>
 
             {/* Preview */}
-            <div className="bg-dark-800/30 rounded-lg p-4">
-              <div className="flex items-center justify-center space-x-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+            <div className="bg-dark-800/30 rounded-lg p-2">
+              <div className="flex items-center space-x-2">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                   customMode === 'work' ? 'bg-primary-500/20' : 'bg-green-500/20'
                 }`}>
                   {customMode === 'work' ? (
-                    <Timer className={`w-5 h-5 ${customMode === 'work' ? 'text-primary-400' : 'text-green-400'}`} />
+                    <Timer className={`w-4 h-4 ${customMode === 'work' ? 'text-primary-400' : 'text-green-400'}`} />
                   ) : (
-                    <Coffee className="w-5 h-5 text-green-400" />
+                    <Coffee className="w-4 h-4 text-green-400" />
                   )}
                 </div>
-                <div className="text-center">
-                  <p className="text-white font-medium">
+                <div>
+                  <p className="text-white text-sm font-medium">
                     {customLabel || (customMode === 'work' ? 'Focus Session' : 'Break Time')}
                   </p>
-                  <p className="text-dark-300 text-sm">{customMinutes} minutes</p>
+                  <p className="text-dark-300 text-xs">{customMinutes} minutes</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end space-x-3">
-              <Button variant="outline" onClick={handleClose}>
+            <div className="flex justify-end space-x-2 pt-2">
+              <Button variant="outline" size="sm" onClick={handleClose}>
                 Cancel
               </Button>
               <Button 
                 type="submit"
+                size="sm"
                 disabled={customMinutes < 1 || customMinutes > 180}
                 icon={Timer}
               >
