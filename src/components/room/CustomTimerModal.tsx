@@ -7,7 +7,7 @@ import { Timer, Clock, Coffee, BookOpen, Target } from 'lucide-react'
 interface CustomTimerModalProps {
   isOpen: boolean
   onClose: () => void
-  onSetTimer: (minutes: number, mode: 'work' | 'break', label?: string) => void
+  onSetTimer: (minutes: number, mode: 'work' | 'break', label?: string, cycles?: number) => void
   currentMode: 'work' | 'break'
 }
 
@@ -21,28 +21,49 @@ const presetTimers = [
 ]
 
 export const CustomTimerModal = ({ isOpen, onClose, onSetTimer, currentMode }: CustomTimerModalProps) => {
-  const [customMinutes, setCustomMinutes] = useState(25)
+  const [customMinutes, setCustomMinutes] = useState('25')
   const [customMode, setCustomMode] = useState<'work' | 'break'>(currentMode)
   const [customLabel, setCustomLabel] = useState('')
+  const [customCycles, setCustomCycles] = useState(4)
 
   const handlePresetSelect = (preset: typeof presetTimers[0]) => {
-    onSetTimer(preset.minutes, preset.mode, preset.label)
+    const cycles = preset.mode === 'work' ? customCycles : undefined
+    onSetTimer(preset.minutes, preset.mode, preset.label, cycles)
     onClose()
   }
 
   const handleCustomSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (customMinutes > 0 && customMinutes <= 180) {
-      onSetTimer(customMinutes, customMode, customLabel || undefined)
+    const minutes = parseInt(customMinutes)
+    if (minutes > 0 && minutes <= 180) {
+      const cycles = customMode === 'work' ? customCycles : undefined
+      onSetTimer(minutes, customMode, customLabel || undefined, cycles)
       onClose()
     }
   }
 
   const handleClose = () => {
-    setCustomMinutes(25)
+    setCustomMinutes('25')
     setCustomMode(currentMode)
     setCustomLabel('')
+    setCustomCycles(4)
     onClose()
+  }
+
+  const handleMinutesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    // Allow empty input for better UX
+    if (value === '') {
+      setCustomMinutes('')
+      return
+    }
+    // Only allow numbers
+    if (/^\d*$/.test(value)) {
+      const numValue = parseInt(value)
+      if (numValue <= 180) {
+        setCustomMinutes(value)
+      }
+    }
   }
 
   return (
@@ -85,12 +106,12 @@ export const CustomTimerModal = ({ isOpen, onClose, onSetTimer, currentMode }: C
                   Duration (minutes)
                 </label>
                 <input
-                  type="number"
-                  min="1"
-                  max="180"
+                  type="text"
+                  inputMode="numeric"
                   value={customMinutes}
-                  onChange={(e) => setCustomMinutes(parseInt(e.target.value) || 1)}
+                  onChange={handleMinutesChange}
                   className="w-full px-3 py-2 bg-dark-800/50 border border-dark-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+                  placeholder="1-180"
                 />
                 <p className="text-xs text-dark-400 mt-1">1-180 minutes</p>
               </div>
@@ -109,6 +130,25 @@ export const CustomTimerModal = ({ isOpen, onClose, onSetTimer, currentMode }: C
                 </select>
               </div>
             </div>
+
+            {customMode === 'work' && (
+              <div>
+                <label className="block text-xs font-medium text-dark-300 mb-1">
+                  Number of Cycles
+                </label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={customCycles}
+                    onChange={(e) => setCustomCycles(Math.min(10, Math.max(1, parseInt(e.target.value) || 1)))}
+                    className="w-20 px-3 py-2 bg-dark-800/50 border border-dark-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+                  />
+                  <span className="text-xs text-dark-400">cycles (1-10)</span>
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-medium text-dark-300 mb-1">
@@ -138,7 +178,10 @@ export const CustomTimerModal = ({ isOpen, onClose, onSetTimer, currentMode }: C
                   <p className="text-white text-sm font-medium">
                     {customLabel || (customMode === 'work' ? 'Focus Session' : 'Break Time')}
                   </p>
-                  <p className="text-dark-300 text-xs">{customMinutes} minutes</p>
+                  <p className="text-dark-300 text-xs">
+                    {customMinutes} minutes
+                    {customMode === 'work' && ` • ${customCycles} cycles`}
+                  </p>
                 </div>
               </div>
             </div>
@@ -150,7 +193,7 @@ export const CustomTimerModal = ({ isOpen, onClose, onSetTimer, currentMode }: C
               <Button 
                 type="submit"
                 size="sm"
-                disabled={customMinutes < 1 || customMinutes > 180}
+                disabled={!customMinutes || parseInt(customMinutes) < 1 || parseInt(customMinutes) > 180}
                 icon={Timer}
               >
                 Set Timer
