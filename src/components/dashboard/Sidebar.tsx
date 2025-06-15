@@ -10,7 +10,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
-  X
+  X,
+  Trophy,
+  Gift,
+  TrendingUp,
+  Award
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { signOut } from '../../lib/supabase'
@@ -18,6 +22,9 @@ import { signOut } from '../../lib/supabase'
 const navigation = [
   { name: 'Dashboard', icon: Home, href: '/dashboard' },
   { name: 'Study Rooms', icon: Users, href: '/under-development' },
+  { name: 'Achievements', icon: Trophy,  href: '/achievements' },
+  { name: 'Rewards', icon: Gift, href: '/rewards' },
+  { name: 'Leaderboard', icon: TrendingUp, href: '/leaderboard' },
   { name: 'Notes', icon: FileText, href: '/under-development' },
   { name: 'Calendar', icon: Calendar, href: '/under-development' },
   { name: 'Settings', icon: Settings, href: '/under-development' },

@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Card } from '../components/ui/Card'
+import { PointsNotification } from '../components/gamification/PointsNotification'
+import { AchievementUnlock } from '../components/gamification/AchievementUnlock'
 import { 
   Users, Settings, MessageSquare, Plus, Play, Pause, RotateCcw, 
   Clock, CheckCircle, Circle, AlertCircle, Send, Mic, MicOff,
@@ -16,6 +18,7 @@ import { MemberList } from '../components/room/MemberList'
 import { TimerControls } from '../components/room/TimerControls'
 import { RoomHeader } from '../components/room/RoomHeader'
 import { useAuth } from '../contexts/AuthContext'
+import { useGamification } from '../hooks/useGamification'
 import { 
   getRoomById, getTasks, createTask, updateTask, deleteTask,
   getChatMessages, sendChatMessage, subscribeToRoom, updateUserPresence,
@@ -27,6 +30,14 @@ export const StudyRoom = () => {
   const { roomId } = useParams()
   const navigate = useNavigate()
   const { user: authUser } = useAuth()
+  const {
+    awardTaskCompletion,
+    awardHelpGiven,
+    pendingNotification,
+    pendingAchievement,
+    clearNotification,
+    clearAchievement
+  } = useGamification()
   
   // State management
   const [room, setRoom] = useState<Room | null>(null)
@@ -457,6 +468,11 @@ export const StudyRoom = () => {
         const task = tasks.find(t => t.id === taskId)
         const assignee = room.members.find(m => m.id === task?.assigneeId)
         addSystemMessage(`${assignee?.name || 'Someone'} marked "${task?.title}" as ${updates.status}`)
+        
+        // Award points for task completion
+        if (updates.status === 'completed' && task && assignee?.id === currentUser.id) {
+          awardTaskCompletion(task.duration)
+        }
       }
       
       console.log('✅ Task updated successfully')
@@ -769,6 +785,20 @@ export const StudyRoom = () => {
           userTodayFocusTime={userTodayFocusTime}
         />
       </div>
+
+      {/* Gamification Notifications */}
+      <PointsNotification
+        points={pendingNotification?.points || 0}
+        reason={pendingNotification?.reason || ''}
+        isVisible={!!pendingNotification}
+        onComplete={clearNotification}
+      />
+
+      <AchievementUnlock
+        achievement={pendingAchievement}
+        isOpen={!!pendingAchievement}
+        onClose={clearAchievement}
+      />
     </div>
   )
 }

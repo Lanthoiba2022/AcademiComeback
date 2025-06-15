@@ -7,11 +7,15 @@ import { RoomCard } from '../components/rooms/RoomCard'
 import { CreateRoomModal } from '../components/rooms/CreateRoomModal'
 import { JoinRoomModal } from '../components/rooms/JoinRoomModal'
 import { RoomFilters } from '../components/rooms/RoomFilters'
+import { PointsNotification } from '../components/gamification/PointsNotification'
+import { RankProgress } from '../components/gamification/RankProgress'
+import { AchievementUnlock } from '../components/gamification/AchievementUnlock'
 import { 
   Users, FileText, Calendar, TrendingUp, Clock, Star, Plus, UserPlus, 
-  Search, Trophy, Target, Zap, BookOpen 
+  Search, Trophy, Target, Zap, BookOpen, Award, Flame
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { useGamification } from '../hooks/useGamification'
 import { 
   getRooms, getProfile, createRoom, joinRoomWithCode, createProfile,
   getUserStudyStats, subscribeToRooms, subscribeToUserStats
@@ -22,6 +26,16 @@ import { Room, RoomFilters as RoomFiltersType, User, RoomData, Profile } from '.
 export const Dashboard = () => {
   const navigate = useNavigate()
   const { user: authUser } = useAuth()
+  const {
+    stats: gamificationStats,
+    achievements,
+    pendingNotification,
+    pendingAchievement,
+    awardTaskCompletion,
+    awardDailyStreak,
+    clearNotification,
+    clearAchievement
+  } = useGamification()
   
   const [user, setUser] = useState<User | null>(null)
   const [rooms, setRooms] = useState<Room[]>([])
@@ -312,8 +326,8 @@ export const Dashboard = () => {
     },
     {
       name: 'Total Points',
-      value: user.totalPoints.toLocaleString(),
-      change: `${rankProgress.current} rank`,
+      value: gamificationStats?.totalPoints.toLocaleString() || '0',
+      change: `${gamificationStats?.currentRank.name || 'Beginner'} rank`,
       icon: Trophy,
       color: 'text-secondary-400'
     },
@@ -328,7 +342,7 @@ export const Dashboard = () => {
       name: 'Study Streak',
       value: `${studyStats.currentStreakDays}d`,
       change: studyStats.currentStreakDays > 0 ? 'Keep it up!' : 'Start today!',
-      icon: Star,
+      icon: Flame,
       color: 'text-primary-400'
     }
   ]
@@ -429,53 +443,18 @@ export const Dashboard = () => {
           </div>
         </div>
 
-        {/* User Progress Card */}
-        <Card className="mb-8 animate-slide-up">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
-                {user.avatar ? (
-                  <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-primary-500 flex items-center justify-center text-white text-xl font-bold">
-                    {user.name.charAt(0)}
-                  </div>
-                )}
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-white">{user.name}</h3>
-                <p className={`text-sm font-medium ${getRankColor(user.rank)}`}>
-                  {user.rank} • {user.totalPoints.toLocaleString()} points
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex-1 max-w-md">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-dark-300">Progress to {rankProgress.next}</span>
-                <span className="text-sm text-primary-400">{Math.round(rankProgress.progress)}%</span>
-              </div>
-              <div className="w-full bg-dark-700 rounded-full h-2">
-                <div 
-                  className="bg-gradient-to-r from-primary-500 to-secondary-500 h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${rankProgress.progress}%` }}
-                />
-              </div>
-            </div>
-            
-            <div className="flex gap-2">
-              {user.achievements.slice(0, 3).map((achievement, index) => (
-                <div
-                  key={achievement}
-                  className="w-8 h-8 bg-accent-500/20 rounded-full flex items-center justify-center"
-                  title={achievement}
-                >
-                  <Star className="w-4 h-4 text-accent-400" />
-                </div>
-              ))}
-            </div>
+        {/* Gamification Section */}
+        {gamificationStats && (
+          <div className="mb-8">
+            <RankProgress
+              currentRank={gamificationStats.currentRank}
+              nextRank={gamificationStats.nextRank}
+              currentPoints={gamificationStats.totalPoints}
+              progressPercentage={gamificationStats.progressToNextRank}
+              showDetails={false}
+            />
           </div>
-        </Card>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
@@ -494,6 +473,32 @@ export const Dashboard = () => {
             </Card>
           ))}
         </div>
+
+        {/* Recent Achievements */}
+        {gamificationStats && gamificationStats.achievements.length > 0 && (
+          <Card className="mb-8 animate-slide-up">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">Recent Achievements</h3>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/achievements')}>
+                View All
+              </Button>
+            </div>
+            <div className="flex space-x-4 overflow-x-auto pb-2">
+              {gamificationStats.achievements.slice(0, 5).map((achievement, index) => (
+                <div
+                  key={achievement.id}
+                  className="flex-shrink-0 text-center p-3 bg-dark-800/50 rounded-lg"
+                >
+                  <div className="w-12 h-12 bg-gradient-to-br from-accent-500 to-primary-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <Award className="w-6 h-6 text-white" />
+                  </div>
+                  <p className="text-sm font-medium text-white">{achievement.name}</p>
+                  <p className="text-xs text-accent-400">+{achievement.points} pts</p>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {/* Tab Navigation */}
         <div className="flex space-x-1 mb-6 overflow-x-auto">
@@ -674,6 +679,20 @@ export const Dashboard = () => {
         isOpen={joinRoomModal}
         onClose={() => setJoinRoomModal(false)}
         onJoinRoom={handleJoinRoom}
+      />
+
+      {/* Gamification Notifications */}
+      <PointsNotification
+        points={pendingNotification?.points || 0}
+        reason={pendingNotification?.reason || ''}
+        isVisible={!!pendingNotification}
+        onComplete={clearNotification}
+      />
+
+      <AchievementUnlock
+        achievement={pendingAchievement}
+        isOpen={!!pendingAchievement}
+        onClose={clearAchievement}
       />
     </div>
   )
