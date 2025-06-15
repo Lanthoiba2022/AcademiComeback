@@ -6,11 +6,15 @@ import { Dashboard } from './pages/Dashboard'
 import { Profile } from './pages/Profile'
 import { StudyRoom } from './pages/StudyRoom'
 import { QuizPage } from './pages/QuizPage'
+import { AnalyticsPage } from './pages/AnalyticsPage'
+import { CalendarPage } from './pages/CalendarPage'
+import { FilesPage } from './pages/FilesPage'
 import { UnderDevelopment } from './pages/UnderDevelopment'
 import { AchievementsList } from './components/gamification/AchievementsList'
 import { RewardsMarketplace } from './components/gamification/RewardsMarketplace'
 import { Leaderboard } from './components/gamification/Leaderboard'
 import { Sidebar } from './components/dashboard/Sidebar'
+import { ToastContainer } from './components/ui/Toast'
 import { useGamification } from './hooks/useGamification'
 
 // Gamification Pages
@@ -102,6 +106,30 @@ function App() {
             } 
           />
           <Route 
+            path="/analytics" 
+            element={
+              <ProtectedRoute>
+                <AnalyticsPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/calendar" 
+            element={
+              <ProtectedRoute>
+                <CalendarPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/files" 
+            element={
+              <ProtectedRoute>
+                <FilesPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
             path="/achievements" 
             element={
               <ProtectedRoute>
@@ -135,6 +163,7 @@ function App() {
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <ToastContainer />
       </Router>
     </AuthProvider>
   )

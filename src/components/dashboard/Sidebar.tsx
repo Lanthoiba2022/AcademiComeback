@@ -15,7 +15,9 @@ import {
   Gift,
   TrendingUp,
   Award,
-  Brain
+  Brain,
+  BarChart3,
+  FolderOpen
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { signOut } from '../../lib/supabase'
@@ -24,11 +26,13 @@ const navigation = [
   { name: 'Dashboard', icon: Home, href: '/dashboard' },
   { name: 'Study Rooms', icon: Users, href: '/under-development' },
   { name: 'Quiz Center', icon: Brain, href: '/quiz' },
+  { name: 'Analytics', icon: BarChart3, href: '/analytics' },
+  { name: 'Calendar', icon: Calendar, href: '/calendar' },
+  { name: 'Files', icon: FolderOpen, href: '/files' },
   { name: 'Achievements', icon: Trophy,  href: '/achievements' },
   { name: 'Rewards', icon: Gift, href: '/rewards' },
   { name: 'Leaderboard', icon: TrendingUp, href: '/leaderboard' },
   { name: 'Notes', icon: FileText, href: '/under-development' },
-  { name: 'Calendar', icon: Calendar, href: '/under-development' },
   { name: 'Settings', icon: Settings, href: '/under-development' },
 ]
 
@@ -91,7 +95,7 @@ export const Sidebar = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4">
+        <nav className="flex-1 p-4 overflow-y-auto">
           <ul className="space-y-2">
             {navigation.map((item) => (
               <li key={item.name}>
