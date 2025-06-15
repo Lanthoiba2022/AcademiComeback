@@ -562,41 +562,70 @@ export const sendChatMessage = async (messageData: any) => {
   return { data, error }
 }
 
-// Real-time subscriptions
+// Real-time subscriptions with improved error handling and logging
 export const subscribeToRooms = (callback: (payload: any) => void) => {
   return supabase
     .channel('public:rooms')
     .on('postgres_changes',
       { event: '*', schema: 'public', table: 'rooms' },
-      callback
+      (payload) => {
+        console.log('Rooms table change:', payload)
+        callback(payload)
+      }
     )
     .on('postgres_changes',
       { event: '*', schema: 'public', table: 'room_members' },
-      callback
+      (payload) => {
+        console.log('Room members table change:', payload)
+        callback(payload)
+      }
     )
-    .subscribe()
+    .subscribe((status) => {
+      console.log('Rooms subscription status:', status)
+    })
 }
 
 export const subscribeToRoom = (roomId: string, callback: (payload: any) => void) => {
-  return supabase
+  const channel = supabase
     .channel(`room:${roomId}`)
     .on('postgres_changes', 
       { event: '*', schema: 'public', table: 'tasks', filter: `room_id=eq.${roomId}` },
-      callback
+      (payload) => {
+        console.log('Tasks change in room:', roomId, payload)
+        callback({ ...payload, table: 'tasks' })
+      }
     )
     .on('postgres_changes',
       { event: '*', schema: 'public', table: 'chat_messages', filter: `room_id=eq.${roomId}` },
-      callback
+      (payload) => {
+        console.log('Chat messages change in room:', roomId, payload)
+        callback({ ...payload, table: 'chat_messages' })
+      }
     )
     .on('postgres_changes',
       { event: '*', schema: 'public', table: 'room_members', filter: `room_id=eq.${roomId}` },
-      callback
+      (payload) => {
+        console.log('Room members change in room:', roomId, payload)
+        callback({ ...payload, table: 'room_members' })
+      }
     )
     .on('postgres_changes',
       { event: '*', schema: 'public', table: 'study_sessions', filter: `room_id=eq.${roomId}` },
-      callback
+      (payload) => {
+        console.log('Study sessions change in room:', roomId, payload)
+        callback({ ...payload, table: 'study_sessions' })
+      }
     )
-    .subscribe()
+    .subscribe((status) => {
+      console.log(`Room ${roomId} subscription status:`, status)
+      if (status === 'SUBSCRIBED') {
+        console.log(`Successfully subscribed to room ${roomId} real-time updates`)
+      } else if (status === 'CHANNEL_ERROR') {
+        console.error(`Failed to subscribe to room ${roomId} real-time updates`)
+      }
+    })
+
+  return channel
 }
 
 export const subscribeToUserStats = (userId: string, callback: (payload: any) => void) => {
@@ -604,13 +633,21 @@ export const subscribeToUserStats = (userId: string, callback: (payload: any) =>
     .channel(`user:${userId}`)
     .on('postgres_changes',
       { event: '*', schema: 'public', table: 'study_sessions', filter: `user_id=eq.${userId}` },
-      callback
+      (payload) => {
+        console.log('User study sessions change:', payload)
+        callback({ ...payload, table: 'study_sessions' })
+      }
     )
     .on('postgres_changes',
       { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` },
-      callback
+      (payload) => {
+        console.log('User profile change:', payload)
+        callback({ ...payload, table: 'profiles' })
+      }
     )
-    .subscribe()
+    .subscribe((status) => {
+      console.log(`User ${userId} stats subscription status:`, status)
+    })
 }
 
 export const updateUserPresence = async (roomId: string, userId: string, isOnline: boolean) => {

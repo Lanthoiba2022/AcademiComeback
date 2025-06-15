@@ -67,6 +67,56 @@ export const StudyRoom = () => {
   const sessionStartTime = useRef<Date | null>(null)
   const currentSessionId = useRef<string | null>(null)
 
+  // Helper function to reload chat messages with user data
+  const reloadChatMessages = async () => {
+    if (!roomId) return
+    
+    try {
+      const { data: messagesData } = await getChatMessages(roomId)
+      if (messagesData) {
+        const transformedMessages: ChatMessage[] = messagesData.map(msg => ({
+          id: msg.id,
+          userId: msg.user_id,
+          userName: msg.user?.full_name || 'User',
+          userAvatar: msg.user?.avatar_url || undefined,
+          message: msg.message,
+          timestamp: msg.created_at,
+          type: msg.message_type,
+          roomId: msg.room_id
+        }))
+        setMessages(transformedMessages)
+      }
+    } catch (error) {
+      console.error('Error reloading chat messages:', error)
+    }
+  }
+
+  // Helper function to reload tasks with user data
+  const reloadTasks = async () => {
+    if (!roomId) return
+    
+    try {
+      const { data: tasksData } = await getTasks(roomId)
+      if (tasksData) {
+        const transformedTasks: Task[] = tasksData.map(task => ({
+          id: task.id,
+          title: task.title,
+          description: task.description,
+          duration: task.duration,
+          assigneeId: task.assignee_id,
+          status: task.status,
+          createdAt: task.created_at,
+          order: task.order_index,
+          roomId: task.room_id,
+          createdBy: task.created_by
+        }))
+        setTasks(transformedTasks)
+      }
+    } catch (error) {
+      console.error('Error reloading tasks:', error)
+    }
+  }
+
   // Load room data and setup real-time subscriptions
   useEffect(() => {
     if (!roomId || !authUser) return
@@ -124,38 +174,10 @@ export const StudyRoom = () => {
         setRoom(transformedRoom)
 
         // Load tasks
-        const { data: tasksData } = await getTasks(roomId)
-        if (tasksData) {
-          const transformedTasks: Task[] = tasksData.map(task => ({
-            id: task.id,
-            title: task.title,
-            description: task.description,
-            duration: task.duration,
-            assigneeId: task.assignee_id,
-            status: task.status,
-            createdAt: task.created_at,
-            order: task.order_index,
-            roomId: task.room_id,
-            createdBy: task.created_by
-          }))
-          setTasks(transformedTasks)
-        }
+        await reloadTasks()
 
         // Load chat messages
-        const { data: messagesData } = await getChatMessages(roomId)
-        if (messagesData) {
-          const transformedMessages: ChatMessage[] = messagesData.map(msg => ({
-            id: msg.id,
-            userId: msg.user_id,
-            userName: msg.user?.full_name || 'User',
-            userAvatar: msg.user?.avatar_url || undefined,
-            message: msg.message,
-            timestamp: msg.created_at,
-            type: msg.message_type,
-            roomId: msg.room_id
-          }))
-          setMessages(transformedMessages)
-        }
+        await reloadChatMessages()
 
         // Load room total study time
         const { data: totalTime } = await getRoomTotalStudyTime(roomId)
@@ -185,52 +207,42 @@ export const StudyRoom = () => {
 
     // Setup real-time subscription
     subscriptionRef.current = subscribeToRoom(roomId, (payload) => {
-      console.log('Real-time update:', payload)
+      console.log('Real-time update received:', payload)
       
       if (payload.table === 'tasks') {
+        console.log('Task update:', payload.eventType, payload)
+        
         if (payload.eventType === 'INSERT') {
-          const newTask: Task = {
-            id: payload.new.id,
-            title: payload.new.title,
-            description: payload.new.description,
-            duration: payload.new.duration,
-            assigneeId: payload.new.assignee_id,
-            status: payload.new.status,
-            createdAt: payload.new.created_at,
-            order: payload.new.order_index,
-            roomId: payload.new.room_id,
-            createdBy: payload.new.created_by
-          }
-          setTasks(prev => [...prev, newTask])
+          // Reload tasks to get complete data with user relationships
+          reloadTasks()
         } else if (payload.eventType === 'UPDATE') {
+          // Update the specific task
           setTasks(prev => prev.map(task => 
             task.id === payload.new.id 
-              ? { ...task, ...payload.new, order: payload.new.order_index }
+              ? { 
+                  ...task, 
+                  title: payload.new.title,
+                  description: payload.new.description,
+                  duration: payload.new.duration,
+                  status: payload.new.status,
+                  order: payload.new.order_index,
+                  assigneeId: payload.new.assignee_id
+                }
               : task
           ))
         } else if (payload.eventType === 'DELETE') {
           setTasks(prev => prev.filter(task => task.id !== payload.old.id))
         }
       } else if (payload.table === 'chat_messages') {
+        console.log('Chat message update:', payload.eventType, payload)
+        
         if (payload.eventType === 'INSERT') {
           // Reload messages to get user data
-          getChatMessages(roomId).then(({ data: messagesData }) => {
-            if (messagesData) {
-              const transformedMessages: ChatMessage[] = messagesData.map(msg => ({
-                id: msg.id,
-                userId: msg.user_id,
-                userName: msg.user?.full_name || 'User',
-                userAvatar: msg.user?.avatar_url || undefined,
-                message: msg.message,
-                timestamp: msg.created_at,
-                type: msg.message_type,
-                roomId: msg.room_id
-              }))
-              setMessages(transformedMessages)
-            }
-          })
+          reloadChatMessages()
         }
       } else if (payload.table === 'study_sessions') {
+        console.log('Study session update:', payload.eventType, payload)
+        
         // Update room total study time when sessions change
         getRoomTotalStudyTime(roomId).then(({ data: totalTime }) => {
           if (totalTime) {
@@ -246,6 +258,38 @@ export const StudyRoom = () => {
             }
           })
         }
+      } else if (payload.table === 'room_members') {
+        console.log('Room member update:', payload.eventType, payload)
+        
+        // Reload room data to get updated member list
+        getRoomById(roomId).then(({ data: roomData }) => {
+          if (roomData) {
+            const transformedRoom: Room = {
+              id: roomData.id,
+              name: roomData.name,
+              code: roomData.code,
+              description: roomData.description,
+              tags: roomData.tags,
+              members: roomData.members?.map(member => ({
+                id: member.user?.id || '',
+                name: member.user?.full_name || 'User',
+                email: '',
+                avatar: member.user?.avatar_url || undefined,
+                totalPoints: member.user?.total_points || 0,
+                rank: member.user?.rank || 'Beginner',
+                achievements: member.user?.achievements || [],
+                createdAt: member.user?.created_at || new Date().toISOString()
+              })) || [],
+              adminId: roomData.admin_id,
+              maxMembers: roomData.max_members,
+              isPrivate: roomData.is_private,
+              isActive: roomData.is_active,
+              createdAt: roomData.created_at,
+              lastActivity: roomData.updated_at
+            }
+            setRoom(transformedRoom)
+          }
+        })
       }
     })
 
