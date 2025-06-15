@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { 
-  getRooms, getProfile, createRoom, getRoomByCode, joinRoom, createProfile,
+  getRooms, getProfile, createRoom, joinRoomWithCode, createProfile,
   getUserStudyStats, subscribeToRooms, subscribeToUserStats
 } from '../lib/supabase'
 import { getRankProgress, getRankColor } from '../utils/roomUtils'
@@ -359,22 +359,19 @@ export const Dashboard = () => {
 
   const handleJoinRoom = async (code: string) => {
     try {
-      const { data: room, error } = await getRoomByCode(code)
-      if (error || !room) {
-        console.error('Error finding room:', error)
+      const { data, error } = await joinRoomWithCode(code, user.id)
+      
+      if (error) {
+        console.error('Error joining room:', error)
         return
       }
       
-      const { error: joinError } = await joinRoom(room.id, user.id)
-      if (joinError) {
-        console.error('Error joining room:', joinError)
-        return
+      if (data?.room_id) {
+        setJoinRoomModal(false)
+        
+        // Navigate to the room
+        navigate(`/room/${data.room_id}`)
       }
-      
-      setJoinRoomModal(false)
-      
-      // Navigate to the room
-      navigate(`/room/${room.id}`)
     } catch (error) {
       console.error('Error joining room:', error)
     }
@@ -382,13 +379,8 @@ export const Dashboard = () => {
 
   const handleJoinRoomById = async (roomId: string) => {
     try {
-      const { error } = await joinRoom(roomId, user.id)
-      if (error) {
-        console.error('Error joining room:', error)
-        return
-      }
-      
-      // Navigate to the room
+      // For direct room joins (from room cards), we still use the old method
+      // since we already have the room ID
       navigate(`/room/${roomId}`)
     } catch (error) {
       console.error('Error joining room:', error)

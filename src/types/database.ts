@@ -243,6 +243,39 @@ export interface Database {
         }
         Returns: number
       }
+      get_room_details_for_join: {
+        Args: {
+          room_code: string
+        }
+        Returns: {
+          id: string
+          name: string
+          description: string
+          is_private: boolean
+          is_active: boolean
+          member_count: number
+          max_members: number
+          can_join: boolean
+        }[]
+      }
+      join_room_with_code: {
+        Args: {
+          room_code: string
+          user_uuid: string
+        }
+        Returns: {
+          success: boolean
+          room_id: string
+          message: string
+        }[]
+      }
+      can_join_room_with_code: {
+        Args: {
+          room_code: string
+          user_uuid: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Modal } from '../ui/Modal'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
-import { UserPlus, Hash, CheckCircle, AlertCircle, Loader } from 'lucide-react'
+import { UserPlus, Hash, CheckCircle, AlertCircle, Loader, Lock, Users } from 'lucide-react'
 import { validateRoomCode } from '../../lib/supabase'
 
 interface JoinRoomModalProps {
@@ -31,6 +31,15 @@ export const JoinRoomModal = ({ isOpen, onClose, onJoinRoom }: JoinRoomModalProp
           
           if (error || !data) {
             setError('Room not found. Please check the code and try again.')
+            setValidRoom(null)
+          } else if (!data.can_join) {
+            if (!data.is_active) {
+              setError('This room is not currently active.')
+            } else if (data.member_count >= data.max_members) {
+              setError('This room is full.')
+            } else {
+              setError('Unable to join this room.')
+            }
             setValidRoom(null)
           } else {
             setValidRoom(data)
@@ -166,14 +175,24 @@ export const JoinRoomModal = ({ isOpen, onClose, onJoinRoom }: JoinRoomModalProp
 
           {/* Status Messages */}
           {validRoom && (
-            <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-              <div className="flex items-center gap-2 text-green-400 text-sm">
+            <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+              <div className="flex items-center gap-2 text-green-400 text-sm mb-2">
                 <CheckCircle className="w-4 h-4" />
                 <span>Found room: <strong>{validRoom.name}</strong></span>
               </div>
-              {validRoom.is_private && (
-                <p className="text-xs text-green-300 mt-1">This is a private room</p>
-              )}
+              <div className="space-y-1 text-xs text-green-300">
+                {validRoom.is_private && (
+                  <div className="flex items-center gap-1">
+                    <Lock className="w-3 h-3" />
+                    <span>Private room</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1">
+                  <Users className="w-3 h-3" />
+                  <span>{validRoom.member_count}/{validRoom.max_members} members</span>
+                </div>
+                <p className="text-green-200 mt-2">{validRoom.description}</p>
+              </div>
             </div>
           )}
 
@@ -199,6 +218,7 @@ export const JoinRoomModal = ({ isOpen, onClose, onJoinRoom }: JoinRoomModalProp
             <li>• Ask the room admin to share the code</li>
             <li>• Check your email for room invitations</li>
             <li>• Browse public rooms in the Discover section</li>
+            <li>• Private rooms require the 6-character code to join</li>
           </ul>
         </div>
 

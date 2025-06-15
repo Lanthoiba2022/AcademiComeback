@@ -430,19 +430,8 @@ export const getRoomByCode = async (code: string) => {
   return { data: roomWithMembers, error: null }
 }
 
+// Updated join room function using the new database function
 export const joinRoom = async (roomId: string, userId: string) => {
-  // Check if user is already a member
-  const { data: existingMember } = await supabase
-    .from('room_members')
-    .select('id')
-    .eq('room_id', roomId)
-    .eq('user_id', userId)
-    .single()
-  
-  if (existingMember) {
-    return { data: existingMember, error: null }
-  }
-  
   const { data, error } = await supabase
     .from('room_members')
     .insert({
@@ -454,6 +443,33 @@ export const joinRoom = async (roomId: string, userId: string) => {
     .single()
   
   return { data, error }
+}
+
+// New function to join room with code validation
+export const joinRoomWithCode = async (code: string, userId: string) => {
+  const { data, error } = await supabase.rpc('join_room_with_code', {
+    room_code: code.toUpperCase(),
+    user_uuid: userId
+  })
+  
+  if (error) {
+    return { data: null, error }
+  }
+  
+  // The function returns an array, get the first result
+  const result = data?.[0]
+  
+  if (!result?.success) {
+    return { 
+      data: null, 
+      error: { message: result?.message || 'Failed to join room' }
+    }
+  }
+  
+  return { 
+    data: { room_id: result.room_id }, 
+    error: null 
+  }
 }
 
 export const leaveRoom = async (roomId: string, userId: string) => {
@@ -649,7 +665,9 @@ export const updateFocusSession = async (sessionId: string, focusTime: number, c
 
 // Validate room code in real-time
 export const validateRoomCode = async (code: string) => {
-  const { data, error } = await supabase.rpc('get_room_details_for_join', { room_code: code })
+  const { data, error } = await supabase.rpc('get_room_details_for_join', { 
+    room_code: code.toUpperCase() 
+  })
   
   // RPC returns an array of results, even if it's a single row, so we take the first element
   const roomData = data ? data[0] : null
