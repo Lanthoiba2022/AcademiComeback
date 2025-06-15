@@ -85,6 +85,7 @@ export const StudyRoom = () => {
           roomId: msg.room_id
         }))
         setMessages(transformedMessages)
+        console.log('✅ Chat messages reloaded:', transformedMessages.length, 'messages')
       }
     } catch (error) {
       console.error('Error reloading chat messages:', error)
@@ -111,9 +112,53 @@ export const StudyRoom = () => {
           createdBy: task.created_by
         }))
         setTasks(transformedTasks)
+        console.log('✅ Tasks reloaded:', transformedTasks.length, 'tasks')
       }
     } catch (error) {
       console.error('Error reloading tasks:', error)
+    }
+  }
+
+  // Helper function to reload room data
+  const reloadRoomData = async () => {
+    if (!roomId) return
+    
+    try {
+      const { data: roomData, error: roomError } = await getRoomById(roomId)
+      if (roomError || !roomData) {
+        console.error('Error loading room:', roomError)
+        return
+      }
+
+      // Transform room data to match expected format
+      const transformedRoom: Room = {
+        id: roomData.id,
+        name: roomData.name,
+        code: roomData.code,
+        description: roomData.description,
+        tags: roomData.tags,
+        members: roomData.members?.map(member => ({
+          id: member.user?.id || '',
+          name: member.user?.full_name || 'User',
+          email: '',
+          avatar: member.user?.avatar_url || undefined,
+          totalPoints: member.user?.total_points || 0,
+          rank: member.user?.rank || 'Beginner',
+          achievements: member.user?.achievements || [],
+          createdAt: member.user?.created_at || new Date().toISOString()
+        })) || [],
+        adminId: roomData.admin_id,
+        maxMembers: roomData.max_members,
+        isPrivate: roomData.is_private,
+        isActive: roomData.is_active,
+        createdAt: roomData.created_at,
+        lastActivity: roomData.updated_at
+      }
+
+      setRoom(transformedRoom)
+      console.log('✅ Room data reloaded:', transformedRoom.name)
+    } catch (error) {
+      console.error('Error reloading room data:', error)
     }
   }
 
@@ -123,6 +168,8 @@ export const StudyRoom = () => {
 
     const loadRoomData = async () => {
       try {
+        console.log('🔄 Loading room data for room:', roomId)
+        
         // Load current user profile
         const { data: profile } = await getProfile(authUser.id)
         if (profile) {
@@ -139,39 +186,7 @@ export const StudyRoom = () => {
         }
 
         // Load room data
-        const { data: roomData, error: roomError } = await getRoomById(roomId)
-        if (roomError || !roomData) {
-          console.error('Error loading room:', roomError)
-          navigate('/dashboard')
-          return
-        }
-
-        // Transform room data to match expected format
-        const transformedRoom: Room = {
-          id: roomData.id,
-          name: roomData.name,
-          code: roomData.code,
-          description: roomData.description,
-          tags: roomData.tags,
-          members: roomData.members?.map(member => ({
-            id: member.user?.id || '',
-            name: member.user?.full_name || 'User',
-            email: '',
-            avatar: member.user?.avatar_url || undefined,
-            totalPoints: member.user?.total_points || 0,
-            rank: member.user?.rank || 'Beginner',
-            achievements: member.user?.achievements || [],
-            createdAt: member.user?.created_at || new Date().toISOString()
-          })) || [],
-          adminId: roomData.admin_id,
-          maxMembers: roomData.max_members,
-          isPrivate: roomData.is_private,
-          isActive: roomData.is_active,
-          createdAt: roomData.created_at,
-          lastActivity: roomData.updated_at
-        }
-
-        setRoom(transformedRoom)
+        await reloadRoomData()
 
         // Load tasks
         await reloadTasks()
@@ -197,6 +212,7 @@ export const StudyRoom = () => {
         }
 
         setLoading(false)
+        console.log('✅ Room data loaded successfully')
       } catch (error) {
         console.error('Error loading room data:', error)
         navigate('/dashboard')
@@ -205,50 +221,75 @@ export const StudyRoom = () => {
 
     loadRoomData()
 
-    // Setup real-time subscription
-    subscriptionRef.current = subscribeToRoom(roomId, (payload) => {
-      console.log('Real-time update received:', payload)
-      
-      if (payload.table === 'tasks') {
-        console.log('Task update:', payload.eventType, payload)
+    // Setup enhanced real-time subscription with specific callbacks
+    console.log('🔗 Setting up real-time subscriptions...')
+    subscriptionRef.current = subscribeToRoom(roomId, {
+      onTaskChange: (payload) => {
+        console.log('📝 Task change received:', payload.eventType, payload.new?.title || payload.old?.title)
         
-        if (payload.eventType === 'INSERT') {
-          // Reload tasks to get complete data with user relationships
-          reloadTasks()
-        } else if (payload.eventType === 'UPDATE') {
-          // Update the specific task
+        if (payload.eventType === 'INSERT' && payload.new) {
+          // Add new task immediately
+          const newTask: Task = {
+            id: payload.new.id,
+            title: payload.new.title,
+            description: payload.new.description || '',
+            duration: payload.new.duration || 30,
+            assigneeId: payload.new.assignee_id,
+            status: payload.new.status || 'pending',
+            createdAt: payload.new.created_at,
+            order: payload.new.order_index || 0,
+            roomId: payload.new.room_id,
+            createdBy: payload.new.created_by
+          }
+          setTasks(prev => [...prev, newTask])
+        } else if (payload.eventType === 'UPDATE' && payload.new) {
+          // Update existing task immediately
           setTasks(prev => prev.map(task => 
             task.id === payload.new.id 
               ? { 
                   ...task, 
                   title: payload.new.title,
-                  description: payload.new.description,
-                  duration: payload.new.duration,
-                  status: payload.new.status,
-                  order: payload.new.order_index,
-                  assigneeId: payload.new.assignee_id
+                  description: payload.new.description || task.description,
+                  duration: payload.new.duration || task.duration,
+                  status: payload.new.status || task.status,
+                  order: payload.new.order_index || task.order,
+                  assigneeId: payload.new.assignee_id || task.assigneeId
                 }
               : task
           ))
-        } else if (payload.eventType === 'DELETE') {
+        } else if (payload.eventType === 'DELETE' && payload.old) {
+          // Remove deleted task immediately
           setTasks(prev => prev.filter(task => task.id !== payload.old.id))
         }
-      } else if (payload.table === 'chat_messages') {
-        console.log('Chat message update:', payload.eventType, payload)
+      },
+      
+      onChatMessage: (payload) => {
+        console.log('💬 Chat message received:', payload.eventType, payload.new?.message?.substring(0, 50))
         
-        if (payload.eventType === 'INSERT') {
-          // Reload messages to get user data
+        if (payload.eventType === 'INSERT' && payload.new) {
+          // Add new message immediately (we'll reload to get user data)
           reloadChatMessages()
         }
-      } else if (payload.table === 'study_sessions') {
-        console.log('Study session update:', payload.eventType, payload)
+      },
+      
+      onMemberChange: (payload) => {
+        console.log('👥 Member change received:', payload.eventType)
+        
+        // Reload room data to get updated member list
+        reloadRoomData()
+      },
+      
+      onStudySessionChange: (payload) => {
+        console.log('⏱️ Study session change received:', payload.eventType)
         
         // Update room total study time when sessions change
-        getRoomTotalStudyTime(roomId).then(({ data: totalTime }) => {
-          if (totalTime) {
-            setRoomTotalStudyTime(Number(totalTime))
-          }
-        })
+        if (roomId) {
+          getRoomTotalStudyTime(roomId).then(({ data: totalTime }) => {
+            if (totalTime) {
+              setRoomTotalStudyTime(Number(totalTime))
+            }
+          })
+        }
         
         // Update user today focus time if it's the current user's session
         if (authUser && payload.new?.user_id === authUser.id) {
@@ -258,43 +299,13 @@ export const StudyRoom = () => {
             }
           })
         }
-      } else if (payload.table === 'room_members') {
-        console.log('Room member update:', payload.eventType, payload)
-        
-        // Reload room data to get updated member list
-        getRoomById(roomId).then(({ data: roomData }) => {
-          if (roomData) {
-            const transformedRoom: Room = {
-              id: roomData.id,
-              name: roomData.name,
-              code: roomData.code,
-              description: roomData.description,
-              tags: roomData.tags,
-              members: roomData.members?.map(member => ({
-                id: member.user?.id || '',
-                name: member.user?.full_name || 'User',
-                email: '',
-                avatar: member.user?.avatar_url || undefined,
-                totalPoints: member.user?.total_points || 0,
-                rank: member.user?.rank || 'Beginner',
-                achievements: member.user?.achievements || [],
-                createdAt: member.user?.created_at || new Date().toISOString()
-              })) || [],
-              adminId: roomData.admin_id,
-              maxMembers: roomData.max_members,
-              isPrivate: roomData.is_private,
-              isActive: roomData.is_active,
-              createdAt: roomData.created_at,
-              lastActivity: roomData.updated_at
-            }
-            setRoom(transformedRoom)
-          }
-        })
       }
     })
 
     // Cleanup function
     return () => {
+      console.log('🧹 Cleaning up room subscriptions...')
+      
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe()
       }
@@ -331,7 +342,7 @@ export const StudyRoom = () => {
           } else {
             // Timer finished
             if (audioEnabled) {
-              console.log('Timer finished!')
+              console.log('⏰ Timer finished!')
               // Here you could play a sound notification
             }
             
@@ -393,6 +404,8 @@ export const StudyRoom = () => {
     if (!newTaskTitle.trim() || !roomId) return
 
     try {
+      console.log('➕ Adding new task:', newTaskTitle)
+      
       const { data, error } = await createTask({
         room_id: roomId,
         title: newTaskTitle,
@@ -412,6 +425,8 @@ export const StudyRoom = () => {
       setNewTaskTitle('')
       setShowAddTask(false)
       addSystemMessage(`${currentUser.name} added a new task: "${newTaskTitle}"`)
+      
+      console.log('✅ Task added successfully')
     } catch (error) {
       console.error('Error creating task:', error)
     }
@@ -419,6 +434,8 @@ export const StudyRoom = () => {
 
   const updateTaskHandler = async (taskId: string, updates: Partial<Task>) => {
     try {
+      console.log('📝 Updating task:', taskId, updates)
+      
       const dbUpdates: any = {}
       
       if (updates.title !== undefined) dbUpdates.title = updates.title
@@ -441,6 +458,8 @@ export const StudyRoom = () => {
         const assignee = room.members.find(m => m.id === task?.assigneeId)
         addSystemMessage(`${assignee?.name || 'Someone'} marked "${task?.title}" as ${updates.status}`)
       }
+      
+      console.log('✅ Task updated successfully')
     } catch (error) {
       console.error('Error updating task:', error)
     }
@@ -448,6 +467,8 @@ export const StudyRoom = () => {
 
   const deleteTaskHandler = async (taskId: string) => {
     try {
+      console.log('🗑️ Deleting task:', taskId)
+      
       const task = tasks.find(t => t.id === taskId)
       const { error } = await deleteTask(taskId)
       
@@ -457,6 +478,8 @@ export const StudyRoom = () => {
       }
 
       addSystemMessage(`Task "${task?.title}" was deleted`)
+      
+      console.log('✅ Task deleted successfully')
     } catch (error) {
       console.error('Error deleting task:', error)
     }
@@ -472,6 +495,8 @@ export const StudyRoom = () => {
     if (!newMessage.trim() || !roomId) return
 
     try {
+      console.log('💬 Sending message:', newMessage.substring(0, 50) + '...')
+      
       const { error } = await sendChatMessage({
         room_id: roomId,
         user_id: currentUser.id,
@@ -486,6 +511,8 @@ export const StudyRoom = () => {
 
       setNewMessage('')
       setIsTyping(false)
+      
+      console.log('✅ Message sent successfully')
     } catch (error) {
       console.error('Error sending message:', error)
     }
