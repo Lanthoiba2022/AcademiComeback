@@ -528,7 +528,7 @@ export const StudyRoom = () => {
     addSystemMessage(`${currentUser.name} reset the timer`)
   }
 
-  const setCustomTimer = (minutes: number, mode: 'work' | 'break', label?: string) => {
+  const setCustomTimer = (minutes: number, mode: 'work' | 'break', label?: string, cycles?: number) => {
     setTimerState(prev => ({
       ...prev,
       minutes,
@@ -536,7 +536,9 @@ export const StudyRoom = () => {
       mode,
       label,
       isRunning: false,
-      totalElapsed: 0
+      totalElapsed: 0,
+      cycle: 1,
+      totalCycles: cycles || prev.totalCycles
     }))
     
     // Reset session tracking
@@ -550,7 +552,7 @@ export const StudyRoom = () => {
       currentSessionId.current = null
     }
     
-    addSystemMessage(`${currentUser.name} set a custom ${label || mode} timer for ${minutes} minutes`)
+    addSystemMessage(`${currentUser.name} set a custom ${label || mode} timer for ${minutes} minutes${cycles ? ` with ${cycles} cycles` : ''}`)
   }
 
   const completedTasksCount = tasks.filter(t => t.status === 'completed').length
