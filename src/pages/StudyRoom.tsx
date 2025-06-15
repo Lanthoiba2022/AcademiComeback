@@ -19,7 +19,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { 
   getRoomById, getTasks, createTask, updateTask, deleteTask,
   getChatMessages, sendChatMessage, subscribeToRoom, updateUserPresence,
-  getProfile, createStudySession, updateStudySession
+  getProfile, startFocusSession, updateFocusSession, endStudySession,
+  getRoomTotalStudyTime, getUserStudyStats
 } from '../lib/supabase'
 
 export const StudyRoom = () => {
@@ -39,6 +40,8 @@ export const StudyRoom = () => {
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [showAddTask, setShowAddTask] = useState(false)
   const [studySession, setStudySession] = useState<StudySession | null>(null)
+  const [roomTotalStudyTime, setRoomTotalStudyTime] = useState(0)
+  const [userTodayFocusTime, setUserTodayFocusTime] = useState(0)
   
   // Timer state
   const [timerState, setTimerState] = useState({
@@ -47,7 +50,9 @@ export const StudyRoom = () => {
     isRunning: false,
     mode: 'work' as 'work' | 'break',
     cycle: 1,
-    totalCycles: 4
+    totalCycles: 4,
+    label: undefined as string | undefined,
+    totalElapsed: 0 // Total elapsed time in seconds for this session
   })
 
   // Audio settings
@@ -59,6 +64,8 @@ export const StudyRoom = () => {
   const chatEndRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<NodeJS.Timeout>()
   const subscriptionRef = useRef<any>(null)
+  const sessionStartTime = useRef<Date | null>(null)
+  const currentSessionId = useRef<string | null>(null)
 
   // Load room data and setup real-time subscriptions
   useEffect(() => {
@@ -150,27 +157,17 @@ export const StudyRoom = () => {
           setMessages(transformedMessages)
         }
 
-        // Create or update study session
-        if (profile) {
-          const { data: sessionData } = await createStudySession({
-            room_id: roomId,
-            user_id: profile.id,
-            start_time: new Date().toISOString(),
-            focus_time: 0,
-            completed_tasks: 0,
-            is_active: true
-          })
+        // Load room total study time
+        const { data: totalTime } = await getRoomTotalStudyTime(roomId)
+        if (totalTime) {
+          setRoomTotalStudyTime(Number(totalTime))
+        }
 
-          if (sessionData) {
-            setStudySession({
-              id: sessionData.id,
-              roomId: sessionData.room_id,
-              startTime: sessionData.start_time,
-              participants: transformedRoom.members,
-              totalFocusTime: sessionData.focus_time,
-              completedTasks: sessionData.completed_tasks,
-              isActive: sessionData.is_active
-            })
+        // Load user today focus time
+        if (profile) {
+          const { data: userStats } = await getUserStudyStats(profile.id)
+          if (userStats) {
+            setUserTodayFocusTime(Number(userStats.today_focus_minutes) || 0)
           }
 
           // Update user presence
@@ -233,6 +230,22 @@ export const StudyRoom = () => {
             }
           })
         }
+      } else if (payload.table === 'study_sessions') {
+        // Update room total study time when sessions change
+        getRoomTotalStudyTime(roomId).then(({ data: totalTime }) => {
+          if (totalTime) {
+            setRoomTotalStudyTime(Number(totalTime))
+          }
+        })
+        
+        // Update user today focus time if it's the current user's session
+        if (authUser && payload.new?.user_id === authUser.id) {
+          getUserStudyStats(authUser.id).then(({ data: userStats }) => {
+            if (userStats) {
+              setUserTodayFocusTime(Number(userStats.today_focus_minutes) || 0)
+            }
+          })
+        }
       }
     })
 
@@ -246,6 +259,13 @@ export const StudyRoom = () => {
       if (authUser && roomId) {
         updateUserPresence(roomId, authUser.id, false)
       }
+
+      // End current study session if active
+      if (currentSessionId.current && sessionStartTime.current) {
+        const focusTime = Math.floor((Date.now() - sessionStartTime.current.getTime()) / 1000 / 60)
+        const completedTasks = tasks.filter(t => t.status === 'completed').length
+        endStudySession(currentSessionId.current, focusTime, completedTasks)
+      }
     }
   }, [roomId, authUser, navigate])
 
@@ -254,29 +274,37 @@ export const StudyRoom = () => {
     if (timerState.isRunning) {
       timerRef.current = setInterval(() => {
         setTimerState(prev => {
+          const newState = { ...prev }
+          
+          // Increment total elapsed time
+          newState.totalElapsed = prev.totalElapsed + 1
+          
           if (prev.seconds > 0) {
-            return { ...prev, seconds: prev.seconds - 1 }
+            newState.seconds = prev.seconds - 1
           } else if (prev.minutes > 0) {
-            return { ...prev, minutes: prev.minutes - 1, seconds: 59 }
+            newState.minutes = prev.minutes - 1
+            newState.seconds = 59
           } else {
             // Timer finished
             if (audioEnabled) {
               console.log('Timer finished!')
+              // Here you could play a sound notification
             }
             
             const nextMode = prev.mode === 'work' ? 'break' : 'work'
             const nextMinutes = nextMode === 'work' ? 25 : prev.cycle % 4 === 0 ? 15 : 5
             const nextCycle = prev.mode === 'break' ? prev.cycle + 1 : prev.cycle
             
-            return {
-              ...prev,
-              minutes: nextMinutes,
-              seconds: 0,
-              isRunning: false,
-              mode: nextMode,
-              cycle: nextCycle > prev.totalCycles ? 1 : nextCycle
-            }
+            newState.minutes = nextMinutes
+            newState.seconds = 0
+            newState.isRunning = false
+            newState.mode = nextMode
+            newState.cycle = nextCycle > prev.totalCycles ? 1 : nextCycle
+            newState.label = undefined
+            newState.totalElapsed = 0
           }
+          
+          return newState
         })
       }, 1000)
     } else {
@@ -435,13 +463,45 @@ export const StudyRoom = () => {
   }
 
   // Timer functions
-  const toggleTimer = () => {
+  const toggleTimer = async () => {
+    const wasRunning = timerState.isRunning
+    
     setTimerState(prev => ({ ...prev, isRunning: !prev.isRunning }))
     
-    if (!timerState.isRunning) {
-      addSystemMessage(`${currentUser.name} started the ${timerState.mode} timer`)
+    if (!wasRunning) {
+      // Starting timer
+      if (!sessionStartTime.current) {
+        sessionStartTime.current = new Date()
+        
+        // Start a new focus session
+        if (roomId && timerState.mode === 'work') {
+          try {
+            const { data: session } = await startFocusSession(roomId, currentUser.id)
+            if (session) {
+              currentSessionId.current = session.id
+            }
+          } catch (error) {
+            console.error('Error starting focus session:', error)
+          }
+        }
+      }
+      
+      addSystemMessage(`${currentUser.name} started the ${timerState.label || timerState.mode} timer`)
     } else {
+      // Pausing timer
       addSystemMessage(`${currentUser.name} paused the timer`)
+      
+      // Update focus session with current progress
+      if (currentSessionId.current && sessionStartTime.current && timerState.mode === 'work') {
+        const focusTime = Math.floor(timerState.totalElapsed / 60)
+        const completedTasks = tasks.filter(t => t.status === 'completed').length
+        
+        try {
+          await updateFocusSession(currentSessionId.current, focusTime, completedTasks)
+        } catch (error) {
+          console.error('Error updating focus session:', error)
+        }
+      }
     }
   }
 
@@ -450,9 +510,47 @@ export const StudyRoom = () => {
       ...prev,
       minutes: prev.mode === 'work' ? 25 : prev.cycle % 4 === 0 ? 15 : 5,
       seconds: 0,
-      isRunning: false
+      isRunning: false,
+      totalElapsed: 0
     }))
+    
+    // Reset session tracking
+    sessionStartTime.current = null
+    
+    // End current session if active
+    if (currentSessionId.current) {
+      const focusTime = Math.floor(timerState.totalElapsed / 60)
+      const completedTasks = tasks.filter(t => t.status === 'completed').length
+      endStudySession(currentSessionId.current, focusTime, completedTasks)
+      currentSessionId.current = null
+    }
+    
     addSystemMessage(`${currentUser.name} reset the timer`)
+  }
+
+  const setCustomTimer = (minutes: number, mode: 'work' | 'break', label?: string) => {
+    setTimerState(prev => ({
+      ...prev,
+      minutes,
+      seconds: 0,
+      mode,
+      label,
+      isRunning: false,
+      totalElapsed: 0
+    }))
+    
+    // Reset session tracking
+    sessionStartTime.current = null
+    
+    // End current session if active
+    if (currentSessionId.current) {
+      const focusTime = Math.floor(timerState.totalElapsed / 60)
+      const completedTasks = tasks.filter(t => t.status === 'completed').length
+      endStudySession(currentSessionId.current, focusTime, completedTasks)
+      currentSessionId.current = null
+    }
+    
+    addSystemMessage(`${currentUser.name} set a custom ${label || mode} timer for ${minutes} minutes`)
   }
 
   const completedTasksCount = tasks.filter(t => t.status === 'completed').length
@@ -591,8 +689,11 @@ export const StudyRoom = () => {
           timerState={timerState}
           onToggleTimer={toggleTimer}
           onResetTimer={resetTimer}
+          onSetCustomTimer={setCustomTimer}
           audioEnabled={audioEnabled}
           onToggleAudio={() => setAudioEnabled(!audioEnabled)}
+          roomTotalStudyTime={roomTotalStudyTime}
+          userTodayFocusTime={userTodayFocusTime}
         />
       </div>
     </div>

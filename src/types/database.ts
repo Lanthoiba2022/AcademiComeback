@@ -232,11 +232,14 @@ export interface Database {
           total_sessions: number
           completed_tasks: number
           active_sessions: number
+          today_focus_minutes: number
+          this_week_focus_minutes: number
+          current_streak_days: number
         }
       }
-      get_user_total_focus_time: {
+      get_room_total_study_time: {
         Args: {
-          user_uuid: string
+          room_uuid: string
         }
         Returns: number
       }

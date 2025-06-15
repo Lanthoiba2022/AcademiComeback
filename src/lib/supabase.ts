@@ -136,9 +136,9 @@ export const getUserStudyStats = async (userId: string) => {
   return { data, error }
 }
 
-export const getTotalFocusTimeForUser = async (userId: string) => {
-  const { data, error } = await supabase.rpc('get_user_total_focus_time', {
-    user_uuid: userId
+export const getRoomTotalStudyTime = async (roomId: string) => {
+  const { data, error } = await supabase.rpc('get_room_total_study_time', {
+    room_uuid: roomId
   })
   
   return { data, error }
@@ -158,6 +158,22 @@ export const updateStudySession = async (sessionId: string, updates: any) => {
   const { data, error } = await supabase
     .from('study_sessions')
     .update(updates)
+    .eq('id', sessionId)
+    .select()
+    .single()
+  
+  return { data, error }
+}
+
+export const endStudySession = async (sessionId: string, focusTime: number, completedTasks: number) => {
+  const { data, error } = await supabase
+    .from('study_sessions')
+    .update({
+      end_time: new Date().toISOString(),
+      focus_time: focusTime,
+      completed_tasks: completedTasks,
+      is_active: false
+    })
     .eq('id', sessionId)
     .select()
     .single()
@@ -369,7 +385,7 @@ export const getRoomByCode = async (code: string) => {
       created_at,
       updated_at
     `)
-    .eq('code', code)
+    .eq('code', code.toUpperCase())
     .single()
   
   if (error || !roomData) {
@@ -531,6 +547,20 @@ export const sendChatMessage = async (messageData: any) => {
 }
 
 // Real-time subscriptions
+export const subscribeToRooms = (callback: (payload: any) => void) => {
+  return supabase
+    .channel('public:rooms')
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'rooms' },
+      callback
+    )
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'room_members' },
+      callback
+    )
+    .subscribe()
+}
+
 export const subscribeToRoom = (roomId: string, callback: (payload: any) => void) => {
   return supabase
     .channel(`room:${roomId}`)
@@ -546,18 +576,22 @@ export const subscribeToRoom = (roomId: string, callback: (payload: any) => void
       { event: '*', schema: 'public', table: 'room_members', filter: `room_id=eq.${roomId}` },
       callback
     )
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'study_sessions', filter: `room_id=eq.${roomId}` },
+      callback
+    )
     .subscribe()
 }
 
-export const subscribeToRooms = (callback: (payload: any) => void) => {
+export const subscribeToUserStats = (userId: string, callback: (payload: any) => void) => {
   return supabase
-    .channel('rooms')
+    .channel(`user:${userId}`)
     .on('postgres_changes',
-      { event: '*', schema: 'public', table: 'rooms' },
+      { event: '*', schema: 'public', table: 'study_sessions', filter: `user_id=eq.${userId}` },
       callback
     )
     .on('postgres_changes',
-      { event: '*', schema: 'public', table: 'room_members' },
+      { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` },
       callback
     )
     .subscribe()
@@ -574,4 +608,53 @@ export const updateUserPresence = async (roomId: string, userId: string, isOnlin
     .eq('user_id', userId)
   
   return { error }
+}
+
+// Timer and focus tracking
+export const startFocusSession = async (roomId: string, userId: string) => {
+  const { data, error } = await supabase
+    .from('study_sessions')
+    .insert({
+      room_id: roomId,
+      user_id: userId,
+      start_time: new Date().toISOString(),
+      focus_time: 0,
+      completed_tasks: 0,
+      is_active: true
+    })
+    .select()
+    .single()
+  
+  return { data, error }
+}
+
+export const updateFocusSession = async (sessionId: string, focusTime: number, completedTasks?: number) => {
+  const updates: any = {
+    focus_time: focusTime
+  }
+  
+  if (completedTasks !== undefined) {
+    updates.completed_tasks = completedTasks
+  }
+  
+  const { data, error } = await supabase
+    .from('study_sessions')
+    .update(updates)
+    .eq('id', sessionId)
+    .select()
+    .single()
+  
+  return { data, error }
+}
+
+// Validate room code in real-time
+export const validateRoomCode = async (code: string) => {
+  const { data, error } = await supabase
+    .from('rooms')
+    .select('id, name, is_private, is_active')
+    .eq('code', code.toUpperCase())
+    .eq('is_active', true)
+    .single()
+  
+  return { data, error }
 }

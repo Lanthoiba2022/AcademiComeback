@@ -14,7 +14,7 @@ import {
 import { useAuth } from '../contexts/AuthContext'
 import { 
   getRooms, getProfile, createRoom, getRoomByCode, joinRoom, createProfile,
-  getUserStudyStats, getTotalFocusTimeForUser, subscribeToRooms
+  getUserStudyStats, subscribeToRooms, subscribeToUserStats
 } from '../lib/supabase'
 import { getRankProgress, getRankColor } from '../utils/roomUtils'
 import { Room, RoomFilters as RoomFiltersType, User, RoomData, Profile } from '../types'
@@ -29,7 +29,10 @@ export const Dashboard = () => {
     totalFocusMinutes: 0,
     totalSessions: 0,
     completedTasks: 0,
-    activeSessions: 0
+    activeSessions: 0,
+    todayFocusMinutes: 0,
+    thisWeekFocusMinutes: 0,
+    currentStreakDays: 0
   })
   const [loading, setLoading] = useState(true)
   const [createRoomModal, setCreateRoomModal] = useState(false)
@@ -129,10 +132,13 @@ export const Dashboard = () => {
       
       if (stats) {
         setStudyStats({
-          totalFocusMinutes: stats.total_focus_minutes || 0,
-          totalSessions: stats.total_sessions || 0,
-          completedTasks: stats.completed_tasks || 0,
-          activeSessions: stats.active_sessions || 0
+          totalFocusMinutes: Number(stats.total_focus_minutes) || 0,
+          totalSessions: Number(stats.total_sessions) || 0,
+          completedTasks: Number(stats.completed_tasks) || 0,
+          activeSessions: Number(stats.active_sessions) || 0,
+          todayFocusMinutes: Number(stats.today_focus_minutes) || 0,
+          thisWeekFocusMinutes: Number(stats.this_week_focus_minutes) || 0,
+          currentStreakDays: Number(stats.current_streak_days) || 0
         })
       }
     } catch (error) {
@@ -189,22 +195,12 @@ export const Dashboard = () => {
     }
   }, [filters, authUser, user])
 
-  // Reload study stats periodically
-  useEffect(() => {
-    if (!authUser) return
-    
-    const interval = setInterval(() => {
-      loadStudyStats()
-    }, 30000) // Update every 30 seconds
-    
-    return () => clearInterval(interval)
-  }, [authUser])
-
-  // Setup real-time subscription for rooms
+  // Setup real-time subscriptions
   useEffect(() => {
     if (!authUser) return
 
-    const subscription = subscribeToRooms((payload) => {
+    // Subscribe to rooms changes
+    const roomsSubscription = subscribeToRooms((payload) => {
       console.log('Rooms real-time update:', payload)
       
       // Reload rooms when there are changes
@@ -213,9 +209,32 @@ export const Dashboard = () => {
       }
     })
 
+    // Subscribe to user stats changes
+    const userStatsSubscription = subscribeToUserStats(authUser.id, (payload) => {
+      console.log('User stats real-time update:', payload)
+      
+      // Reload stats when study sessions change
+      if (payload.table === 'study_sessions') {
+        loadStudyStats()
+      }
+      
+      // Update user profile if it changed
+      if (payload.table === 'profiles' && payload.new) {
+        setUser(prev => prev ? {
+          ...prev,
+          totalPoints: payload.new.total_points,
+          rank: payload.new.rank,
+          achievements: payload.new.achievements
+        } : null)
+      }
+    })
+
     return () => {
-      if (subscription) {
-        subscription.unsubscribe()
+      if (roomsSubscription) {
+        roomsSubscription.unsubscribe()
+      }
+      if (userStatsSubscription) {
+        userStatsSubscription.unsubscribe()
       }
     }
   }, [authUser, user])
@@ -281,6 +300,7 @@ export const Dashboard = () => {
 
   // Convert focus time from minutes to hours for display
   const studyHours = Math.round(studyStats.totalFocusMinutes / 60 * 10) / 10 // Round to 1 decimal place
+  const todayHours = Math.round(studyStats.todayFocusMinutes / 60 * 10) / 10
 
   const stats = [
     {
@@ -298,16 +318,16 @@ export const Dashboard = () => {
       color: 'text-secondary-400'
     },
     {
-      name: 'Study Hours',
-      value: studyHours.toString(),
-      change: studyStats.totalSessions > 0 ? `${studyStats.totalSessions} sessions` : 'Start studying!',
+      name: 'Focus Time',
+      value: `${studyHours}h`,
+      change: `${todayHours}h today`,
       icon: Clock,
       color: 'text-accent-400'
     },
     {
-      name: 'Achievements',
-      value: user.achievements.length.toString(),
-      change: user.achievements.length > 0 ? `Latest: ${user.achievements[user.achievements.length - 1]}` : 'None yet',
+      name: 'Study Streak',
+      value: `${studyStats.currentStreakDays}d`,
+      change: studyStats.currentStreakDays > 0 ? 'Keep it up!' : 'Start today!',
       icon: Star,
       color: 'text-primary-400'
     }
