@@ -5,6 +5,7 @@ import { Landing } from './pages/Landing'
 import { Dashboard } from './pages/Dashboard'
 import { Profile } from './pages/Profile'
 import { StudyRoom } from './pages/StudyRoom'
+import { QuizPage } from './pages/QuizPage'
 import { UnderDevelopment } from './pages/UnderDevelopment'
 import { AchievementsList } from './components/gamification/AchievementsList'
 import { RewardsMarketplace } from './components/gamification/RewardsMarketplace'
@@ -89,6 +90,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <StudyRoom />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/quiz" 
+            element={
+              <ProtectedRoute>
+                <QuizPage />
               </ProtectedRoute>
             } 
           />
