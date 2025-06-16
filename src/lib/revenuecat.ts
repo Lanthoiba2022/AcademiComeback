@@ -1,10 +1,10 @@
-import Purchases, { 
+import  { Purchases,
   CustomerInfo, 
   Offerings, 
   PurchasesPackage,
   PurchasesEntitlementInfo,
-  LOG_LEVEL 
-} from '@revenuecat/purchases'
+  LogLevel 
+} from '@revenuecat/purchases-js'
 
 // RevenueCat configuration
 const REVENUECAT_API_KEY = import.meta.env.VITE_REVENUECAT_API_KEY || ''
@@ -43,7 +43,7 @@ export const initializeRevenueCat = async (userId: string): Promise<void> => {
 
     // Set log level for debugging in development
     if (import.meta.env.DEV) {
-      Purchases.setLogLevel(LOG_LEVEL.DEBUG)
+      Purchases.setLogLevel(LogLevel.Debug)
     }
 
     console.log('✅ RevenueCat initialized successfully')

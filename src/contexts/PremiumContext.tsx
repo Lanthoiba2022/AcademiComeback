@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { CustomerInfo } from '@revenuecat/purchases'
+import { CustomerInfo } from '@revenuecat/purchases-js'
 import { useAuth } from './AuthContext'
 import {
   initializeRevenueCat,

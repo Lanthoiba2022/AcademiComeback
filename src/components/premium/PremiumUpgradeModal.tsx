@@ -8,7 +8,7 @@ import {
   Crown, Check, Zap, Star, Users, Award, Loader, 
   RefreshCw, AlertCircle, Sparkles 
 } from 'lucide-react'
-import { Offerings, PurchasesPackage } from '@revenuecat/purchases'
+import { Offerings, PurchasesPackage } from '@revenuecat/purchases-js'
 
 interface PremiumUpgradeModalProps {
   trigger: ReactNode
