@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
+import { PremiumProvider } from './contexts/PremiumContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Landing } from './pages/Landing'
 import { Dashboard } from './pages/Dashboard'
@@ -10,11 +11,13 @@ import { AnalyticsPage } from './pages/AnalyticsPage'
 import { CalendarPage } from './pages/CalendarPage'
 import { FilesPage } from './pages/FilesPage'
 import { UnderDevelopment } from './pages/UnderDevelopment'
+import { PremiumSettingsPage } from './pages/PremiumSettingsPage'
 import { AchievementsList } from './components/gamification/AchievementsList'
 import { RewardsMarketplace } from './components/gamification/RewardsMarketplace'
 import { Leaderboard } from './components/gamification/Leaderboard'
 import { Sidebar } from './components/dashboard/Sidebar'
 import { ToastContainer } from './components/ui/Toast'
+import { PremiumOnboarding } from './components/premium/PremiumOnboarding'
 import { useGamification } from './hooks/useGamification'
 
 // Gamification Pages
@@ -70,101 +73,112 @@ const LeaderboardPage = () => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/profile" 
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/room/:roomId" 
-            element={
-              <ProtectedRoute>
-                <StudyRoom />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/quiz" 
-            element={
-              <ProtectedRoute>
-                <QuizPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/analytics" 
-            element={
-              <ProtectedRoute>
-                <AnalyticsPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/calendar" 
-            element={
-              <ProtectedRoute>
-                <CalendarPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/files" 
-            element={
-              <ProtectedRoute>
-                <FilesPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/achievements" 
-            element={
-              <ProtectedRoute>
-                <AchievementsPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/rewards" 
-            element={
-              <ProtectedRoute>
-                <RewardsPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/leaderboard" 
-            element={
-              <ProtectedRoute>
-                <LeaderboardPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/under-development" 
-            element={
-              <ProtectedRoute>
-                <UnderDevelopment />
-              </ProtectedRoute>
-            } 
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-        <ToastContainer />
-      </Router>
+      <PremiumProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/premium" 
+              element={
+                <ProtectedRoute>
+                  <PremiumSettingsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/room/:roomId" 
+              element={
+                <ProtectedRoute>
+                  <StudyRoom />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/quiz" 
+              element={
+                <ProtectedRoute>
+                  <QuizPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/analytics" 
+              element={
+                <ProtectedRoute>
+                  <AnalyticsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/calendar" 
+              element={
+                <ProtectedRoute>
+                  <CalendarPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/files" 
+              element={
+                <ProtectedRoute>
+                  <FilesPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/achievements" 
+              element={
+                <ProtectedRoute>
+                  <AchievementsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/rewards" 
+              element={
+                <ProtectedRoute>
+                  <RewardsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/leaderboard" 
+              element={
+                <ProtectedRoute>
+                  <LeaderboardPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/under-development" 
+              element={
+                <ProtectedRoute>
+                  <UnderDevelopment />
+                </ProtectedRoute>
+              } 
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+          <ToastContainer />
+          <PremiumOnboarding />
+        </Router>
+      </PremiumProvider>
     </AuthProvider>
   )
 }
