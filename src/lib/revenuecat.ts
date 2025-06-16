@@ -102,7 +102,7 @@ export const purchasePackage = async (packageToPurchase: PurchasesPackage): Prom
     })
     
     return { customerInfo, success: true }
-  } catch (error: any) => {
+  } catch (error: any) {
     console.error('❌ Purchase failed:', error)
     
     // Handle specific error cases
