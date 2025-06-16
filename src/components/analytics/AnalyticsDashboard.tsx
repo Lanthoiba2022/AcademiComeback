@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
+import { PremiumGate } from '../premium/PremiumGate'
+import { PremiumFeatureTooltip } from '../premium/PremiumFeatureTooltip'
 import { 
   TrendingUp, Clock, Target, Trophy, Calendar, BookOpen,
-  BarChart3, PieChart, Activity, Zap, Users, Brain
+  BarChart3, PieChart, Activity, Zap, Users, Brain, Crown, Lock
 } from 'lucide-react'
 import { StudyAnalytics, DailyStudyStats, TopicMasteryData } from '../../types/analytics'
 import { LineChart, BarChart, PieChart as RechartsPieChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Line, Bar, Cell } from 'recharts'
@@ -25,8 +27,8 @@ export const AnalyticsDashboard = ({ analytics, timeframe, onTimeframeChange }: 
 
   const tabs = [
     { id: 'overview', name: 'Overview', icon: Activity },
-    { id: 'performance', name: 'Performance', icon: TrendingUp },
-    { id: 'topics', name: 'Topic Mastery', icon: BookOpen },
+    { id: 'performance', name: 'Performance', icon: TrendingUp, premium: true },
+    { id: 'topics', name: 'Topic Mastery', icon: BookOpen, premium: true },
     { id: 'goals', name: 'Goals', icon: Target }
   ]
 
@@ -137,20 +139,31 @@ export const AnalyticsDashboard = ({ analytics, timeframe, onTimeframeChange }: 
         {tabs.map((tab) => {
           const Icon = tab.icon
           return (
-            <button
+            <PremiumFeatureTooltip
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`
-                flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 whitespace-nowrap
-                ${activeTab === tab.id
-                  ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
-                  : 'bg-dark-800 text-dark-300 hover:bg-dark-700 hover:text-white'
-                }
-              `}
+              feature="analytics"
+              title="Advanced Analytics"
+              description="Get detailed insights into your study patterns, performance metrics, and topic mastery with premium analytics."
             >
-              <Icon className="w-4 h-4" />
-              <span>{tab.name}</span>
-            </button>
+              <button
+                onClick={() => setActiveTab(tab.id as any)}
+                disabled={tab.premium}
+                className={`
+                  flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 whitespace-nowrap relative
+                  ${activeTab === tab.id
+                    ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
+                    : 'bg-dark-800 text-dark-300 hover:bg-dark-700 hover:text-white'
+                  }
+                  ${tab.premium ? 'cursor-help' : ''}
+                `}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{tab.name}</span>
+                {tab.premium && (
+                  <Crown className="w-3 h-3 text-primary-400" />
+                )}
+              </button>
+            </PremiumFeatureTooltip>
           )
         })}
       </div>
@@ -232,107 +245,111 @@ export const AnalyticsDashboard = ({ analytics, timeframe, onTimeframeChange }: 
       )}
 
       {activeTab === 'performance' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Quiz Performance */}
-          <Card>
-            <h3 className="text-lg font-semibold text-white mb-4">Quiz Performance by Topic</h3>
-            <div className="space-y-4">
-              {analytics.quizPerformance.map((quiz, index) => (
-                <div key={quiz.topic} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white font-medium capitalize">{quiz.topic}</p>
-                    <p className="text-dark-400 text-sm">{quiz.totalQuizzes} quizzes</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-white font-bold">{Math.round(quiz.averageScore)}%</p>
-                    <div className={`text-xs ${
-                      quiz.recentTrend === 'improving' ? 'text-green-400' :
-                      quiz.recentTrend === 'declining' ? 'text-red-400' : 'text-yellow-400'
-                    }`}>
-                      {quiz.recentTrend}
+        <PremiumGate feature="analytics">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Quiz Performance */}
+            <Card>
+              <h3 className="text-lg font-semibold text-white mb-4">Quiz Performance by Topic</h3>
+              <div className="space-y-4">
+                {analytics.quizPerformance.map((quiz, index) => (
+                  <div key={quiz.topic} className="flex items-center justify-between">
+                    <div>
+                      <p className="text-white font-medium capitalize">{quiz.topic}</p>
+                      <p className="text-dark-400 text-sm">{quiz.totalQuizzes} quizzes</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-white font-bold">{Math.round(quiz.averageScore)}%</p>
+                      <div className={`text-xs ${
+                        quiz.recentTrend === 'improving' ? 'text-green-400' :
+                        quiz.recentTrend === 'declining' ? 'text-red-400' : 'text-yellow-400'
+                      }`}>
+                        {quiz.recentTrend}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </Card>
+                ))}
+              </div>
+            </Card>
 
-          {/* Collaboration Stats */}
-          <Card>
-            <h3 className="text-lg font-semibold text-white mb-4">Collaboration</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white">{analytics.collaborationStats.roomsJoined}</div>
-                <p className="text-dark-400 text-sm">Rooms Joined</p>
+            {/* Collaboration Stats */}
+            <Card>
+              <h3 className="text-lg font-semibold text-white mb-4">Collaboration</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-white">{analytics.collaborationStats.roomsJoined}</div>
+                  <p className="text-dark-400 text-sm">Rooms Joined</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-white">{analytics.collaborationStats.helpGiven}</div>
+                  <p className="text-dark-400 text-sm">Help Given</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-white">{analytics.collaborationStats.messagesExchanged}</div>
+                  <p className="text-dark-400 text-sm">Messages</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-white">{analytics.collaborationStats.teamworkScore}</div>
+                  <p className="text-dark-400 text-sm">Teamwork Score</p>
+                </div>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white">{analytics.collaborationStats.helpGiven}</div>
-                <p className="text-dark-400 text-sm">Help Given</p>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white">{analytics.collaborationStats.messagesExchanged}</div>
-                <p className="text-dark-400 text-sm">Messages</p>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white">{analytics.collaborationStats.teamworkScore}</div>
-                <p className="text-dark-400 text-sm">Teamwork Score</p>
-              </div>
-            </div>
-          </Card>
-        </div>
+            </Card>
+          </div>
+        </PremiumGate>
       )}
 
       {activeTab === 'topics' && (
-        <div className="space-y-6">
-          <Card>
-            <h3 className="text-lg font-semibold text-white mb-4">Topic Mastery Overview</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {analytics.topicMastery.map((topic) => (
-                <div key={topic.topic} className="p-4 bg-dark-800/50 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-white font-medium capitalize">{topic.topic}</h4>
-                    <span className={`text-sm font-bold ${getMasteryColor(topic.masteryLevel)}`}>
-                      {topic.masteryLevel}%
-                    </span>
-                  </div>
-                  
-                  <div className="w-full bg-dark-700 rounded-full h-2 mb-3">
-                    <div 
-                      className={`h-2 rounded-full transition-all duration-500 ${
-                        topic.masteryLevel >= 80 ? 'bg-green-400' :
-                        topic.masteryLevel >= 60 ? 'bg-yellow-400' :
-                        topic.masteryLevel >= 40 ? 'bg-orange-400' : 'bg-red-400'
-                      }`}
-                      style={{ width: `${topic.masteryLevel}%` }}
-                    />
-                  </div>
-                  
-                  <div className="space-y-1 text-xs text-dark-400">
-                    <div className="flex justify-between">
-                      <span>Time spent:</span>
-                      <span>{formatTime(topic.timeSpent)}</span>
+        <PremiumGate feature="analytics">
+          <div className="space-y-6">
+            <Card>
+              <h3 className="text-lg font-semibold text-white mb-4">Topic Mastery Overview</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {analytics.topicMastery.map((topic) => (
+                  <div key={topic.topic} className="p-4 bg-dark-800/50 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-white font-medium capitalize">{topic.topic}</h4>
+                      <span className={`text-sm font-bold ${getMasteryColor(topic.masteryLevel)}`}>
+                        {topic.masteryLevel}%
+                      </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Tasks completed:</span>
-                      <span>{topic.tasksCompleted}</span>
+                    
+                    <div className="w-full bg-dark-700 rounded-full h-2 mb-3">
+                      <div 
+                        className={`h-2 rounded-full transition-all duration-500 ${
+                          topic.masteryLevel >= 80 ? 'bg-green-400' :
+                          topic.masteryLevel >= 60 ? 'bg-yellow-400' :
+                          topic.masteryLevel >= 40 ? 'bg-orange-400' : 'bg-red-400'
+                        }`}
+                        style={{ width: `${topic.masteryLevel}%` }}
+                      />
                     </div>
-                    <div className="flex justify-between">
-                      <span>Quiz average:</span>
-                      <span>{Math.round(topic.quizAverage)}%</span>
+                    
+                    <div className="space-y-1 text-xs text-dark-400">
+                      <div className="flex justify-between">
+                        <span>Time spent:</span>
+                        <span>{formatTime(topic.timeSpent)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Tasks completed:</span>
+                        <span>{topic.tasksCompleted}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Quiz average:</span>
+                        <span>{Math.round(topic.quizAverage)}%</span>
+                      </div>
+                    </div>
+                    
+                    <div className={`mt-2 text-xs ${
+                      topic.trend === 'improving' ? 'text-green-400' :
+                      topic.trend === 'declining' ? 'text-red-400' : 'text-yellow-400'
+                    }`}>
+                      {topic.trend === 'improving' ? '📈' : topic.trend === 'declining' ? '📉' : '➡️'} {topic.trend}
                     </div>
                   </div>
-                  
-                  <div className={`mt-2 text-xs ${
-                    topic.trend === 'improving' ? 'text-green-400' :
-                    topic.trend === 'declining' ? 'text-red-400' : 'text-yellow-400'
-                  }`}>
-                    {topic.trend === 'improving' ? '📈' : topic.trend === 'declining' ? '📉' : '➡️'} {topic.trend}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        </PremiumGate>
       )}
 
       {activeTab === 'goals' && (

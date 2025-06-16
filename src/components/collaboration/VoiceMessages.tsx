@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '../ui/Button'
 import { Card } from '../ui/Card'
+import { PremiumGate } from '../premium/PremiumGate'
+import { PremiumFeatureTooltip } from '../premium/PremiumFeatureTooltip'
 import { 
   Mic, MicOff, Play, Pause, Volume2, VolumeX, 
-  Download, Trash2, MoreVertical 
+  Download, Trash2, MoreVertical, Crown 
 } from 'lucide-react'
 import { VoiceMessage } from '../../types/collaboration'
 
@@ -148,14 +150,29 @@ export const VoiceMessages = ({
       <Card>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Button
-              onClick={isRecording ? stopRecording : startRecording}
-              variant={isRecording ? 'outline' : 'primary'}
-              icon={isRecording ? MicOff : Mic}
-              className={isRecording ? 'animate-pulse' : ''}
-            >
-              {isRecording ? 'Stop Recording' : 'Record Voice Message'}
-            </Button>
+            <PremiumGate feature="collaboration" showUpgradePrompt={false}>
+              <Button
+                onClick={isRecording ? stopRecording : startRecording}
+                variant={isRecording ? 'outline' : 'primary'}
+                icon={isRecording ? MicOff : Mic}
+                className={`${isRecording ? 'animate-pulse' : ''} bg-gradient-to-r from-green-500 to-blue-500`}
+              >
+                {isRecording ? 'Stop Recording' : 'Record Voice Message'}
+              </Button>
+            </PremiumGate>
+            
+            {!isRecording && (
+              <PremiumFeatureTooltip
+                feature="collaboration"
+                title="Voice Messages"
+                description="Send audio messages to your study partners with premium collaboration features."
+              >
+                <div className="flex items-center space-x-2 text-dark-400">
+                  <Crown className="w-4 h-4 text-primary-400" />
+                  <span className="text-sm">Premium Feature</span>
+                </div>
+              </PremiumFeatureTooltip>
+            )}
             
             {isRecording && (
               <div className="flex items-center space-x-3">
@@ -302,7 +319,12 @@ export const VoiceMessages = ({
         <div className="text-center py-8">
           <Mic className="w-12 h-12 text-dark-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-white mb-2">No Voice Messages</h3>
-          <p className="text-dark-300">Record your first voice message to get started</p>
+          <p className="text-dark-300 mb-4">Record your first voice message to get started</p>
+          <PremiumGate feature="collaboration">
+            <Button onClick={startRecording} icon={Mic}>
+              Record Message
+            </Button>
+          </PremiumGate>
         </div>
       )}
     </div>

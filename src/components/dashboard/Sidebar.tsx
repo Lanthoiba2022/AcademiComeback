@@ -17,10 +17,12 @@ import {
   Award,
   Brain,
   BarChart3,
-  FolderOpen
+  FolderOpen,
+  Crown
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { signOut } from '../../lib/supabase'
+import { PremiumStatusBadge } from '../premium/PremiumStatusBadge'
 
 const navigation = [
   { name: 'Dashboard', icon: Home, href: '/dashboard' },
@@ -33,6 +35,7 @@ const navigation = [
   { name: 'Rewards', icon: Gift, href: '/rewards' },
   { name: 'Leaderboard', icon: TrendingUp, href: '/leaderboard' },
   { name: 'Notes', icon: FileText, href: '/under-development' },
+  { name: 'Premium', icon: Crown, href: '/premium', isPremium: true },
   { name: 'Settings', icon: Settings, href: '/under-development' },
 ]
 
@@ -94,6 +97,13 @@ export const Sidebar = () => {
           </button>
         </div>
 
+        {/* Premium Status */}
+        {!isCollapsed && (
+          <div className="p-4 border-b border-dark-700/50">
+            <PremiumStatusBadge showDetails />
+          </div>
+        )}
+
         {/* Navigation */}
         <nav className="flex-1 p-4 overflow-y-auto">
           <ul className="space-y-2">
@@ -106,10 +116,18 @@ export const Sidebar = () => {
                     text-dark-300 hover:text-white hover:bg-dark-700
                     transition-colors duration-200 group
                     ${isCollapsed ? 'justify-center' : 'justify-start'}
+                    ${item.isPremium ? 'relative' : ''}
                   `}
                 >
-                  <item.icon className="w-5 h-5 flex-shrink-0" />
-                  {!isCollapsed && <span className="ml-3">{item.name}</span>}
+                  <item.icon className={`w-5 h-5 flex-shrink-0 ${item.isPremium ? 'text-primary-400' : ''}`} />
+                  {!isCollapsed && (
+                    <span className={`ml-3 ${item.isPremium ? 'text-primary-300' : ''}`}>
+                      {item.name}
+                    </span>
+                  )}
+                  {item.isPremium && !isCollapsed && (
+                    <Crown className="w-3 h-3 text-primary-400 ml-auto" />
+                  )}
                   {isCollapsed && (
                     <div className="absolute left-16 ml-2 px-2 py-1 bg-dark-800 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
                       {item.name}

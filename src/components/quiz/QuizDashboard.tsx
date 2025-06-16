@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react'
 import { Button } from '../ui/Button'
 import { Card } from '../ui/Card'
 import { Input } from '../ui/Input'
+import { PremiumGate } from '../premium/PremiumGate'
+import { PremiumFeatureTooltip } from '../premium/PremiumFeatureTooltip'
 import { 
   Brain, Plus, Search, Filter, Clock, Trophy, Target, 
   TrendingUp, BookOpen, Zap, FileText, Star, Play,
-  Calendar, BarChart3
+  Calendar, BarChart3, Crown, Lock
 } from 'lucide-react'
 import { Quiz, QuizAttempt, QuizStats } from '../../types/quiz'
 import { QUIZ_TEMPLATES, TOPIC_SUGGESTIONS } from '../../data/quizData'
@@ -70,13 +72,17 @@ export const QuizDashboard = ({ onStartQuiz, userStats, recentAttempts = [] }: Q
           <h2 className="text-2xl font-bold text-white mb-2">Quiz Center</h2>
           <p className="text-dark-300">Test your knowledge and track your progress</p>
         </div>
-        <Button
-          onClick={() => setShowGenerator(true)}
-          icon={Brain}
-          size="lg"
-        >
-          Generate AI Quiz
-        </Button>
+        
+        <PremiumGate feature="ai" showUpgradePrompt={false}>
+          <Button
+            onClick={() => setShowGenerator(true)}
+            icon={Brain}
+            size="lg"
+            className="bg-gradient-to-r from-purple-500 to-pink-500"
+          >
+            Generate AI Quiz
+          </Button>
+        </PremiumGate>
       </div>
 
       {/* Stats Overview */}
@@ -110,14 +116,25 @@ export const QuizDashboard = ({ onStartQuiz, userStats, recentAttempts = [] }: Q
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <button
-          onClick={() => setShowGenerator(true)}
-          className="p-6 bg-gradient-to-br from-primary-500/20 to-secondary-500/20 border border-primary-500/30 rounded-xl hover:scale-105 transition-transform duration-200 text-center group"
+        <PremiumFeatureTooltip
+          feature="ai"
+          title="AI Quiz Generation"
+          description="Create personalized quizzes using artificial intelligence based on your study topics and difficulty preferences."
         >
-          <Brain className="w-8 h-8 text-primary-400 mx-auto mb-3 group-hover:scale-110 transition-transform" />
-          <h3 className="text-white font-semibold mb-1">AI Quiz</h3>
-          <p className="text-dark-300 text-sm">Generate custom quiz</p>
-        </button>
+          <button
+            onClick={() => setShowGenerator(true)}
+            className="p-6 bg-gradient-to-br from-primary-500/20 to-secondary-500/20 border border-primary-500/30 rounded-xl hover:scale-105 transition-transform duration-200 text-center group relative"
+          >
+            <PremiumGate feature="ai" showUpgradePrompt={false} fallback={
+              <div className="absolute top-2 right-2">
+                <Crown className="w-4 h-4 text-primary-400" />
+              </div>
+            } />
+            <Brain className="w-8 h-8 text-primary-400 mx-auto mb-3 group-hover:scale-110 transition-transform" />
+            <h3 className="text-white font-semibold mb-1">AI Quiz</h3>
+            <p className="text-dark-300 text-sm">Generate custom quiz</p>
+          </button>
+        </PremiumFeatureTooltip>
         
         <button
           onClick={() => {
@@ -244,9 +261,11 @@ export const QuizDashboard = ({ onStartQuiz, userStats, recentAttempts = [] }: Q
             <Brain className="w-16 h-16 text-dark-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-white mb-2">No Quizzes Found</h3>
             <p className="text-dark-300 mb-4">Try adjusting your filters or create a new quiz</p>
-            <Button onClick={() => setShowGenerator(true)} icon={Plus}>
-              Generate New Quiz
-            </Button>
+            <PremiumGate feature="ai">
+              <Button onClick={() => setShowGenerator(true)} icon={Plus}>
+                Generate New Quiz
+              </Button>
+            </PremiumGate>
           </div>
         )}
       </div>
@@ -291,11 +310,13 @@ export const QuizDashboard = ({ onStartQuiz, userStats, recentAttempts = [] }: Q
       )}
 
       {/* Quiz Generator Modal */}
-      <QuizGenerator
-        isOpen={showGenerator}
-        onClose={() => setShowGenerator(false)}
-        onQuizGenerated={handleQuizGenerated}
-      />
+      <PremiumGate feature="ai">
+        <QuizGenerator
+          isOpen={showGenerator}
+          onClose={() => setShowGenerator(false)}
+          onQuizGenerated={handleQuizGenerated}
+        />
+      </PremiumGate>
     </div>
   )
 }
