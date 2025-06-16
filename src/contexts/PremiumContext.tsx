@@ -1,162 +1,158 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { CustomerInfo } from '@revenuecat/purchases-js'
-import { useAuth } from './AuthContext'
-import {
-  initializeRevenueCat,
-  getCustomerInfo,
-  setupCustomerInfoListener,
-  logoutRevenueCat,
-  hasPremiumAccess,
-  hasEntitlement,
-  isInTrialPeriod,
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { CustomerInfo, Offerings } from '@revenuecat/purchases-js'
+import { 
+  initializeRevenueCat, 
+  getCustomerInfo, 
+  hasPremiumAccess, 
+  isInTrialPeriod, 
   getTrialDaysRemaining,
+  setupCustomerInfoListener,
+  getOfferings,
   ENTITLEMENTS
 } from '../lib/revenuecat'
 
 interface PremiumContextType {
-  customerInfo: CustomerInfo | null
-  loading: boolean
-  error: string | null
+  // Premium status
   isPremium: boolean
   isTrialActive: boolean
   trialDaysRemaining: number
-  hasAIFeatures: boolean
-  hasAdvancedAnalytics: boolean
-  hasCollaborationPlus: boolean
-  hasNFTCredentials: boolean
+  
+  // Customer info
+  customerInfo: CustomerInfo | null
+  
+  // Offerings
+  offerings: Offerings | null
+  
+  // Loading states
+  isLoading: boolean
+  isInitialized: boolean
+  
+  // Actions
   refreshCustomerInfo: () => Promise<void>
-  checkEntitlement: (entitlement: string) => boolean
+  initializePremium: (userId?: string) => Promise<void>
+  refreshOfferings: () => Promise<void>
 }
 
 const PremiumContext = createContext<PremiumContextType | undefined>(undefined)
 
-export const usePremium = () => {
-  const context = useContext(PremiumContext)
-  if (context === undefined) {
-    throw new Error('usePremium must be used within a PremiumProvider')
-  }
-  return context
-}
-
 interface PremiumProviderProps {
   children: ReactNode
+  userId?: string // Optional user ID for identified users
 }
 
-export const PremiumProvider = ({ children }: PremiumProviderProps) => {
-  const { user } = useAuth()
+export const PremiumProvider: React.FC<PremiumProviderProps> = ({ 
+  children, 
+  userId 
+}) => {
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [offerings, setOfferings] = useState<Offerings | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isInitialized, setIsInitialized] = useState(false)
 
-  // Initialize RevenueCat when user logs in
-  useEffect(() => {
-    const initializePremium = async () => {
-      if (!user) {
-        setCustomerInfo(null)
-        setLoading(false)
-        return
-      }
-
-      try {
-        setLoading(true)
-        setError(null)
-
-        // Initialize RevenueCat with user ID
-        await initializeRevenueCat(user.id)
-
-        // Get initial customer info
-        const info = await getCustomerInfo()
-        setCustomerInfo(info)
-
-        console.log('✅ Premium context initialized for user:', user.id)
-      } catch (err) {
-        console.error('❌ Failed to initialize premium context:', err)
-        setError(err instanceof Error ? err.message : 'Failed to initialize premium features')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    initializePremium()
-  }, [user])
-
-  // Set up real-time customer info listener
-  useEffect(() => {
-    if (!user || !customerInfo) return
-
-    console.log('🔄 Setting up real-time premium updates...')
-
-    const removeListener = setupCustomerInfoListener((updatedCustomerInfo) => {
-      console.log('📡 Real-time customer info update received')
-      setCustomerInfo(updatedCustomerInfo)
-      
-      // Log entitlement changes
-      const activeEntitlements = Object.keys(updatedCustomerInfo.entitlements.active)
-      console.log('🎯 Active entitlements updated:', activeEntitlements)
-    })
-
-    return removeListener
-  }, [user, customerInfo])
-
-  // Cleanup on logout
-  useEffect(() => {
-    if (!user) {
-      const cleanup = async () => {
-        try {
-          await logoutRevenueCat()
-          setCustomerInfo(null)
-          setError(null)
-        } catch (err) {
-          console.error('❌ Failed to cleanup RevenueCat:', err)
-        }
-      }
-      cleanup()
-    }
-  }, [user])
-
-  // Refresh customer info manually
-  const refreshCustomerInfo = async () => {
-    try {
-      setLoading(true)
-      const info = await getCustomerInfo()
-      setCustomerInfo(info)
-    } catch (err) {
-      console.error('❌ Failed to refresh customer info:', err)
-      setError(err instanceof Error ? err.message : 'Failed to refresh premium status')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Check specific entitlement
-  const checkEntitlement = (entitlement: string): boolean => {
-    return hasEntitlement(customerInfo, entitlement)
-  }
-
-  // Computed premium status
+  // Derived state
   const isPremium = hasPremiumAccess(customerInfo)
   const isTrialActive = isInTrialPeriod(customerInfo)
   const trialDaysRemaining = getTrialDaysRemaining(customerInfo)
 
-  // Feature-specific entitlements
-  const hasAIFeatures = checkEntitlement(ENTITLEMENTS.AI_FEATURES) || isPremium
-  const hasAdvancedAnalytics = checkEntitlement(ENTITLEMENTS.ADVANCED_ANALYTICS) || isPremium
-  const hasCollaborationPlus = checkEntitlement(ENTITLEMENTS.COLLABORATION_PLUS) || isPremium
-  const hasNFTCredentials = checkEntitlement(ENTITLEMENTS.NFT_CREDENTIALS) || isPremium
+  // Initialize RevenueCat and load customer info
+  const initializePremium = async (userIdOverride?: string) => {
+    try {
+      setIsLoading(true)
+      
+      // Initialize RevenueCat with user ID
+      const finalUserId = userIdOverride || userId
+      await initializeRevenueCat(finalUserId)
+      
+      // Load initial customer info and offerings
+      const [initialCustomerInfo, initialOfferings] = await Promise.all([
+        getCustomerInfo(),
+        getOfferings()
+      ])
+      
+      setCustomerInfo(initialCustomerInfo)
+      setOfferings(initialOfferings)
+      
+      setIsInitialized(true)
+      console.log('✅ Premium context initialized successfully')
+    } catch (error) {
+      console.error('❌ Failed to initialize premium context:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Refresh customer info
+  const refreshCustomerInfo = async () => {
+    try {
+      const updatedCustomerInfo = await getCustomerInfo()
+      setCustomerInfo(updatedCustomerInfo)
+      console.log('✅ Customer info refreshed')
+    } catch (error) {
+      console.error('❌ Failed to refresh customer info:', error)
+    }
+  }
+
+  // Refresh offerings
+  const refreshOfferings = async () => {
+    try {
+      const updatedOfferings = await getOfferings()
+      setOfferings(updatedOfferings)
+      console.log('✅ Offerings refreshed')
+    } catch (error) {
+      console.error('❌ Failed to refresh offerings:', error)
+    }
+  }
+
+  // Initialize on mount
+  useEffect(() => {
+    initializePremium()
+  }, [userId])
+
+  // Set up customer info listener for real-time updates
+  useEffect(() => {
+    if (!isInitialized) return
+
+    const removeListener = setupCustomerInfoListener((updatedCustomerInfo) => {
+      console.log('🔔 Customer info updated:', updatedCustomerInfo)
+      setCustomerInfo(updatedCustomerInfo)
+    })
+
+    return removeListener
+  }, [isInitialized])
+
+  // Log premium status changes
+  useEffect(() => {
+    if (isInitialized) {
+      console.log('Premium status:', {
+        isPremium,
+        isTrialActive,
+        trialDaysRemaining,
+        hasActiveEntitlements: customerInfo ? Object.keys(customerInfo.entitlements.active).length > 0 : false,
+        hasOfferings: offerings !== null
+      })
+    }
+  }, [isPremium, isTrialActive, trialDaysRemaining, isInitialized, offerings])
 
   const value: PremiumContextType = {
-    customerInfo,
-    loading,
-    error,
+    // Premium status
     isPremium,
     isTrialActive,
     trialDaysRemaining,
-    hasAIFeatures,
-    hasAdvancedAnalytics,
-    hasCollaborationPlus,
-    hasNFTCredentials,
+    
+    // Customer info
+    customerInfo,
+    
+    // Offerings
+    offerings,
+    
+    // Loading states
+    isLoading,
+    isInitialized,
+    
+    // Actions
     refreshCustomerInfo,
-    checkEntitlement
+    initializePremium,
+    refreshOfferings,
   }
 
   return (
@@ -164,4 +160,32 @@ export const PremiumProvider = ({ children }: PremiumProviderProps) => {
       {children}
     </PremiumContext.Provider>
   )
+}
+
+// Hook to use premium context
+export const usePremium = (): PremiumContextType => {
+  const context = useContext(PremiumContext)
+  if (context === undefined) {
+    throw new Error('usePremium must be used within a PremiumProvider')
+  }
+  return context
+}
+
+// Helper hook for checking specific entitlements
+export const useEntitlement = (entitlementKey: keyof typeof ENTITLEMENTS) => {
+  const { customerInfo } = usePremium()
+  
+  const hasEntitlement = customerInfo 
+    ? ENTITLEMENTS[entitlementKey] in customerInfo.entitlements.active
+    : false
+    
+  const entitlementInfo = customerInfo?.entitlements.active[ENTITLEMENTS[entitlementKey]] || null
+  
+  return {
+    hasEntitlement,
+    entitlementInfo,
+    isActive: entitlementInfo?.isActive || false,
+    willRenew: entitlementInfo?.willRenew || false,
+    expirationDate: entitlementInfo?.expirationDate || null,
+  }
 }
