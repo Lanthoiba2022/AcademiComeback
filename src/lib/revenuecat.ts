@@ -1,52 +1,59 @@
-import  { Purchases,
+import { 
+  Purchases,
   CustomerInfo, 
   Offerings, 
   PurchasesPackage,
   PurchasesEntitlementInfo,
-  LogLevel 
+  LogLevel,
+  ErrorCode,
+  PurchasesError
 } from '@revenuecat/purchases-js'
 
 // RevenueCat configuration
-const REVENUECAT_API_KEY = import.meta.env.VITE_REVENUECAT_API_KEY || ''
+const REVENUECAT_PUBLIC_API_KEY = import.meta.env.VITE_REVENUECAT_PUBLIC_API_KEY || ''
+const REVENUECAT_SANDBOX_API_KEY = import.meta.env.VITE_REVENUECAT_SANDBOX_API_KEY || ''
 
-// Premium entitlement identifiers
+// Use sandbox key in development, public key in production
+const getApiKey = () => {
+  return import.meta.env.DEV ? REVENUECAT_SANDBOX_API_KEY : REVENUECAT_PUBLIC_API_KEY
+}
+
+// Premium entitlement identifiers (should match your RevenueCat dashboard)
 export const ENTITLEMENTS = {
-  PREMIUM: 'premium',
-  AI_FEATURES: 'ai_features',
-  ADVANCED_ANALYTICS: 'advanced_analytics',
-  COLLABORATION_PLUS: 'collaboration_plus',
-  NFT_CREDENTIALS: 'nft_credentials'
+  PREMIUM: 'premium', // This should match your entitlement identifier
 } as const
 
 export type EntitlementKey = keyof typeof ENTITLEMENTS
 
-// Subscription product identifiers
+// Subscription product identifiers (should match your RevenueCat dashboard)
 export const PRODUCTS = {
-  MONTHLY: 'studysync_premium_monthly',
-  YEARLY: 'studysync_premium_yearly'
+  MONTHLY: 'subscription_monthly_1', // This should match your product identifier
+  // Add more products as needed
 } as const
 
 // Initialize RevenueCat
-export const initializeRevenueCat = async (userId: string): Promise<void> => {
+export const initializeRevenueCat = async (userId?: string): Promise<void> => {
   try {
-    if (!REVENUECAT_API_KEY) {
+    const apiKey = getApiKey()
+    
+    if (!apiKey) {
       console.warn('RevenueCat API key not found. Premium features will be disabled.')
       return
     }
 
-    // Configure RevenueCat
-    await Purchases.configure({
-      apiKey: REVENUECAT_API_KEY,
-      appUserID: userId,
-      usesStoreKit2IfAvailable: false // Use StoreKit 1 for better web compatibility
-    })
+    // Generate anonymous user ID if none provided
+    const appUserId = userId || Purchases.generateRevenueCatAnonymousAppUserId()
+
+    // Configure RevenueCat with the correct API key
+    const purchases = Purchases.configure(apiKey, appUserId)
 
     // Set log level for debugging in development
     if (import.meta.env.DEV) {
       Purchases.setLogLevel(LogLevel.Debug)
     }
 
-    console.log('✅ RevenueCat initialized successfully')
+    console.log('✅ RevenueCat initialized successfully with user ID:', appUserId)
+    return Promise.resolve()
   } catch (error) {
     console.error('❌ Failed to initialize RevenueCat:', error)
     throw error
@@ -56,7 +63,7 @@ export const initializeRevenueCat = async (userId: string): Promise<void> => {
 // Get customer info with entitlements
 export const getCustomerInfo = async (): Promise<CustomerInfo | null> => {
   try {
-    const customerInfo = await Purchases.getCustomerInfo()
+    const customerInfo = await Purchases.getSharedInstance().getCustomerInfo()
     console.log('📊 Customer info retrieved:', {
       originalAppUserId: customerInfo.originalAppUserId,
       activeSubscriptions: Object.keys(customerInfo.activeSubscriptions),
@@ -71,12 +78,15 @@ export const getCustomerInfo = async (): Promise<CustomerInfo | null> => {
 }
 
 // Get available offerings
-export const getOfferings = async (): Promise<Offerings | null> => {
+export const getOfferings = async (currency?: string): Promise<Offerings | null> => {
   try {
-    const offerings = await Purchases.getOfferings()
+    const options = currency ? { currency } : undefined
+    const offerings = await Purchases.getSharedInstance().getOfferings(options)
+    
     console.log('🛍️ Offerings retrieved:', {
       current: offerings.current?.identifier,
-      all: Object.keys(offerings.all)
+      all: Object.keys(offerings.all),
+      packages: offerings.current?.availablePackages.length || 0
     })
     return offerings
   } catch (error) {
@@ -87,14 +97,16 @@ export const getOfferings = async (): Promise<Offerings | null> => {
 
 // Purchase a package
 export const purchasePackage = async (packageToPurchase: PurchasesPackage): Promise<{
-  customerInfo: CustomerInfo
+  customerInfo: CustomerInfo | null
   success: boolean
   error?: string
 }> => {
   try {
     console.log('💳 Attempting to purchase package:', packageToPurchase.identifier)
     
-    const { customerInfo } = await Purchases.purchasePackage(packageToPurchase)
+    const { customerInfo } = await Purchases.getSharedInstance().purchase({
+      rcPackage: packageToPurchase,
+    })
     
     console.log('✅ Purchase successful:', {
       activeSubscriptions: Object.keys(customerInfo.activeSubscriptions),
@@ -106,8 +118,14 @@ export const purchasePackage = async (packageToPurchase: PurchasesPackage): Prom
     console.error('❌ Purchase failed:', error)
     
     // Handle specific error cases
-    if (error.userCancelled) {
-      return { customerInfo: error.customerInfo, success: false, error: 'Purchase cancelled by user' }
+    if (error instanceof PurchasesError) {
+      if (error.errorCode === ErrorCode.UserCancelledError) {
+        return { 
+          customerInfo: error.customerInfo || null, 
+          success: false, 
+          error: 'Purchase cancelled by user' 
+        }
+      }
     }
     
     return { 
@@ -118,20 +136,22 @@ export const purchasePackage = async (packageToPurchase: PurchasesPackage): Prom
   }
 }
 
-// Restore purchases
+// Restore purchases (Note: Web SDK doesn't have traditional restore functionality like mobile)
 export const restorePurchases = async (): Promise<CustomerInfo | null> => {
   try {
-    console.log('🔄 Restoring purchases...')
-    const customerInfo = await Purchases.restorePurchases()
+    console.log('🔄 Getting current customer info (Web SDK restore equivalent)...')
     
-    console.log('✅ Purchases restored:', {
+    // For Web SDK, we just refresh the customer info
+    const customerInfo = await Purchases.getSharedInstance().getCustomerInfo()
+    
+    console.log('✅ Customer info refreshed:', {
       activeSubscriptions: Object.keys(customerInfo.activeSubscriptions),
       entitlements: Object.keys(customerInfo.entitlements.active)
     })
     
     return customerInfo
   } catch (error) {
-    console.error('❌ Failed to restore purchases:', error)
+    console.error('❌ Failed to refresh customer info:', error)
     return null
   }
 }
@@ -166,7 +186,8 @@ export const isInTrialPeriod = (customerInfo: CustomerInfo | null): boolean => {
   
   // Check if any active entitlement is in trial period
   return Object.values(customerInfo.entitlements.active).some(
-    (entitlement: PurchasesEntitlementInfo) => entitlement.willRenew && entitlement.periodType === 'trial'
+    (entitlement: PurchasesEntitlementInfo) => 
+      entitlement.willRenew && entitlement.periodType === 'trial'
   )
 }
 
@@ -185,26 +206,69 @@ export const getTrialDaysRemaining = (customerInfo: CustomerInfo | null): number
   return Math.max(0, diffDays)
 }
 
-// Set up customer info listener for real-time updates
+// Set up customer info polling for real-time updates (Web SDK alternative to listeners)
 export const setupCustomerInfoListener = (
   callback: (customerInfo: CustomerInfo) => void
 ): (() => void) => {
-  console.log('🔄 Setting up customer info listener...')
+  console.log('🔄 Setting up customer info polling...')
   
-  const listener = Purchases.addCustomerInfoUpdateListener(callback)
+  let isPolling = true
+  let lastCustomerInfo: CustomerInfo | null = null
+  
+  const pollInterval = setInterval(async () => {
+    if (!isPolling) return
+    
+    try {
+      const currentCustomerInfo = await getCustomerInfo()
+      
+      // Only call callback if customer info has changed
+      if (currentCustomerInfo && 
+          JSON.stringify(currentCustomerInfo) !== JSON.stringify(lastCustomerInfo)) {
+        lastCustomerInfo = currentCustomerInfo
+        callback(currentCustomerInfo)
+      }
+    } catch (error) {
+      console.error('❌ Error polling customer info:', error)
+    }
+  }, 5000) // Poll every 5 seconds
   
   return () => {
-    console.log('🔄 Removing customer info listener...')
-    listener.remove()
+    console.log('🔄 Stopping customer info polling...')
+    isPolling = false
+    clearInterval(pollInterval)
+  }
+}
+
+// Login user to RevenueCat (for identified users)
+export const loginRevenueCat = async (appUserId: string): Promise<CustomerInfo | null> => {
+  try {
+    const { customerInfo } = await Purchases.getSharedInstance().logIn(appUserId)
+    console.log('✅ RevenueCat login successful for user:', appUserId)
+    return customerInfo
+  } catch (error) {
+    console.error('❌ RevenueCat login failed:', error)
+    return null
   }
 }
 
 // Logout user from RevenueCat
-export const logoutRevenueCat = async (): Promise<void> => {
+export const logoutRevenueCat = async (): Promise<CustomerInfo | null> => {
   try {
-    await Purchases.logOut()
+    const { customerInfo } = await Purchases.getSharedInstance().logOut()
     console.log('✅ RevenueCat logout successful')
+    return customerInfo
   } catch (error) {
     console.error('❌ RevenueCat logout failed:', error)
+    return null
+  }
+}
+
+// Check if RevenueCat is properly configured
+export const isRevenueCatConfigured = (): boolean => {
+  try {
+    Purchases.getSharedInstance()
+    return true
+  } catch {
+    return false
   }
 }

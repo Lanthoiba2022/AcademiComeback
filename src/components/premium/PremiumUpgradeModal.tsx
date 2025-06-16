@@ -1,14 +1,14 @@
-import { useState, ReactNode } from 'react'
+import { useState, ReactNode, useEffect } from 'react'
 import { Modal } from '../ui/Modal'
 import { Button } from '../ui/Button'
 import { Card } from '../ui/Card'
 import { usePremium } from '../../contexts/PremiumContext'
-import { getOfferings, purchasePackage, restorePurchases } from '../../lib/revenuecat'
+import { purchasePackage, restorePurchases, isRevenueCatConfigured } from '../../lib/revenuecat'
 import { 
   Crown, Check, Zap, Star, Users, Award, Loader, 
   RefreshCw, AlertCircle, Sparkles 
 } from 'lucide-react'
-import { Offerings, PurchasesPackage } from '@revenuecat/purchases-js'
+import type { Package } from '@revenuecat/purchases-js'
 
 interface PremiumUpgradeModalProps {
   trigger: ReactNode
@@ -16,10 +16,12 @@ interface PremiumUpgradeModalProps {
   onClose?: () => void
 }
 
-export const PremiumUpgradeModal = ({ trigger, isOpen: controlledIsOpen, onClose: controlledOnClose }: PremiumUpgradeModalProps) => {
+export const PremiumUpgradeModal = ({ 
+  trigger, 
+  isOpen: controlledIsOpen, 
+  onClose: controlledOnClose 
+}: PremiumUpgradeModalProps) => {
   const [isOpen, setIsOpen] = useState(false)
-  const [offerings, setOfferings] = useState<Offerings | null>(null)
-  const [loading, setLoading] = useState(false)
   const [purchasing, setPurchasing] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   
@@ -27,11 +29,21 @@ export const PremiumUpgradeModal = ({ trigger, isOpen: controlledIsOpen, onClose
     isPremium, 
     isTrialActive, 
     trialDaysRemaining, 
-    refreshCustomerInfo 
+    refreshCustomerInfo,
+    offerings,
+    refreshOfferings,
+    isLoading
   } = usePremium()
 
   const modalIsOpen = controlledIsOpen !== undefined ? controlledIsOpen : isOpen
   const handleClose = controlledOnClose || (() => setIsOpen(false))
+
+  // Check if RevenueCat is configured
+  useEffect(() => {
+    if (!isRevenueCatConfigured()) {
+      setError('RevenueCat is not properly configured. Please check your API keys.')
+    }
+  }, [])
 
   // Load offerings when modal opens
   const handleOpen = async () => {
@@ -39,87 +51,43 @@ export const PremiumUpgradeModal = ({ trigger, isOpen: controlledIsOpen, onClose
       setIsOpen(true)
     }
     
-    if (!offerings) {
-      await loadOfferings()
+    if (isRevenueCatConfigured()) {
+      await refreshOfferings()
     }
   }
 
-  const loadOfferings = async () => {
+  // Handle purchase
+  const handlePurchase = async (pkg: Package) => {
     try {
-      setLoading(true)
+      setPurchasing(pkg.identifier)
       setError(null)
       
-      const fetchedOfferings = await getOfferings()
-      setOfferings(fetchedOfferings)
+      const { success, error: purchaseError } = await purchasePackage(pkg)
       
-      if (!fetchedOfferings?.current) {
-        setError('No subscription plans available at the moment. Please try again later.')
-      }
-    } catch (err) {
-      console.error('Failed to load offerings:', err)
-      setError('Failed to load subscription plans. Please check your connection and try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handlePurchase = async (packageToPurchase: PurchasesPackage) => {
-    try {
-      setPurchasing(packageToPurchase.identifier)
-      setError(null)
-      
-      const result = await purchasePackage(packageToPurchase)
-      
-      if (result.success) {
-        // Refresh customer info to get latest entitlements
+      if (success) {
         await refreshCustomerInfo()
-        
-        // Show success and close modal
         handleClose()
-        
-        // You could show a success toast here
-        console.log('✅ Purchase successful!')
       } else {
-        setError(result.error || 'Purchase failed. Please try again.')
+        setError(purchaseError || 'Purchase failed. Please try again.')
       }
     } catch (err) {
       console.error('Purchase error:', err)
-      setError('Purchase failed. Please try again.')
+      setError('An unexpected error occurred. Please try again.')
     } finally {
       setPurchasing(null)
     }
   }
 
+  // Handle restore purchases
   const handleRestorePurchases = async () => {
     try {
-      setLoading(true)
       setError(null)
-      
-      const customerInfo = await restorePurchases()
-      
-      if (customerInfo) {
-        await refreshCustomerInfo()
-        
-        if (Object.keys(customerInfo.entitlements.active).length > 0) {
-          handleClose()
-          console.log('✅ Purchases restored successfully!')
-        } else {
-          setError('No active purchases found to restore.')
-        }
-      } else {
-        setError('Failed to restore purchases. Please try again.')
-      }
+      await restorePurchases()
+      await refreshCustomerInfo()
     } catch (err) {
-      console.error('Restore purchases error:', err)
+      console.error('Restore error:', err)
       setError('Failed to restore purchases. Please try again.')
-    } finally {
-      setLoading(false)
     }
-  }
-
-  // If user is already premium, don't show the modal
-  if (isPremium) {
-    return <>{trigger}</>
   }
 
   const premiumFeatures = [
@@ -149,12 +117,17 @@ export const PremiumUpgradeModal = ({ trigger, isOpen: controlledIsOpen, onClose
     }
   ]
 
-  const getPackagePrice = (pkg: PurchasesPackage): string => {
-    // Format price from RevenueCat package
-    return pkg.product.priceString || `$${pkg.product.price}`
+  const getPackagePrice = (pkg: Package): string => {
+    // For Web Billing, access price from webBillingProduct
+    if (pkg.webBillingProduct) {
+      return pkg.webBillingProduct.currentPrice?.formattedPrice || 
+             `${pkg.webBillingProduct.currentPrice?.currency} ${pkg.webBillingProduct.currentPrice?.amountMicros / 1000000}`
+    }
+    // Fallback for regular products
+    return 'Price not available'
   }
 
-  const getPackageSavings = (pkg: PurchasesPackage): string | null => {
+  const getPackageSavings = (pkg: Package): string | null => {
     // Calculate savings for yearly plan
     if (pkg.identifier.includes('yearly') || pkg.identifier.includes('annual')) {
       return 'Save 25%'
@@ -162,49 +135,33 @@ export const PremiumUpgradeModal = ({ trigger, isOpen: controlledIsOpen, onClose
     return null
   }
 
+  const getPackageName = (pkg: Package): string => {
+    // Extract package name from identifier or use display name
+    if (pkg.identifier.includes('monthly')) return 'Monthly'
+    if (pkg.identifier.includes('yearly') || pkg.identifier.includes('annual')) return 'Yearly'
+    return 'Subscription'
+  }
+
   return (
     <>
-      <div onClick={handleOpen} className="cursor-pointer">
-        {trigger}
-      </div>
-
+      <div onClick={handleOpen}>{trigger}</div>
+      
       <Modal
         isOpen={modalIsOpen}
         onClose={handleClose}
-        title=""
-        size="xl"
+        size="lg"
       >
-        <div className="relative overflow-hidden">
-          {/* Premium gradient background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-primary-500/10 via-secondary-500/10 to-accent-500/10" />
-          
-          <div className="relative z-10 p-6">
-            {/* Header */}
-            <div className="text-center mb-8">
-              <div className="w-20 h-20 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary-500/25">
-                <Crown className="w-10 h-10 text-white" />
-              </div>
-              
-              <h2 className="text-3xl font-bold text-white mb-2">
-                Upgrade to Premium
-              </h2>
-              
-              <p className="text-dark-300 text-lg">
-                Unlock the full potential of StudySync
-              </p>
+        <div className="p-6">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-white mb-4">
+              Upgrade to Premium
+            </h2>
+            <p className="text-dark-300">
+              Unlock all premium features and take your studying to the next level
+            </p>
+          </div>
 
-              {/* Trial status */}
-              {isTrialActive && (
-                <div className="mt-4 inline-flex items-center px-4 py-2 bg-accent-500/20 border border-accent-500/30 rounded-full">
-                  <Sparkles className="w-4 h-4 text-accent-400 mr-2" />
-                  <span className="text-accent-400 font-medium">
-                    {trialDaysRemaining} days left in your free trial
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Error message */}
+          <div className="space-y-6">
             {error && (
               <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center">
                 <AlertCircle className="w-5 h-5 text-red-400 mr-3 flex-shrink-0" />
@@ -213,7 +170,7 @@ export const PremiumUpgradeModal = ({ trigger, isOpen: controlledIsOpen, onClose
             )}
 
             {/* Loading state */}
-            {loading && !offerings && (
+            {isLoading && !offerings && (
               <div className="text-center py-12">
                 <Loader className="w-8 h-8 text-primary-400 mx-auto mb-4 animate-spin" />
                 <p className="text-white">Loading subscription plans...</p>
@@ -221,17 +178,18 @@ export const PremiumUpgradeModal = ({ trigger, isOpen: controlledIsOpen, onClose
             )}
 
             {/* Subscription plans */}
-            {offerings?.current && (
+            {offerings?.current && offerings.current.availablePackages.length > 0 && (
               <div className="mb-8">
                 <h3 className="text-xl font-semibold text-white text-center mb-6">
                   Choose Your Plan
                 </h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {offerings.current.availablePackages.map((pkg) => {
                     const isYearly = pkg.identifier.includes('yearly') || pkg.identifier.includes('annual')
                     const savings = getPackageSavings(pkg)
                     const isPurchasing = purchasing === pkg.identifier
+                    const packageName = getPackageName(pkg)
                     
                     return (
                       <Card 
@@ -247,9 +205,9 @@ export const PremiumUpgradeModal = ({ trigger, isOpen: controlledIsOpen, onClose
                           </div>
                         )}
 
-                        <div className="p-6 text-center">
+                        <div className="p-6">
                           <h4 className="text-lg font-semibold text-white mb-2">
-                            {isYearly ? 'Yearly' : 'Monthly'}
+                            {packageName}
                           </h4>
                           
                           <div className="mb-4">
@@ -268,7 +226,7 @@ export const PremiumUpgradeModal = ({ trigger, isOpen: controlledIsOpen, onClose
 
                           <Button
                             onClick={() => handlePurchase(pkg)}
-                            disabled={isPurchasing || loading}
+                            disabled={isPurchasing || isLoading}
                             className={`w-full ${isYearly ? 'bg-gradient-to-r from-primary-500 to-secondary-500' : ''}`}
                             loading={isPurchasing}
                           >
@@ -289,7 +247,7 @@ export const PremiumUpgradeModal = ({ trigger, isOpen: controlledIsOpen, onClose
             )}
 
             {/* Features list */}
-            <div className="mb-8">
+            <div>
               <h3 className="text-xl font-semibold text-white text-center mb-6">
                 What's Included
               </h3>
@@ -317,7 +275,7 @@ export const PremiumUpgradeModal = ({ trigger, isOpen: controlledIsOpen, onClose
               <Button
                 variant="ghost"
                 onClick={handleRestorePurchases}
-                disabled={loading}
+                disabled={isLoading}
                 icon={RefreshCw}
                 size="sm"
               >
@@ -326,7 +284,7 @@ export const PremiumUpgradeModal = ({ trigger, isOpen: controlledIsOpen, onClose
               
               <div className="text-center">
                 <p className="text-xs text-dark-400 mb-2">
-                  14-day free trial • Cancel anytime • Secure payments
+                  Secure payments powered by Stripe
                 </p>
                 <p className="text-xs text-dark-500">
                   Powered by RevenueCat
