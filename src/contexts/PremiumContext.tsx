@@ -17,6 +17,12 @@ interface PremiumContextType {
   isTrialActive: boolean
   trialDaysRemaining: number
   
+  // Feature access
+  hasAIFeatures: boolean
+  hasAdvancedAnalytics: boolean
+  hasCollaborationPlus: boolean
+  hasNFTCredentials: boolean
+  
   // Customer info
   customerInfo: CustomerInfo | null
   
@@ -53,6 +59,12 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
   const isPremium = hasPremiumAccess(customerInfo)
   const isTrialActive = isInTrialPeriod(customerInfo)
   const trialDaysRemaining = getTrialDaysRemaining(customerInfo)
+
+  // Feature access
+  const hasAIFeatures = isPremium
+  const hasAdvancedAnalytics = isPremium
+  const hasCollaborationPlus = isPremium
+  const hasNFTCredentials = isPremium
 
   // Initialize RevenueCat and load customer info
   const initializePremium = async (userIdOverride?: string) => {
@@ -138,6 +150,12 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
     isPremium,
     isTrialActive,
     trialDaysRemaining,
+    
+    // Feature access
+    hasAIFeatures,
+    hasAdvancedAnalytics,
+    hasCollaborationPlus,
+    hasNFTCredentials,
     
     // Customer info
     customerInfo,
