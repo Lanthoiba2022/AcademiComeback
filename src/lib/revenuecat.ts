@@ -20,15 +20,15 @@ const getApiKey = () => {
 
 // Premium entitlement identifiers (should match your RevenueCat dashboard)
 export const ENTITLEMENTS = {
-  PREMIUM: 'premium', // This should match your entitlement identifier
+  PREMIUM: 'student_monthly', // This should match your entitlement identifier
 } as const
 
 export type EntitlementKey = keyof typeof ENTITLEMENTS
 
 // Subscription product identifiers (should match your RevenueCat dashboard)
 export const PRODUCTS = {
-  MONTHLY: 'subscription_monthly_1', // This should match your product identifier
-  // Add more products as needed
+  STUDENT_MONTHLY: 'subscription_student_monthly_9', // $9/month
+  PRO_MONTHLY: 'subscription_pro_monthly_19', // $19/month
 } as const
 
 // Initialize RevenueCat

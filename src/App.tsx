@@ -12,6 +12,7 @@ import { CalendarPage } from './pages/CalendarPage'
 import { FilesPage } from './pages/FilesPage'
 import { UnderDevelopment } from './pages/UnderDevelopment'
 import { PremiumSettingsPage } from './pages/PremiumSettingsPage'
+import { PricingPage } from './pages/PricingPage'
 import { AchievementsList } from './components/gamification/AchievementsList'
 import { RewardsMarketplace } from './components/gamification/RewardsMarketplace'
 import { Leaderboard } from './components/gamification/Leaderboard'
@@ -98,6 +99,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <PremiumSettingsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/pricing" 
+              element={
+                <ProtectedRoute>
+                  <PricingPage />
                 </ProtectedRoute>
               } 
             />
