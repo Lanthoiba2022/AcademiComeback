@@ -21,7 +21,7 @@ import { PremiumOnboarding } from './components/premium/PremiumOnboarding'
 import { useGamification } from './hooks/useGamification'
 
 // Gamification Pages
-const AchievementsPage = () => {
+export const AchievementsPage = () => {
   const { achievements } = useGamification()
   
   return (
@@ -34,7 +34,7 @@ const AchievementsPage = () => {
   )
 }
 
-const RewardsPage = () => {
+export const RewardsPage = () => {
   const { rewards, stats, redeemedRewards, redeemReward } = useGamification()
   
   return (
@@ -52,7 +52,7 @@ const RewardsPage = () => {
   )
 }
 
-const LeaderboardPage = () => {
+export const LeaderboardPage = () => {
   const { leaderboard } = useGamification()
   
   return (
