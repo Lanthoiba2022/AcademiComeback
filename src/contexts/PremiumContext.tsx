@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { CustomerInfo, Offerings } from '@revenuecat/purchases-js'
+import { CustomerInfo, Offerings, Package } from '@revenuecat/purchases-js'
 import { 
   initializeRevenueCat, 
   getCustomerInfo, 
@@ -8,14 +8,19 @@ import {
   getTrialDaysRemaining,
   setupCustomerInfoListener,
   getOfferings,
-  ENTITLEMENTS
+  purchasePackage,
+  ENTITLEMENTS,
+  PRODUCTS
 } from '../lib/revenuecat'
 
-interface PremiumContextType {
+export type SubscriptionLevel = 'free' | 'student' | 'pro'
+
+export interface PremiumContextType {
   // Premium status
   isPremium: boolean
   isTrialActive: boolean
   trialDaysRemaining: number
+  subscriptionLevel: SubscriptionLevel
   
   // Feature access
   hasAIFeatures: boolean
@@ -33,10 +38,15 @@ interface PremiumContextType {
   isLoading: boolean
   isInitialized: boolean
   
+  // Purchase state
+  purchasing: string | null
+  
   // Actions
   refreshCustomerInfo: () => Promise<void>
-  initializePremium: (userId?: string) => Promise<void>
+  initializePremium: (userIdOverride?: string) => Promise<void>
   refreshOfferings: () => Promise<void>
+  handleSuccessfulPayment: () => Promise<boolean>
+  handlePurchase: (pkg: Package) => Promise<boolean>
 }
 
 const PremiumContext = createContext<PremiumContextType | undefined>(undefined)
@@ -44,6 +54,37 @@ const PremiumContext = createContext<PremiumContextType | undefined>(undefined)
 interface PremiumProviderProps {
   children: ReactNode
   userId?: string // Optional user ID for identified users
+}
+
+// Helper function to determine subscription level
+const getSubscriptionLevel = (customerInfo: CustomerInfo | null): SubscriptionLevel => {
+  if (!customerInfo) return 'free'
+  
+  const premiumEntitlement = customerInfo.entitlements.active['premium']
+  if (!premiumEntitlement) return 'free'
+  
+  // Check product identifier to determine level
+  const productId = premiumEntitlement.productIdentifier
+  if (productId.includes('pro')) return 'pro'
+  if (productId.includes('student')) return 'student'
+  
+  return 'free'
+}
+
+// Helper function to check feature access based on subscription level
+const hasFeatureAccess = (level: SubscriptionLevel, feature: string): boolean => {
+  switch (feature) {
+    case 'ai':
+      return level !== 'free'
+    case 'analytics':
+      return level === 'pro'
+    case 'collaboration':
+      return level !== 'free'
+    case 'nft':
+      return level === 'pro'
+    default:
+      return level !== 'free'
+  }
 }
 
 export const PremiumProvider: React.FC<PremiumProviderProps> = ({ 
@@ -54,17 +95,95 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
   const [offerings, setOfferings] = useState<Offerings | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [purchasing, setPurchasing] = useState<string | null>(null)
+  const [subscriptionLevel, setSubscriptionLevel] = useState<SubscriptionLevel>('free')
 
   // Derived state
   const isPremium = hasPremiumAccess(customerInfo)
   const isTrialActive = isInTrialPeriod(customerInfo)
   const trialDaysRemaining = getTrialDaysRemaining(customerInfo)
 
-  // Feature access
-  const hasAIFeatures = isPremium
-  const hasAdvancedAnalytics = isPremium
-  const hasCollaborationPlus = isPremium
-  const hasNFTCredentials = isPremium
+  // Feature access based on subscription level
+  const hasAIFeatures = hasFeatureAccess(subscriptionLevel, 'ai')
+  const hasAdvancedAnalytics = hasFeatureAccess(subscriptionLevel, 'analytics')
+  const hasCollaborationPlus = hasFeatureAccess(subscriptionLevel, 'collaboration')
+  const hasNFTCredentials = hasFeatureAccess(subscriptionLevel, 'nft')
+
+  // Helper function to determine subscription level from package
+  const getSubscriptionLevelFromPackage = (pkg: Package): SubscriptionLevel => {
+    const identifier = pkg.identifier.toLowerCase()
+    if (identifier.includes('pro') || identifier.includes('19')) {
+      return 'pro'
+    } else if (identifier.includes('student') || identifier.includes('9')) {
+      return 'student'
+    }
+    return 'free'
+  }
+
+  // Helper function to verify payment success
+  const verifyPaymentSuccess = async (customerInfo: CustomerInfo | null): Promise<boolean> => {
+    if (!customerInfo) return false
+
+    // Log the full customer info for debugging
+    console.log('Customer info for verification:', customerInfo)
+
+    // Check if user has an active subscription
+    const hasActiveSubscription = customerInfo.activeSubscriptions.size > 0
+    if (!hasActiveSubscription) {
+      console.error('No active subscription found')
+      return false
+    }
+
+    console.log('Payment verified successfully:', {
+      activeSubscriptions: Array.from(customerInfo.activeSubscriptions),
+      entitlements: Object.keys(customerInfo.entitlements.active)
+    })
+
+    return true
+  }
+
+  // Handle successful payment
+  const handleSuccessfulPayment = async () => {
+    try {
+      // Refresh customer info to ensure we have the latest data
+      const latestCustomerInfo = await getCustomerInfo()
+      if (!latestCustomerInfo) {
+        throw new Error('Failed to verify payment status')
+      }
+
+      // Verify the payment was successful
+      const isPaymentVerified = await verifyPaymentSuccess(latestCustomerInfo)
+      if (!isPaymentVerified) {
+        throw new Error('Payment verification failed')
+      }
+
+      // Update customer info and subscription level
+      setCustomerInfo(latestCustomerInfo)
+      
+      // Determine new subscription level from the active entitlement
+      const premiumEntitlement = latestCustomerInfo.entitlements.active[ENTITLEMENTS.PREMIUM]
+      if (premiumEntitlement) {
+        const productId = premiumEntitlement.productIdentifier.toLowerCase()
+        const newLevel = productId.includes('pro') || productId.includes('19') 
+          ? 'pro' 
+          : productId.includes('student') || productId.includes('9')
+            ? 'student'
+            : 'free'
+        setSubscriptionLevel(newLevel)
+      }
+
+      console.log('✅ Payment verified and subscription level updated:', {
+        subscriptionLevel,
+        entitlements: Object.keys(latestCustomerInfo.entitlements.active),
+        expirationDate: premiumEntitlement?.expirationDate
+      })
+
+      return true
+    } catch (error) {
+      console.error('❌ Failed to handle successful payment:', error)
+      throw error
+    }
+  }
 
   // Initialize RevenueCat and load customer info
   const initializePremium = async (userIdOverride?: string) => {
@@ -150,6 +269,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
     isPremium,
     isTrialActive,
     trialDaysRemaining,
+    subscriptionLevel,
     
     // Feature access
     hasAIFeatures,
@@ -167,10 +287,44 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
     isLoading,
     isInitialized,
     
+    // Purchase state
+    purchasing,
+    
     // Actions
     refreshCustomerInfo,
     initializePremium,
     refreshOfferings,
+    handleSuccessfulPayment,
+    handlePurchase: async (pkg: Package): Promise<boolean> => {
+      try {
+        setPurchasing(pkg.identifier)
+        
+        const { customerInfo, success, error } = await purchasePackage(pkg)
+        
+        if (success && customerInfo) {
+          // Update customer info and subscription level
+          setCustomerInfo(customerInfo)
+          const newLevel = getSubscriptionLevelFromPackage(pkg)
+          setSubscriptionLevel(newLevel)
+          
+          console.log('✅ Purchase successful:', {
+            package: pkg.identifier,
+            newLevel,
+            entitlements: Object.keys(customerInfo.entitlements.active)
+          })
+          
+          return true
+        } else {
+          console.error('❌ Purchase failed:', error)
+          return false
+        }
+      } catch (error) {
+        console.error('❌ Purchase error:', error)
+        return false
+      } finally {
+        setPurchasing(null)
+      }
+    },
   }
 
   return (

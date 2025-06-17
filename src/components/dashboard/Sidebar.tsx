@@ -36,6 +36,7 @@ const navigation = [
   { name: 'Leaderboard', icon: TrendingUp, href: '/leaderboard' },
   { name: 'Notes', icon: FileText, href: '/under-development' },
   { name: 'Premium', icon: Crown, href: '/premium', isPremium: true },
+  { name: 'Pricing', icon: Crown, href: '/pricing', isPremium: true },
   { name: 'Settings', icon: Settings, href: '/under-development' },
 ]
 
