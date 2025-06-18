@@ -20,7 +20,7 @@ import {
   FolderOpen,
   Crown
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { signOut } from '../../lib/supabase'
 import { PremiumStatusBadge } from '../premium/PremiumStatusBadge'
 
@@ -43,6 +43,7 @@ export const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
 
   const handleSignOut = async () => {
     await signOut()
@@ -52,6 +53,10 @@ export const Sidebar = () => {
   const handleNavigation = (href: string) => {
     navigate(href)
     setIsMobileOpen(false) // Close mobile menu
+  }
+
+  const isActiveRoute = (href: string) => {
+    return location.pathname === href
   }
 
   return (
@@ -75,12 +80,12 @@ export const Sidebar = () => {
       {/* Sidebar */}
       <div className={`
         fixed left-0 top-0 h-full bg-card-gradient backdrop-blur-xl border-r border-dark-700/50 
-        transition-all duration-300 z-40
+        transition-all duration-300 z-40 flex flex-col
         ${isCollapsed ? 'w-16' : 'w-64'}
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-dark-700/50">
+        <div className="flex items-center justify-between p-3 border-b border-dark-700/50 flex-shrink-0">
           {!isCollapsed && (
             <div className="flex items-center space-x-2">
               <div className="p-2 bg-button-gradient rounded-xl">
@@ -99,48 +104,54 @@ export const Sidebar = () => {
 
         {/* Premium Status */}
         {!isCollapsed && (
-          <div className="p-4 border-b border-dark-700/50">
+          <div className="py-2 px-3 border-b border-dark-700/50 flex-shrink-0">
             <PremiumStatusBadge showDetails />
           </div>
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 overflow-y-auto">
-          <ul className="space-y-2">
-            {navigation.map((item) => (
-              <li key={item.name}>
-                <button
-                  onClick={() => handleNavigation(item.href)}
-                  className={`
-                    w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg
-                    text-dark-300 hover:text-white hover:bg-dark-700
-                    transition-colors duration-200 group
-                    ${isCollapsed ? 'justify-center' : 'justify-start'}
-                    ${item.isPremium ? 'relative' : ''}
-                  `}
-                >
-                  <item.icon className={`w-5 h-5 flex-shrink-0 ${item.isPremium ? 'text-primary-400' : ''}`} />
-                  {!isCollapsed && (
-                    <span className={`ml-3 ${item.isPremium ? 'text-primary-300' : ''}`}>
-                      {item.name}
-                    </span>
-                  )}
-                  {item.isPremium && !isCollapsed && (
-                    <Crown className="w-3 h-3 text-primary-400 ml-auto" />
-                  )}
-                  {isCollapsed && (
-                    <div className="absolute left-16 ml-2 px-2 py-1 bg-dark-800 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                      {item.name}
-                    </div>
-                  )}
-                </button>
-              </li>
-            ))}
+        <nav className="flex-1 p-3">
+          <ul className="space-y-1.5">
+            {navigation.map((item) => {
+              const isActive = isActiveRoute(item.href)
+              return (
+                <li key={item.name}>
+                  <button
+                    onClick={() => handleNavigation(item.href)}
+                    className={`
+                      w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg
+                      transition-colors duration-200 group
+                      ${isCollapsed ? 'justify-center' : 'justify-start'}
+                      ${item.isPremium ? 'relative' : ''}
+                      ${isActive 
+                        ? 'bg-primary-500/20 text-primary-300 border border-primary-500/30' 
+                        : 'text-dark-300 hover:text-white hover:bg-dark-700'
+                      }
+                    `}
+                  >
+                    <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive || item.isPremium ? 'text-primary-400' : ''}`} />
+                    {!isCollapsed && (
+                      <span className={`ml-3 ${isActive || item.isPremium ? 'text-primary-300' : ''}`}>
+                        {item.name}
+                      </span>
+                    )}
+                    {item.isPremium && !isCollapsed && (
+                      <Crown className="w-3 h-3 text-primary-400 ml-auto" />
+                    )}
+                    {isCollapsed && (
+                      <div className="absolute left-16 ml-2 px-2 py-1 bg-dark-800 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                        {item.name}
+                      </div>
+                    )}
+                  </button>
+                </li>
+              )
+            })}
           </ul>
         </nav>
 
         {/* Sign Out */}
-        <div className="p-4 border-t border-dark-700/50">
+        <div className="p-3 border-t border-dark-700/50 flex-shrink-0">
           <button
             onClick={handleSignOut}
             className={`
