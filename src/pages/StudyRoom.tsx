@@ -14,24 +14,288 @@ import {
 import { Task, ChatMessage, StudySession, User as UserType, Room } from '../types'
 import { TaskItem } from '../components/room/TaskItem'
 import { ChatArea } from '../components/room/ChatArea'
+import { ChatProvider, useChat } from '../contexts/ChatContext'
 import { MemberList } from '../components/room/MemberList'
 import { TimerControls } from '../components/room/TimerControls'
 import { RoomHeader } from '../components/room/RoomHeader'
 import { useAuth } from '../contexts/AuthContext'
 import { useGamification } from '../hooks/useGamification'
 import { 
-  getRoomById, getTasks, createTask, updateTask, deleteTask,
-  getChatMessages, sendChatMessage, subscribeToRoom, updateUserPresence,
-  getProfile, startFocusSession, updateFocusSession, endStudySession,
-  getRoomTotalStudyTime, getUserStudyStats
+  getRoomById, getTasks, createTask, updateTask, deleteTask, 
+  getRoomTotalStudyTime, getUserStudyStats, startFocusSession, 
+  updateFocusSession, endStudySession, subscribeToRoom, updateUserPresence,
+  getProfile
 } from '../lib/supabase'
+
+// Wrapper component to access chat context
+const StudyRoomContent = ({ 
+  room, 
+  currentUser, 
+  roomId, 
+  tasks, 
+  timerState,
+  onBack,
+  audioEnabled,
+  micEnabled,
+  videoEnabled,
+  onToggleAudio,
+  onToggleMic,
+  onToggleVideo,
+  showAddTask,
+  setShowAddTask,
+  newTaskTitle,
+  setNewTaskTitle,
+  addTask,
+  updateTaskHandler,
+  deleteTaskHandler,
+  reorderTasks,
+  toggleTimer,
+  resetTimer,
+  setCustomTimer,
+  roomTotalStudyTime,
+  userTodayFocusTime,
+  pendingNotification,
+  pendingAchievement,
+  clearNotification,
+  clearAchievement
+}: {
+  room: Room
+  currentUser: UserType
+  roomId: string
+  tasks: Task[]
+  timerState: any
+  onBack: () => void
+  audioEnabled: boolean
+  micEnabled: boolean
+  videoEnabled: boolean
+  onToggleAudio: () => void
+  onToggleMic: () => void
+  onToggleVideo: () => void
+  showAddTask: boolean
+  setShowAddTask: (value: boolean) => void
+  newTaskTitle: string
+  setNewTaskTitle: (value: string) => void
+  addTask: () => Promise<void>
+  updateTaskHandler: (taskId: string, updates: Partial<Task>) => Promise<void>
+  deleteTaskHandler: (taskId: string) => Promise<void>
+  reorderTasks: (startIndex: number, endIndex: number) => void
+  toggleTimer: () => Promise<void>
+  resetTimer: () => void
+  setCustomTimer: (minutes: number, mode: 'work' | 'break', label?: string, cycles?: number) => void
+  roomTotalStudyTime: number
+  userTodayFocusTime: number
+  pendingNotification: any
+  pendingAchievement: any
+  clearNotification: () => void
+  clearAchievement: () => void
+}) => {
+  const { sendActivityMessage } = useChat()
+
+  // Enhanced task handlers with activity messages
+  const handleTaskComplete = async (taskId: string, updates: Partial<Task>) => {
+    await updateTaskHandler(taskId, updates)
+    
+    if (updates.status === 'completed') {
+      const task = tasks.find((t: Task) => t.id === taskId)
+      await sendActivityMessage('Task Completed', {
+        message: `${currentUser.name} completed task: "${task?.title}"`
+      })
+    }
+  }
+
+  const handleTaskDelete = async (taskId: string) => {
+    const task = tasks.find((t: Task) => t.id === taskId)
+    await deleteTaskHandler(taskId)
+    await sendActivityMessage('Task Deleted', {
+      message: `${currentUser.name} deleted task: "${task?.title}"`
+    })
+  }
+
+  const handleTaskCreate = async () => {
+    await addTask()
+    await sendActivityMessage('Task Created', {
+      message: `${currentUser.name} created a new task`
+    })
+  }
+
+  const handleTimerStart = async () => {
+    await toggleTimer()
+    if (!timerState.isRunning) {
+      await sendActivityMessage('Timer Started', {
+        message: `${currentUser.name} started a ${timerState.mode} timer for ${timerState.minutes} minutes`
+      })
+    }
+  }
+
+  const handleTimerStop = async () => {
+    await toggleTimer()
+    if (timerState.isRunning) {
+      await sendActivityMessage('Timer Stopped', {
+        message: `${currentUser.name} stopped the timer`
+      })
+    }
+  }
+
+  const completedTasksCount = tasks.filter((t: Task) => t.status === 'completed').length
+  const totalTasks = tasks.length
+  const progressPercentage = totalTasks > 0 ? (completedTasksCount / totalTasks) * 100 : 0
+
+  return (
+    <div className="min-h-screen bg-hero-gradient">
+      {/* Room Header */}
+      <RoomHeader 
+        room={room}
+        onBack={onBack}
+        audioEnabled={audioEnabled}
+        micEnabled={micEnabled}
+        videoEnabled={videoEnabled}
+        onToggleAudio={onToggleAudio}
+        onToggleMic={onToggleMic}
+        onToggleVideo={onToggleVideo}
+      />
+
+      <div className="flex h-[calc(100vh-80px)]">
+        {/* Left Sidebar - Members */}
+        <div className="w-64 bg-card-gradient backdrop-blur-xl border-r border-dark-700/50">
+          <MemberList 
+            members={room.members}
+            currentUserId={currentUser.id}
+            adminId={room.adminId}
+          />
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col">
+          {/* Study Plan Header */}
+          <div className="p-6 border-b border-dark-700/50 bg-dark-900/50">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-xl font-semibold text-white">Study Plan</h2>
+                <p className="text-dark-300 text-sm">
+                  {completedTasksCount} of {totalTasks} tasks completed
+                </p>
+              </div>
+              <Button
+                onClick={() => setShowAddTask(true)}
+                icon={Plus}
+                size="sm"
+              >
+                Add Task
+              </Button>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="w-full bg-dark-700 rounded-full h-2">
+              <div 
+                className="bg-gradient-to-r from-primary-500 to-accent-500 h-2 rounded-full transition-all duration-500"
+                style={{ width: `${progressPercentage}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Tasks List */}
+          <div className="flex-1 p-6 overflow-y-auto">
+            {showAddTask && (
+              <Card className="mb-4 animate-slide-down">
+                <div className="flex gap-3">
+                  <Input
+                    placeholder="Enter task title..."
+                    value={newTaskTitle}
+                    onChange={(e) => setNewTaskTitle(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleTaskCreate()}
+                    className="flex-1"
+                  />
+                  <Button onClick={handleTaskCreate} disabled={!newTaskTitle.trim()}>
+                    Add
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowAddTask(false)
+                      setNewTaskTitle('')
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </Card>
+            )}
+
+            <div className="space-y-3">
+              {tasks
+                .sort((a: Task, b: Task) => a.order - b.order)
+                .map((task: Task, index: number) => (
+                  <TaskItem
+                    key={task.id}
+                    task={task}
+                    members={room.members}
+                    onUpdate={handleTaskComplete}
+                    onDelete={handleTaskDelete}
+                    onReorder={reorderTasks}
+                    index={index}
+                  />
+                ))}
+            </div>
+
+            {tasks.length === 0 && (
+              <div className="text-center py-12">
+                <CheckCircle className="w-16 h-16 text-dark-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-white mb-2">No tasks yet</h3>
+                <p className="text-dark-300 mb-4">Add your first task to get started</p>
+                <Button onClick={() => setShowAddTask(true)} icon={Plus}>
+                  Add Task
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Sidebar - Chat */}
+        <div className="w-80 bg-card-gradient backdrop-blur-xl border-l border-dark-700/50">
+          <ChatArea
+            currentUser={currentUser}
+            roomId={roomId || ''}
+          />
+        </div>
+      </div>
+
+      {/* Bottom Timer Bar */}
+      <div className="h-20 bg-dark-900/90 backdrop-blur-xl border-t border-dark-700/50">
+        <TimerControls
+          timerState={timerState}
+          onToggleTimer={timerState.isRunning ? handleTimerStop : handleTimerStart}
+          onResetTimer={resetTimer}
+          onSetCustomTimer={setCustomTimer}
+          audioEnabled={audioEnabled}
+          onToggleAudio={onToggleAudio}
+          roomTotalStudyTime={roomTotalStudyTime}
+          userTodayFocusTime={userTodayFocusTime}
+        />
+      </div>
+
+      {/* Gamification Notifications */}
+      <PointsNotification
+        points={pendingNotification?.points || 0}
+        reason={pendingNotification?.reason || ''}
+        isVisible={!!pendingNotification}
+        onComplete={clearNotification}
+      />
+
+      <AchievementUnlock
+        achievement={pendingAchievement}
+        isOpen={!!pendingAchievement}
+        onClose={clearAchievement}
+      />
+    </div>
+  )
+}
 
 export const StudyRoom = () => {
   const { roomId } = useParams()
   const navigate = useNavigate()
   const { user: authUser } = useAuth()
   const {
-    awardTaskCompletion,
+    awardTaskCompletion: useGamificationAwardTaskCompletion,
     awardHelpGiven,
     pendingNotification,
     pendingAchievement,
@@ -44,10 +308,6 @@ export const StudyRoom = () => {
   const [currentUser, setCurrentUser] = useState<UserType | null>(null)
   const [loading, setLoading] = useState(true)
   const [tasks, setTasks] = useState<Task[]>([])
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [newMessage, setNewMessage] = useState('')
-  const [isTyping, setIsTyping] = useState(false)
-  const [typingUsers, setTypingUsers] = useState<string[]>([])
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [showAddTask, setShowAddTask] = useState(false)
   const [studySession, setStudySession] = useState<StudySession | null>(null)
@@ -72,36 +332,10 @@ export const StudyRoom = () => {
   const [videoEnabled, setVideoEnabled] = useState(false)
 
   // Refs
-  const chatEndRef = useRef<HTMLDivElement>(null)
-  const timerRef = useRef<NodeJS.Timeout>()
   const subscriptionRef = useRef<any>(null)
-  const sessionStartTime = useRef<Date | null>(null)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
   const currentSessionId = useRef<string | null>(null)
-
-  // Helper function to reload chat messages with user data
-  const reloadChatMessages = async () => {
-    if (!roomId) return
-    
-    try {
-      const { data: messagesData } = await getChatMessages(roomId)
-      if (messagesData) {
-        const transformedMessages: ChatMessage[] = messagesData.map(msg => ({
-          id: msg.id,
-          userId: msg.user_id,
-          userName: msg.user?.full_name || 'User',
-          userAvatar: msg.user?.avatar_url || undefined,
-          message: msg.message,
-          timestamp: msg.created_at,
-          type: msg.message_type,
-          roomId: msg.room_id
-        }))
-        setMessages(transformedMessages)
-        console.log('✅ Chat messages reloaded:', transformedMessages.length, 'messages')
-      }
-    } catch (error) {
-      console.error('Error reloading chat messages:', error)
-    }
-  }
+  const sessionStartTime = useRef<Date | null>(null)
 
   // Helper function to reload tasks with user data
   const reloadTasks = async () => {
@@ -148,7 +382,7 @@ export const StudyRoom = () => {
         code: roomData.code,
         description: roomData.description,
         tags: roomData.tags,
-        members: roomData.members?.map(member => ({
+        members: roomData.members?.map((member: any) => ({
           id: member.user?.id || '',
           name: member.user?.full_name || 'User',
           email: '',
@@ -201,9 +435,6 @@ export const StudyRoom = () => {
 
         // Load tasks
         await reloadTasks()
-
-        // Load chat messages
-        await reloadChatMessages()
 
         // Load room total study time
         const { data: totalTime } = await getRoomTotalStudyTime(roomId)
@@ -277,10 +508,7 @@ export const StudyRoom = () => {
       onChatMessage: (payload) => {
         console.log('💬 Chat message received:', payload.eventType, payload.new?.message?.substring(0, 50))
         
-        if (payload.eventType === 'INSERT' && payload.new) {
-          // Add new message immediately (we'll reload to get user data)
-          reloadChatMessages()
-        }
+        // Chat messages are now handled by the ChatProvider
       },
       
       onMemberChange: (payload) => {
@@ -386,22 +614,6 @@ export const StudyRoom = () => {
     }
   }, [timerState.isRunning, audioEnabled])
 
-  // Auto-scroll chat
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
-
-  // Simulate typing indicators
-  useEffect(() => {
-    let timeout: NodeJS.Timeout
-    if (isTyping) {
-      timeout = setTimeout(() => {
-        setIsTyping(false)
-      }, 3000)
-    }
-    return () => clearTimeout(timeout)
-  }, [isTyping])
-
   if (loading || !room || !currentUser) {
     return (
       <div className="min-h-screen bg-hero-gradient flex items-center justify-center">
@@ -412,14 +624,12 @@ export const StudyRoom = () => {
 
   // Task management functions
   const addTask = async () => {
-    if (!newTaskTitle.trim() || !roomId) return
+    if (!newTaskTitle.trim() || !roomId || !currentUser) return
 
     try {
-      console.log('➕ Adding new task:', newTaskTitle)
-      
       const { data, error } = await createTask({
         room_id: roomId,
-        title: newTaskTitle,
+        title: newTaskTitle.trim(),
         description: '',
         duration: 30,
         assignee_id: currentUser.id,
@@ -427,17 +637,19 @@ export const StudyRoom = () => {
         order_index: tasks.length,
         created_by: currentUser.id
       })
-
+      
       if (error) {
         console.error('Error creating task:', error)
         return
       }
-
-      setNewTaskTitle('')
-      setShowAddTask(false)
-      addSystemMessage(`${currentUser.name} added a new task: "${newTaskTitle}"`)
       
-      console.log('✅ Task added successfully')
+      if (data) {
+        setNewTaskTitle('')
+        setShowAddTask(false)
+        
+        // Award points for task creation
+        useGamificationAwardTaskCompletion(10)
+      }
     } catch (error) {
       console.error('Error creating task:', error)
     }
@@ -463,15 +675,13 @@ export const StudyRoom = () => {
         return
       }
 
-      // Add system message for status changes
-      if (updates.status) {
+      // Award points for task completion
+      if (updates.status === 'completed') {
         const task = tasks.find(t => t.id === taskId)
         const assignee = room.members.find(m => m.id === task?.assigneeId)
-        addSystemMessage(`${assignee?.name || 'Someone'} marked "${task?.title}" as ${updates.status}`)
         
-        // Award points for task completion
-        if (updates.status === 'completed' && task && assignee?.id === currentUser.id) {
-          awardTaskCompletion(task.duration)
+        if (task && assignee?.id === currentUser.id) {
+          useGamificationAwardTaskCompletion(task.duration)
         }
       }
       
@@ -485,15 +695,12 @@ export const StudyRoom = () => {
     try {
       console.log('🗑️ Deleting task:', taskId)
       
-      const task = tasks.find(t => t.id === taskId)
       const { error } = await deleteTask(taskId)
       
       if (error) {
         console.error('Error deleting task:', error)
         return
       }
-
-      addSystemMessage(`Task "${task?.title}" was deleted`)
       
       console.log('✅ Task deleted successfully')
     } catch (error) {
@@ -502,92 +709,34 @@ export const StudyRoom = () => {
   }
 
   const reorderTasks = (startIndex: number, endIndex: number) => {
-    // This would need more complex implementation for real drag-and-drop
-    console.log('Reorder tasks:', startIndex, endIndex)
+    // Implementation for task reordering
+    console.log('Reordering tasks:', startIndex, 'to', endIndex)
   }
 
-  // Chat functions
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !roomId) return
-
-    try {
-      console.log('💬 Sending message:', newMessage.substring(0, 50) + '...')
-      
-      const { error } = await sendChatMessage({
-        room_id: roomId,
-        user_id: currentUser.id,
-        message: newMessage,
-        message_type: 'message'
-      })
-
-      if (error) {
-        console.error('Error sending message:', error)
-        return
-      }
-
-      setNewMessage('')
-      setIsTyping(false)
-      
-      console.log('✅ Message sent successfully')
-    } catch (error) {
-      console.error('Error sending message:', error)
-    }
-  }
-
-  const addSystemMessage = async (message: string) => {
-    if (!roomId) return
-
-    try {
-      await sendChatMessage({
-        room_id: roomId,
-        user_id: null,
-        message,
-        message_type: 'system'
-      })
-    } catch (error) {
-      console.error('Error sending system message:', error)
-    }
-  }
-
-  // Timer functions
+  // Timer management functions
   const toggleTimer = async () => {
     const wasRunning = timerState.isRunning
     
-    setTimerState(prev => ({ ...prev, isRunning: !prev.isRunning }))
-    
     if (!wasRunning) {
       // Starting timer
-      if (!sessionStartTime.current) {
-        sessionStartTime.current = new Date()
-        
-        // Start a new focus session
-        if (roomId && timerState.mode === 'work') {
-          try {
-            const { data: session } = await startFocusSession(roomId, currentUser.id)
-            if (session) {
-              currentSessionId.current = session.id
-            }
-          } catch (error) {
-            console.error('Error starting focus session:', error)
-          }
+      setTimerState(prev => ({ ...prev, isRunning: true }))
+      
+      // Start focus session
+      if (roomId && currentUser) {
+        const { data: session } = await startFocusSession(roomId, currentUser.id)
+        if (session) {
+          currentSessionId.current = session.id
+          sessionStartTime.current = new Date()
         }
       }
-      
-      addSystemMessage(`${currentUser.name} started the ${timerState.label || timerState.mode} timer`)
     } else {
       // Pausing timer
-      addSystemMessage(`${currentUser.name} paused the timer`)
+      setTimerState(prev => ({ ...prev, isRunning: false }))
       
-      // Update focus session with current progress
-      if (currentSessionId.current && sessionStartTime.current && timerState.mode === 'work') {
+      // Update focus session
+      if (currentSessionId.current) {
         const focusTime = Math.floor(timerState.totalElapsed / 60)
-        const completedTasks = tasks.filter(t => t.status === 'completed').length
-        
-        try {
-          await updateFocusSession(currentSessionId.current, focusTime, completedTasks)
-        } catch (error) {
-          console.error('Error updating focus session:', error)
-        }
+        await updateFocusSession(currentSessionId.current, focusTime)
       }
     }
   }
@@ -595,9 +744,11 @@ export const StudyRoom = () => {
   const resetTimer = () => {
     setTimerState(prev => ({
       ...prev,
-      minutes: prev.mode === 'work' ? 25 : prev.cycle % 4 === 0 ? 15 : 5,
+      minutes: 25,
       seconds: 0,
       isRunning: false,
+      mode: 'work',
+      cycle: 1,
       totalElapsed: 0
     }))
     
@@ -611,8 +762,6 @@ export const StudyRoom = () => {
       endStudySession(currentSessionId.current, focusTime, completedTasks)
       currentSessionId.current = null
     }
-    
-    addSystemMessage(`${currentUser.name} reset the timer`)
   }
 
   const setCustomTimer = (minutes: number, mode: 'work' | 'break', label?: string, cycles?: number) => {
@@ -638,19 +787,20 @@ export const StudyRoom = () => {
       endStudySession(currentSessionId.current, focusTime, completedTasks)
       currentSessionId.current = null
     }
-    
-    addSystemMessage(`${currentUser.name} set a custom ${label || mode} timer for ${minutes} minutes${cycles ? ` with ${cycles} cycles` : ''}`)
   }
 
-  const completedTasksCount = tasks.filter(t => t.status === 'completed').length
-  const totalTasks = tasks.length
-  const progressPercentage = totalTasks > 0 ? (completedTasksCount / totalTasks) * 100 : 0
-
   return (
-    <div className="min-h-screen bg-hero-gradient">
-      {/* Room Header */}
-      <RoomHeader 
+    <ChatProvider 
+      currentUser={currentUser}
+      roomId={roomId || ''}
+      wsUrl={import.meta.env.VITE_WS_URL || 'ws://localhost:3001'}
+    >
+      <StudyRoomContent
         room={room}
+        currentUser={currentUser}
+        roomId={roomId || ''}
+        tasks={tasks}
+        timerState={timerState}
         onBack={() => navigate('/dashboard')}
         audioEnabled={audioEnabled}
         micEnabled={micEnabled}
@@ -658,147 +808,24 @@ export const StudyRoom = () => {
         onToggleAudio={() => setAudioEnabled(!audioEnabled)}
         onToggleMic={() => setMicEnabled(!micEnabled)}
         onToggleVideo={() => setVideoEnabled(!videoEnabled)}
+        showAddTask={showAddTask}
+        setShowAddTask={setShowAddTask}
+        newTaskTitle={newTaskTitle}
+        setNewTaskTitle={setNewTaskTitle}
+        addTask={addTask}
+        updateTaskHandler={updateTaskHandler}
+        deleteTaskHandler={deleteTaskHandler}
+        reorderTasks={reorderTasks}
+        toggleTimer={toggleTimer}
+        resetTimer={resetTimer}
+        setCustomTimer={setCustomTimer}
+        roomTotalStudyTime={roomTotalStudyTime}
+        userTodayFocusTime={userTodayFocusTime}
+        pendingNotification={pendingNotification}
+        pendingAchievement={pendingAchievement}
+        clearNotification={clearNotification}
+        clearAchievement={clearAchievement}
       />
-
-      <div className="flex h-[calc(100vh-80px)]">
-        {/* Left Sidebar - Members */}
-        <div className="w-64 bg-card-gradient backdrop-blur-xl border-r border-dark-700/50">
-          <MemberList 
-            members={room.members}
-            currentUserId={currentUser.id}
-            adminId={room.adminId}
-          />
-        </div>
-
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col">
-          {/* Study Plan Header */}
-          <div className="p-6 border-b border-dark-700/50 bg-dark-900/50">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-xl font-semibold text-white">Study Plan</h2>
-                <p className="text-dark-300 text-sm">
-                  {completedTasksCount} of {totalTasks} tasks completed
-                </p>
-              </div>
-              <Button
-                onClick={() => setShowAddTask(true)}
-                icon={Plus}
-                size="sm"
-              >
-                Add Task
-              </Button>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="w-full bg-dark-700 rounded-full h-2">
-              <div 
-                className="bg-gradient-to-r from-primary-500 to-accent-500 h-2 rounded-full transition-all duration-500"
-                style={{ width: `${progressPercentage}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Tasks List */}
-          <div className="flex-1 p-6 overflow-y-auto">
-            {showAddTask && (
-              <Card className="mb-4 animate-slide-down">
-                <div className="flex gap-3">
-                  <Input
-                    placeholder="Enter task title..."
-                    value={newTaskTitle}
-                    onChange={(e) => setNewTaskTitle(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && addTask()}
-                    className="flex-1"
-                  />
-                  <Button onClick={addTask} disabled={!newTaskTitle.trim()}>
-                    Add
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      setShowAddTask(false)
-                      setNewTaskTitle('')
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </Card>
-            )}
-
-            <div className="space-y-3">
-              {tasks
-                .sort((a, b) => a.order - b.order)
-                .map((task, index) => (
-                  <TaskItem
-                    key={task.id}
-                    task={task}
-                    members={room.members}
-                    onUpdate={updateTaskHandler}
-                    onDelete={deleteTaskHandler}
-                    onReorder={reorderTasks}
-                    index={index}
-                  />
-                ))}
-            </div>
-
-            {tasks.length === 0 && (
-              <div className="text-center py-12">
-                <CheckCircle className="w-16 h-16 text-dark-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-white mb-2">No tasks yet</h3>
-                <p className="text-dark-300 mb-4">Add your first task to get started</p>
-                <Button onClick={() => setShowAddTask(true)} icon={Plus}>
-                  Add Task
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Sidebar - Chat */}
-        <div className="w-80 bg-card-gradient backdrop-blur-xl border-l border-dark-700/50">
-          <ChatArea
-            messages={messages}
-            newMessage={newMessage}
-            setNewMessage={setNewMessage}
-            onSendMessage={sendMessage}
-            isTyping={isTyping}
-            setIsTyping={setIsTyping}
-            typingUsers={typingUsers}
-            currentUser={currentUser}
-            chatEndRef={chatEndRef}
-          />
-        </div>
-      </div>
-
-      {/* Bottom Timer Bar */}
-      <div className="h-20 bg-dark-900/90 backdrop-blur-xl border-t border-dark-700/50">
-        <TimerControls
-          timerState={timerState}
-          onToggleTimer={toggleTimer}
-          onResetTimer={resetTimer}
-          onSetCustomTimer={setCustomTimer}
-          audioEnabled={audioEnabled}
-          onToggleAudio={() => setAudioEnabled(!audioEnabled)}
-          roomTotalStudyTime={roomTotalStudyTime}
-          userTodayFocusTime={userTodayFocusTime}
-        />
-      </div>
-
-      {/* Gamification Notifications */}
-      <PointsNotification
-        points={pendingNotification?.points || 0}
-        reason={pendingNotification?.reason || ''}
-        isVisible={!!pendingNotification}
-        onComplete={clearNotification}
-      />
-
-      <AchievementUnlock
-        achievement={pendingAchievement}
-        isOpen={!!pendingAchievement}
-        onClose={clearAchievement}
-      />
-    </div>
+    </ChatProvider>
   )
 }
