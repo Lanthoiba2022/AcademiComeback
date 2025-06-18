@@ -26,7 +26,7 @@ import { PremiumStatusBadge } from '../premium/PremiumStatusBadge'
 
 const navigation = [
   { name: 'Dashboard', icon: Home, href: '/dashboard' },
-  { name: 'Study Rooms', icon: Users, href: '/under-development' },
+  { name: 'Study Rooms', icon: Users, href: '/study-rooms' },
   { name: 'Quiz Center', icon: Brain, href: '/quiz' },
   { name: 'Analytics', icon: BarChart3, href: '/analytics' },
   { name: 'Calendar', icon: Calendar, href: '/calendar' },
