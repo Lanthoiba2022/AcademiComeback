@@ -14,6 +14,8 @@ export interface Database {
           year: string | null
           location: string | null
           bio: string | null
+          phone_number: string | null
+          email: string | null
           created_at: string
           updated_at: string
         }
@@ -29,6 +31,8 @@ export interface Database {
           year?: string | null
           location?: string | null
           bio?: string | null
+          phone_number?: string | null
+          email?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -44,6 +48,8 @@ export interface Database {
           year?: string | null
           location?: string | null
           bio?: string | null
+          phone_number?: string | null
+          email?: string | null
           created_at?: string
           updated_at?: string
         }

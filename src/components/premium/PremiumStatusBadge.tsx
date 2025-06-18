@@ -1,5 +1,5 @@
 import { usePremium } from '../../contexts/PremiumContext'
-import { Crown, Clock, Zap, Star } from 'lucide-react'
+import { Crown, GraduationCap, Sparkles, Clock, Star } from 'lucide-react'
 
 interface PremiumStatusBadgeProps {
   showDetails?: boolean
@@ -10,11 +10,12 @@ export const PremiumStatusBadge = ({ showDetails = false, className = '' }: Prem
   const { 
     isPremium, 
     isTrialActive, 
-    trialDaysRemaining, 
-    loading 
+    trialDaysRemaining,
+    subscriptionLevel,
+    isLoading
   } = usePremium()
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className={`animate-pulse ${className}`}>
         <div className="w-20 h-6 bg-dark-700 rounded-full" />
@@ -22,50 +23,51 @@ export const PremiumStatusBadge = ({ showDetails = false, className = '' }: Prem
     )
   }
 
-  if (isPremium) {
-    return (
-      <div className={`inline-flex items-center ${className}`}>
-        <div className="flex items-center space-x-2 px-3 py-1 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full">
-          <Crown className="w-4 h-4 text-white" />
-          <span className="text-white font-medium text-sm">Premium</span>
-        </div>
-        
-        {showDetails && (
-          <div className="ml-3 text-sm text-dark-300">
-            All features unlocked
-          </div>
-        )}
-      </div>
-    )
+  const getBadgeInfo = () => {
+    switch (subscriptionLevel) {
+      case 'pro':
+        return {
+          icon: Crown,
+          label: 'Pro',
+          className: 'bg-gradient-to-r from-primary-500 to-secondary-500',
+          details: 'All features unlocked',
+          iconColor: 'text-white',
+          textColor: 'text-white'
+        }
+      case 'student':
+        return {
+          icon: GraduationCap,
+          label: 'Student',
+          className: 'bg-gradient-to-r from-blue-500 to-purple-500',
+          details: 'Student features unlocked',
+          iconColor: 'text-white',
+          textColor: 'text-white'
+        }
+      default:
+        return {
+          icon: Sparkles,
+          label: 'Free',
+          className: 'bg-gradient-to-r from-dark-600 to-dark-700',
+          details: 'Limited features',
+          iconColor: 'text-dark-400',
+          textColor: 'text-dark-300'
+        }
+    }
   }
 
-  if (isTrialActive) {
-    return (
-      <div className={`inline-flex items-center ${className}`}>
-        <div className="flex items-center space-x-2 px-3 py-1 bg-gradient-to-r from-accent-500 to-green-500 rounded-full">
-          <Clock className="w-4 h-4 text-white" />
-          <span className="text-white font-medium text-sm">Trial</span>
-        </div>
-        
-        {showDetails && (
-          <div className="ml-3 text-sm text-accent-400">
-            {trialDaysRemaining} days remaining
-          </div>
-        )}
-      </div>
-    )
-  }
+  const badgeInfo = getBadgeInfo()
+  const Icon = badgeInfo.icon
 
   return (
-    <div className={`inline-flex items-center ${className}`}>
-      <div className="flex items-center space-x-2 px-3 py-1 bg-dark-700 border border-dark-600 rounded-full">
-        <Star className="w-4 h-4 text-dark-400" />
-        <span className="text-dark-300 font-medium text-sm">Free</span>
+    <div className={`inline-flex flex-col items-center ${className}`}>
+      <div className={`flex items-center space-x-2 px-4 py-1.5 rounded-full ${badgeInfo.className} shadow-lg transition-all duration-300 hover:shadow-xl`}>
+        <Icon className={`w-4 h-4 ${badgeInfo.iconColor}`} />
+        <span className={`font-medium text-sm ${badgeInfo.textColor}`}>{badgeInfo.label}</span>
       </div>
       
       {showDetails && (
-        <div className="ml-3 text-sm text-dark-400">
-          Limited features
+        <div className="mt-2 text-xs text-dark-300 text-center max-w-[140px] leading-tight">
+          {badgeInfo.details}
         </div>
       )}
     </div>

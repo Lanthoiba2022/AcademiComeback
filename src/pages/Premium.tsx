@@ -274,6 +274,8 @@ export const Premium = () => {
                   >
                     {isCurrentPlan ? (
                       'Current Plan'
+                    ) : plan.name === 'Free' && subscriptionLevel !== 'free' ? (
+                      'Free Plan'
                     ) : (
                       <>
                         {plan.buttonText}

@@ -4,6 +4,7 @@ import { Sidebar } from '../components/dashboard/Sidebar'
 import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
+import { PhoneNumberInput } from '../components/ui/PhoneNumberInput'
 import { usePremium } from '../contexts/PremiumContext'
 import { useAuth } from '../contexts/AuthContext'
 import { getProfile, updateProfile } from '../lib/supabase'
@@ -21,7 +22,8 @@ import {
   CheckCircle,
   AlertCircle,
   Crown,
-  Sparkles
+  Sparkles,
+  Phone
 } from 'lucide-react'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
@@ -33,6 +35,7 @@ export const Settings = () => {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
+    phoneNumber: '',
     university: '',
     major: '',
     year: '',
@@ -43,6 +46,7 @@ export const Settings = () => {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [isPhoneValid, setIsPhoneValid] = useState(false)
 
   // Load user profile data
   useEffect(() => {
@@ -65,6 +69,7 @@ export const Settings = () => {
           setFormData({
             fullName: profile.full_name || '',
             email: authUser.email || '',
+            phoneNumber: profile.phone_number ? profile.phone_number.replace(/^\+/, '') : '',
             university: profile.university || '',
             major: profile.major || '',
             year: profile.year || '',
@@ -76,6 +81,7 @@ export const Settings = () => {
           setFormData({
             fullName: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || '',
             email: authUser.email || '',
+            phoneNumber: '',
             university: '',
             major: '',
             year: '',
@@ -98,6 +104,12 @@ export const Settings = () => {
     e.preventDefault()
     if (!authUser) return
 
+    // Validate phone number before submitting
+    if (formData.phoneNumber && !isPhoneValid) {
+      setError('Please enter a valid phone number')
+      return
+    }
+
     setSaving(true)
     setError(null)
     setSuccess(false)
@@ -105,6 +117,7 @@ export const Settings = () => {
     try {
       const { error: updateError } = await updateProfile(authUser.id, {
         full_name: formData.fullName,
+        phone_number: formData.phoneNumber ? `+${formData.phoneNumber}` : null,
         university: formData.university,
         major: formData.major,
         year: formData.year,
@@ -206,6 +219,17 @@ export const Settings = () => {
                     value={formData.email}
                     disabled
                     icon={Mail}
+                  />
+                  <p className="text-xs text-dark-400 mt-1">Email cannot be changed from settings</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-dark-400 mb-2">Phone Number</label>
+                  <PhoneNumberInput
+                    value={formData.phoneNumber}
+                    onChange={(value) => setFormData(prev => ({ ...prev, phoneNumber: value }))}
+                    onValidationChange={setIsPhoneValid}
+                    placeholder="Enter your phone number"
                   />
                 </div>
 

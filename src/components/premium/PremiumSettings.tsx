@@ -32,9 +32,10 @@ export const PremiumSettings = () => {
     setLoading(false)
   }
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A'
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (date: string | Date | null) => {
+    if (!date) return 'N/A'
+    const dateObj = typeof date === 'string' ? new Date(date) : date
+    return dateObj.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -133,6 +134,11 @@ export const PremiumSettings = () => {
                    subscriptionLevel === 'student' ? 'Student Plan ($9/month)' :
                    'Free Plan'}
                 </p>
+                {customerInfo?.entitlements.active['premium']?.expirationDate && (
+                  <p className="text-xs text-dark-400 mt-1">
+                    Renews on {formatDate(customerInfo.entitlements.active['premium'].expirationDate)}
+                  </p>
+                )}
               </div>
               
               {getNextBillingDate() && (
@@ -179,10 +185,16 @@ export const PremiumSettings = () => {
               <div className="space-y-2">
                 <div className="flex items-center text-green-400">
                   <CheckCircle className="w-5 h-5 mr-2" />
-                  <span className="font-medium">Premium Active</span>
+                  <span className="font-medium">
+                    {subscriptionLevel === 'pro' ? 'Pro Plan Active' :
+                     subscriptionLevel === 'student' ? 'Student Plan Active' :
+                     'Free Plan'}
+                  </span>
                 </div>
                 <p className="text-dark-300 text-sm">
-                  You have access to all premium features
+                  You have access to all {subscriptionLevel === 'pro' ? 'premium' : 
+                                        subscriptionLevel === 'student' ? 'student' : 
+                                        'free'} features
                 </p>
               </div>
             )}
