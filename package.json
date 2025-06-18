@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:full": "npm run dev",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "setup:chat": "node setup-chat-system.js"
   },
   "dependencies": {
     "@revenuecat/purchases-js": "^1.5.3",

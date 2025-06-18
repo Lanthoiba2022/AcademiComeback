@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import { AuthProvider } from './contexts/AuthContext'
 import { PremiumProvider } from './contexts/PremiumContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -23,6 +24,7 @@ import { ToastContainer } from './components/ui/Toast'
 import { PremiumOnboarding } from './components/premium/PremiumOnboarding'
 import { useGamification } from './hooks/useGamification'
 import { Premium } from './pages/Premium'
+import { scheduleChatCleanup } from './lib/chatCleanup'
 
 // Gamification Pages
 export const AchievementsPage = () => {
@@ -75,6 +77,10 @@ export const LeaderboardPage = () => {
 }
 
 function App() {
+  useEffect(() => {
+    scheduleChatCleanup()
+  }, [])
+
   return (
     <AuthProvider>
       <PremiumProvider>

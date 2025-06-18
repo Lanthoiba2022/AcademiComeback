@@ -1,45 +1,77 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '../ui/Button'
-import { Input } from '../ui/Input'
-import { Send, Smile, Paperclip, MoreVertical } from 'lucide-react'
-import { ChatMessage, User } from '../../types'
+import { Card } from '../ui/Card'
+import { 
+  Send, AlertCircle, CheckCircle, Clock, MessageSquare, Eye, RefreshCw
+} from 'lucide-react'
+import { useChat } from '../../contexts/ChatContext'
+import { ChatMessage } from '../../types/chat'
+import { User } from '../../types'
 
 interface ChatAreaProps {
-  messages: ChatMessage[]
-  newMessage: string
-  setNewMessage: (message: string) => void
-  onSendMessage: () => void
-  isTyping: boolean
-  setIsTyping: (typing: boolean) => void
-  typingUsers: string[]
   currentUser: User
-  chatEndRef: React.RefObject<HTMLDivElement>
+  roomId: string
 }
 
-export const ChatArea = ({
-  messages,
-  newMessage,
-  setNewMessage,
-  onSendMessage,
-  isTyping,
-  setIsTyping,
-  typingUsers,
-  currentUser,
-  chatEndRef
-}: ChatAreaProps) => {
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+export const ChatArea = ({ currentUser, roomId }: ChatAreaProps) => {
+  const { state, sendMessage, sendTyping, markAsRead } = useChat()
+  const [newMessage, setNewMessage] = useState('')
+  const [autoScroll, setAutoScroll] = useState(true)
+
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (autoScroll && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [state.messages, autoScroll])
+
+  // Mark messages as read when scrolled to bottom
+  useEffect(() => {
+    if (state.messages.length > 0) {
+      const lastMessage = state.messages[state.messages.length - 1]
+      if (lastMessage.userId !== currentUser.id) {
+        markAsRead(lastMessage.id)
+      }
+    }
+  }, [state.messages, currentUser.id, markAsRead])
 
   const handleInputChange = (value: string) => {
     setNewMessage(value)
-    if (!isTyping && value.length > 0) {
-      setIsTyping(true)
+    
+    // Send typing indicator
+    if (!state.typingUsers.some(user => user.userId === currentUser.id)) {
+      sendTyping(true)
+    }
+
+    // Clear typing indicator after delay
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current)
+    }
+    typingTimeoutRef.current = setTimeout(() => {
+      sendTyping(false)
+    }, 3000)
+  }
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim()) return
+
+    await sendMessage(newMessage.trim())
+    setNewMessage('')
+    sendTyping(false)
+    
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
     }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      onSendMessage()
+      handleSendMessage()
     }
   }
 
@@ -50,127 +82,203 @@ export const ChatArea = ({
     })
   }
 
-  const MessageBubble = ({ message }: { message: ChatMessage }) => {
+  const formatDate = (timestamp: string) => {
+    const date = new Date(timestamp)
+    const today = new Date()
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today'
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Yesterday'
+    } else {
+      return date.toLocaleDateString()
+    }
+  }
+
+  const getMessageStatusIcon = (status: ChatMessage['status']) => {
+    switch (status) {
+      case 'sending':
+        return <Clock className="w-3 h-3 text-dark-400" />
+      case 'sent':
+        return <CheckCircle className="w-3 h-3 text-dark-400" />
+      case 'delivered':
+        return <Eye className="w-3 h-3 text-primary-400" />
+      case 'read':
+        return <Eye className="w-3 h-3 text-accent-400" />
+      case 'error':
+        return <AlertCircle className="w-3 h-3 text-red-400" />
+      default:
+        return null
+    }
+  }
+
+  // Generate unique key for messages to prevent React warnings
+  const getMessageKey = (message: ChatMessage, index: number) => {
+    return `${message.id}-${message.timestamp}-${index}`
+  }
+
+  const MessageBubble = ({ message, showDate }: { message: ChatMessage; showDate: boolean }) => {
     const isCurrentUser = message.userId === currentUser.id
     const isSystem = message.type === 'system'
 
     if (isSystem) {
       return (
-        <div className="flex justify-center my-2">
-          <div className="bg-dark-800/50 px-3 py-1 rounded-full">
-            <p className="text-xs text-dark-400">{message.message}</p>
+        <div className="flex justify-center my-4">
+          <div className="bg-dark-800/50 px-4 py-2 rounded-full">
+            <p className="text-sm text-dark-400">{message.message}</p>
           </div>
         </div>
       )
     }
 
     return (
-      <div className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-4`}>
-        <div className={`flex max-w-[80%] ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
-          {/* Avatar */}
-          {!isCurrentUser && (
-            <div className="flex-shrink-0 mr-2">
-              {message.userAvatar ? (
-                <img
-                  src={message.userAvatar}
-                  alt={message.userName}
-                  className="w-8 h-8 rounded-full"
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center">
-                  <span className="text-xs text-white font-medium">
-                    {message.userName.charAt(0)}
-                  </span>
-                </div>
+      <div className={`group ${showDate ? 'mt-6' : 'mt-2'}`}>
+        {showDate && (
+          <div className="flex justify-center mb-4">
+            <div className="bg-dark-800/50 px-3 py-1 rounded-full">
+              <span className="text-xs text-dark-400">{formatDate(message.timestamp)}</span>
+            </div>
+          </div>
+        )}
+        
+        <div className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
+          <div className={`max-w-[85%] ${isCurrentUser ? 'order-2' : 'order-1'}`}>
+            {/* Username above message */}
+            {!isCurrentUser && (
+              <div className="mb-1">
+                <span className="text-xs text-dark-400 font-medium">{message.userName}</span>
+              </div>
+            )}
+            
+            <div className={`rounded-2xl px-4 py-3 shadow-sm ${
+              isCurrentUser 
+                ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white' 
+                : 'bg-dark-700/80 text-white border border-dark-600/50'
+            }`}>
+              <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{message.message}</p>
+            </div>
+            
+            <div className={`flex items-center mt-2 text-xs text-dark-400 ${
+              isCurrentUser ? 'justify-end' : 'justify-start'
+            }`}>
+              <span className="font-medium">{formatTime(message.timestamp)}</span>
+              {isCurrentUser && (
+                <span className="ml-2">
+                  {getMessageStatusIcon(message.status)}
+                </span>
               )}
             </div>
-          )}
-
-          {/* Message Content */}
-          <div className={`${isCurrentUser ? 'mr-2' : ''}`}>
-            {!isCurrentUser && (
-              <p className="text-xs text-dark-400 mb-1 ml-1">{message.userName}</p>
-            )}
-            <div
-              className={`px-4 py-2 rounded-2xl ${
-                isCurrentUser
-                  ? 'bg-primary-500 text-white rounded-br-md'
-                  : 'bg-dark-800 text-white rounded-bl-md'
-              }`}
-            >
-              <p className="text-sm whitespace-pre-wrap">{message.message}</p>
-            </div>
-            <p className={`text-xs text-dark-500 mt-1 ${isCurrentUser ? 'text-right mr-1' : 'ml-1'}`}>
-              {formatTime(message.timestamp)}
-            </p>
           </div>
         </div>
       </div>
     )
   }
 
+  const shouldShowDate = (currentMessage: ChatMessage, previousMessage?: ChatMessage) => {
+    if (!previousMessage) return true
+    
+    const currentDate = new Date(currentMessage.timestamp).toDateString()
+    const previousDate = new Date(previousMessage.timestamp).toDateString()
+    
+    return currentDate !== previousDate
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Chat Header */}
-      <div className="p-4 border-b border-dark-700/50">
+      <div className="p-4 border-b border-dark-700/50 bg-dark-900/50">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white">Discussion</h3>
-          <Button variant="ghost" size="sm" icon={MoreVertical} />
+          <div>
+            <h3 className="text-lg font-semibold text-white">Chat</h3>
+            <div className="flex items-center space-x-2 text-sm text-dark-300">
+              <div className={`w-2 h-2 rounded-full ${
+                state.connectionStatus === 'connected' ? 'bg-green-400' : 'bg-red-400'
+              }`} />
+              <span>{state.connectionStatus === 'connected' ? 'Connected' : 'Disconnected'}</span>
+              <span>•</span>
+              <span>{state.messages.length} messages</span>
+            </div>
+          </div>
+          
+          {/* Debug refresh button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={RefreshCw}
+            onClick={() => {
+              console.log('🔄 Manual refresh clicked')
+              console.log('📊 Current state:', {
+                connectionStatus: state.connectionStatus,
+                messageCount: state.messages.length,
+                isLoading: state.isLoading,
+                roomId,
+                currentUserId: currentUser.id
+              })
+            }}
+            className="text-dark-400 hover:text-white"
+          />
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-1">
-        {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
-        ))}
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-2">
+        {state.messages.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="w-20 h-20 bg-gradient-to-r from-primary-500/20 to-accent-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <MessageSquare className="w-10 h-10 text-primary-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-3">No messages yet</h3>
+            <p className="text-dark-300 text-sm">Start the conversation with your study group!</p>
+          </div>
+        ) : (
+          state.messages.map((message, index) => (
+            <MessageBubble
+              key={getMessageKey(message, index)}
+              message={message}
+              showDate={shouldShowDate(message, state.messages[index - 1])}
+            />
+          ))
+        )}
+        <div ref={messagesEndRef} />
+      </div>
 
-        {/* Typing Indicators */}
-        {typingUsers.length > 0 && (
-          <div className="flex items-center space-x-2 text-dark-400 text-sm">
+      {/* Typing Indicators */}
+      {state.typingUsers.length > 0 && (
+        <div className="px-4 py-3 bg-dark-800/30 border-t border-dark-700/30">
+          <div className="flex items-center space-x-3">
             <div className="flex space-x-1">
               <div className="w-2 h-2 bg-primary-400 rounded-full animate-bounce" />
               <div className="w-2 h-2 bg-primary-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
               <div className="w-2 h-2 bg-primary-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
             </div>
-            <span>{typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...</span>
+            <span className="text-sm text-dark-300 font-medium">
+              {state.typingUsers.map(user => user.userName).join(', ')} typing...
+            </span>
           </div>
-        )}
-
-        <div ref={chatEndRef} />
-      </div>
+        </div>
+      )}
 
       {/* Message Input */}
-      <div className="p-4 border-t border-dark-700/50">
-        <div className="flex items-end space-x-2">
-          <div className="flex-1">
-            <div className="flex items-center space-x-2 mb-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                icon={Smile}
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              />
-              <Button
-                variant="ghost"
-                size="sm"
-                icon={Paperclip}
-              />
-            </div>
-            <textarea
-              value={newMessage}
-              onChange={(e) => handleInputChange(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type a message..."
-              rows={2}
-              className="w-full px-3 py-2 bg-dark-800/50 border border-dark-700 rounded-lg text-white placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 resize-none"
-            />
-          </div>
+      <div className="p-4 border-t border-dark-700/50 bg-dark-900/50">
+        <div className="flex space-x-3">
+          <textarea
+            ref={textareaRef}
+            placeholder="Type a message..."
+            value={newMessage}
+            onChange={(e) => handleInputChange(e.target.value)}
+            onKeyPress={handleKeyPress}
+            className="flex-1 px-4 py-3 bg-dark-800/80 border border-dark-600/50 rounded-xl text-white placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50 resize-none transition-all duration-200"
+            rows={1}
+            style={{ minHeight: '48px', maxHeight: '120px' }}
+          />
           <Button
-            onClick={onSendMessage}
+            onClick={handleSendMessage}
             disabled={!newMessage.trim()}
             icon={Send}
             size="sm"
+            className="bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
           />
         </div>
       </div>
