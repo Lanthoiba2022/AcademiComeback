@@ -6,6 +6,7 @@ import { Landing } from './pages/Landing'
 import { Dashboard } from './pages/Dashboard'
 import { Profile } from './pages/Profile'
 import { StudyRoom } from './pages/StudyRoom'
+import { StudyRooms } from './pages/StudyRooms'
 import { QuizPage } from './pages/QuizPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
 import { CalendarPage } from './pages/CalendarPage'
@@ -125,6 +126,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <StudyRoom />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/study-rooms" 
+              element={
+                <ProtectedRoute>
+                  <StudyRooms />
                 </ProtectedRoute>
               } 
             />
