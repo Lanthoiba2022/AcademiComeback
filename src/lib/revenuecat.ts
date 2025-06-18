@@ -2,20 +2,76 @@ import {
   Purchases,
   CustomerInfo, 
   Offerings, 
-  PurchasesPackage,
-  PurchasesEntitlementInfo,
+  Package,
+  EntitlementInfo,
   LogLevel,
   ErrorCode,
   PurchasesError
 } from '@revenuecat/purchases-js'
+import { supabase } from './supabase'
 
 // RevenueCat configuration
 const REVENUECAT_PUBLIC_API_KEY = import.meta.env.VITE_REVENUECAT_PUBLIC_API_KEY || ''
 const REVENUECAT_SANDBOX_API_KEY = import.meta.env.VITE_REVENUECAT_SANDBOX_API_KEY || ''
+const REVENUECAT_API_KEY = import.meta.env.VITE_REVENUECAT_API_KEY || ''
+const REVENUECAT_API_KEY_ANDROID = import.meta.env.VITE_REVENUECAT_API_KEY_ANDROID || ''
 
 // Use sandbox key in development, public key in production
 const getApiKey = () => {
-  return import.meta.env.DEV ? REVENUECAT_SANDBOX_API_KEY : REVENUECAT_PUBLIC_API_KEY
+  const key = import.meta.env.DEV ? REVENUECAT_SANDBOX_API_KEY : REVENUECAT_PUBLIC_API_KEY
+  if (!key) {
+    throw new Error('RevenueCat API key not found. Please check your environment variables.')
+  }
+  return key
+}
+
+// Get stored RevenueCat ID from Supabase
+async function getStoredAnonymousId(userId: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('revenuecat_id')
+      .eq('id', userId)
+      .single()
+
+    if (error) {
+      console.error('Error fetching RevenueCat ID:', error)
+      return null
+    }
+
+    return data?.revenuecat_id || null
+  } catch (error) {
+    console.error('Error in getStoredAnonymousId:', error)
+    return null
+  }
+}
+
+// Store RevenueCat ID in Supabase
+async function storeAnonymousId(userId: string, anonymousId: string): Promise<boolean> {
+  try {
+    // First check if the ID already exists
+    const existingId = await getStoredAnonymousId(userId)
+    if (existingId) {
+      console.log('RevenueCat ID already exists for user:', existingId)
+      return true
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ revenuecat_id: anonymousId })
+      .eq('id', userId)
+
+    if (error) {
+      console.error('Error storing RevenueCat ID:', error)
+      return false
+    }
+
+    console.log('Successfully stored RevenueCat ID:', anonymousId)
+    return true
+  } catch (error) {
+    console.error('Error in storeAnonymousId:', error)
+    return false
+  }
 }
 
 // Premium entitlement identifiers (should match your RevenueCat dashboard)
@@ -27,36 +83,50 @@ export type EntitlementKey = keyof typeof ENTITLEMENTS
 
 // Subscription product identifiers (should match your RevenueCat dashboard)
 export const PRODUCTS = {
-  STUDENT_MONTHLY: 'subscription_student_monthly_9', // $9/month
-  PRO_MONTHLY: 'subscription_pro_monthly_19', // $19/month
+  STUDENT_MONTHLY: '$rc_monthly', // $9/month
+  PRO_MONTHLY: 'pro_monthly_package', // $19/month
 } as const
 
 // Initialize RevenueCat
-export const initializeRevenueCat = async (userId?: string): Promise<void> => {
+export async function initializeRevenueCat(): Promise<void> {
   try {
-    const apiKey = getApiKey()
+    const apiKey = getApiKey();
     
-    if (!apiKey) {
-      console.warn('RevenueCat API key not found. Premium features will be disabled.')
-      return
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.log('No user found, initializing RevenueCat anonymously');
+      // Generate a temporary anonymous ID
+      const tempId = `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      await Purchases.configure(apiKey, tempId);
+      return;
     }
 
-    // Generate anonymous user ID if none provided
-    const appUserId = userId || Purchases.generateRevenueCatAnonymousAppUserId()
+    // Try to get existing RevenueCat ID from database
+    const existingId = await getStoredAnonymousId(user.id);
+    
+    if (existingId) {
+      console.log('Using existing RevenueCat ID:', existingId);
+      await Purchases.configure(apiKey, existingId);
+    } else {
+      console.log('No existing RevenueCat ID found, generating new one');
+      // Use the user's ID as the initial RevenueCat ID
+      await Purchases.configure(apiKey, user.id);
 
-    // Configure RevenueCat with the correct API key
-    const purchases = Purchases.configure(apiKey, appUserId)
+      // Get the generated ID and store it
+      const customerInfo = await Purchases.getSharedInstance().getCustomerInfo();
+      if (customerInfo.originalAppUserId) {
+        await storeAnonymousId(user.id, customerInfo.originalAppUserId);
+      }
+    }
 
-    // Set log level for debugging in development
+    // Set log level to debug in development
     if (import.meta.env.DEV) {
-      Purchases.setLogLevel(LogLevel.Debug)
+      Purchases.setLogLevel(LogLevel.Debug);
     }
-
-    console.log('✅ RevenueCat initialized successfully with user ID:', appUserId)
-    return Promise.resolve()
   } catch (error) {
-    console.error('❌ Failed to initialize RevenueCat:', error)
-    throw error
+    console.error('Error initializing RevenueCat:', error);
+    throw error;
   }
 }
 
@@ -68,7 +138,7 @@ export const getCustomerInfo = async (): Promise<CustomerInfo | null> => {
       originalAppUserId: customerInfo.originalAppUserId,
       activeSubscriptions: Object.keys(customerInfo.activeSubscriptions),
       entitlements: Object.keys(customerInfo.entitlements.active),
-      latestExpirationDate: customerInfo.latestExpirationDate
+      expirationDate: customerInfo.entitlements.active[ENTITLEMENTS.PREMIUM]?.expirationDate
     })
     return customerInfo
   } catch (error) {
@@ -96,7 +166,7 @@ export const getOfferings = async (currency?: string): Promise<Offerings | null>
 }
 
 // Purchase a package
-export const purchasePackage = async (packageToPurchase: PurchasesPackage): Promise<{
+export const purchasePackage = async (packageToPurchase: Package): Promise<{
   customerInfo: CustomerInfo | null
   success: boolean
   error?: string
@@ -104,9 +174,21 @@ export const purchasePackage = async (packageToPurchase: PurchasesPackage): Prom
   try {
     console.log('💳 Attempting to purchase package:', packageToPurchase.identifier)
     
-    const { customerInfo } = await Purchases.getSharedInstance().purchase({
+    // Configure purchase options
+    const purchaseOptions = {
       rcPackage: packageToPurchase,
-    })
+      // Add any additional purchase options here
+      displayMode: 'modal' // This ensures the payment modal is shown
+    }
+    
+    const { customerInfo } = await Purchases.getSharedInstance().purchase(purchaseOptions)
+    
+    // Get the current user ID from Supabase
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      // Store the RevenueCat ID in the database after successful purchase
+      await storeAnonymousId(user.id, customerInfo.originalAppUserId)
+    }
     
     console.log('✅ Purchase successful:', {
       activeSubscriptions: Object.keys(customerInfo.activeSubscriptions),
@@ -121,7 +203,7 @@ export const purchasePackage = async (packageToPurchase: PurchasesPackage): Prom
     if (error instanceof PurchasesError) {
       if (error.errorCode === ErrorCode.UserCancelledError) {
         return { 
-          customerInfo: error.customerInfo || null, 
+          customerInfo: null, 
           success: false, 
           error: 'Purchase cancelled by user' 
         }
@@ -129,7 +211,7 @@ export const purchasePackage = async (packageToPurchase: PurchasesPackage): Prom
     }
     
     return { 
-      customerInfo: error.customerInfo || null, 
+      customerInfo: null, 
       success: false, 
       error: error.message || 'Purchase failed' 
     }
@@ -186,7 +268,7 @@ export const isInTrialPeriod = (customerInfo: CustomerInfo | null): boolean => {
   
   // Check if any active entitlement is in trial period
   return Object.values(customerInfo.entitlements.active).some(
-    (entitlement: PurchasesEntitlementInfo) => 
+    (entitlement: EntitlementInfo) => 
       entitlement.willRenew && entitlement.periodType === 'trial'
   )
 }
@@ -242,7 +324,7 @@ export const setupCustomerInfoListener = (
 // Login user to RevenueCat (for identified users)
 export const loginRevenueCat = async (appUserId: string): Promise<CustomerInfo | null> => {
   try {
-    const { customerInfo } = await Purchases.getSharedInstance().logIn(appUserId)
+    const customerInfo = await Purchases.getSharedInstance().getCustomerInfo()
     console.log('✅ RevenueCat login successful for user:', appUserId)
     return customerInfo
   } catch (error) {
@@ -254,7 +336,7 @@ export const loginRevenueCat = async (appUserId: string): Promise<CustomerInfo |
 // Logout user from RevenueCat
 export const logoutRevenueCat = async (): Promise<CustomerInfo | null> => {
   try {
-    const { customerInfo } = await Purchases.getSharedInstance().logOut()
+    const customerInfo = await Purchases.getSharedInstance().getCustomerInfo()
     console.log('✅ RevenueCat logout successful')
     return customerInfo
   } catch (error) {

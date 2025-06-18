@@ -22,7 +22,8 @@ export const PremiumSettings = () => {
     hasAdvancedAnalytics,
     hasCollaborationPlus,
     hasNFTCredentials,
-    refreshCustomerInfo 
+    refreshCustomerInfo,
+    subscriptionLevel
   } = usePremium()
 
   const handleRefresh = async () => {
@@ -43,14 +44,14 @@ export const PremiumSettings = () => {
   const getSubscriptionStatus = () => {
     if (!customerInfo) return 'Unknown'
     
-    if (isPremium) {
-      if (isTrialActive) {
-        return `Trial (${trialDaysRemaining} days remaining)`
-      }
-      return 'Active Premium'
+    switch (subscriptionLevel) {
+      case 'pro':
+        return 'Pro Plan ($19/month)'
+      case 'student':
+        return 'Student Plan ($9/month)'
+      default:
+        return 'Free Plan'
     }
-    
-    return 'Free Plan'
   }
 
   const getNextBillingDate = () => {
@@ -127,7 +128,11 @@ export const PremiumSettings = () => {
             <div className="space-y-3">
               <div>
                 <label className="text-sm text-dark-400">Current Plan</label>
-                <p className="text-white font-medium">{getSubscriptionStatus()}</p>
+                <p className="text-white font-medium">
+                  {subscriptionLevel === 'pro' ? 'Pro Plan ($19/month)' :
+                   subscriptionLevel === 'student' ? 'Student Plan ($9/month)' :
+                   'Free Plan'}
+                </p>
               </div>
               
               {getNextBillingDate() && (
@@ -144,9 +149,14 @@ export const PremiumSettings = () => {
               {customerInfo?.originalAppUserId && (
                 <div>
                   <label className="text-sm text-dark-400">Customer ID</label>
-                  <p className="text-white font-mono text-sm">
-                    {customerInfo.originalAppUserId}
-                  </p>
+                  <div className="mt-1 p-2 bg-dark-800 rounded border border-dark-700">
+                    <p className="text-white font-mono text-sm break-all">
+                      {customerInfo.originalAppUserId}
+                    </p>
+                    <p className="text-xs text-dark-400 mt-1">
+                      This ID is used to track your subscription status
+                    </p>
+                  </div>
                 </div>
               )}
             </div>

@@ -45,7 +45,7 @@ export interface PremiumContextType {
   refreshCustomerInfo: () => Promise<void>
   initializePremium: (userIdOverride?: string) => Promise<void>
   refreshOfferings: () => Promise<void>
-  handleSuccessfulPayment: () => Promise<boolean>
+  handleSuccessfulPayment: (customerInfo: CustomerInfo) => Promise<boolean>
   handlePurchase: (pkg: Package) => Promise<boolean>
 }
 
@@ -57,16 +57,30 @@ interface PremiumProviderProps {
 }
 
 // Helper function to determine subscription level
-const getSubscriptionLevel = (customerInfo: CustomerInfo | null): SubscriptionLevel => {
-  if (!customerInfo) return 'free'
+const getSubscriptionLevel = (info: CustomerInfo | null): SubscriptionLevel => {
+  if (!info) return 'free'
   
-  const premiumEntitlement = customerInfo.entitlements.active['premium']
-  if (!premiumEntitlement) return 'free'
+  // Check active entitlements first
+  const entitlements = Object.keys(info.entitlements.active)
+  console.log('Active entitlements:', entitlements)
   
-  // Check product identifier to determine level
-  const productId = premiumEntitlement.productIdentifier
-  if (productId.includes('pro')) return 'pro'
-  if (productId.includes('student')) return 'student'
+  if (entitlements.includes('student')) {
+    return 'student'
+  }
+  if (entitlements.includes('pro')) {
+    return 'pro'
+  }
+  
+  // If no entitlements, check active subscriptions
+  const activeSubscriptions = Array.from(info.activeSubscriptions)
+  console.log('Active subscriptions:', activeSubscriptions)
+  
+  if (activeSubscriptions.includes('pro_monthly_package')) {
+    return 'pro'
+  }
+  if (activeSubscriptions.includes('$rc_monthly')) {
+    return 'student'
+  }
   
   return 'free'
 }
@@ -97,6 +111,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
   const [isInitialized, setIsInitialized] = useState(false)
   const [purchasing, setPurchasing] = useState<string | null>(null)
   const [subscriptionLevel, setSubscriptionLevel] = useState<SubscriptionLevel>('free')
+  const [error, setError] = useState<string | null>(null)
 
   // Derived state
   const isPremium = hasPremiumAccess(customerInfo)
@@ -109,59 +124,36 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
   const hasCollaborationPlus = hasFeatureAccess(subscriptionLevel, 'collaboration')
   const hasNFTCredentials = hasFeatureAccess(subscriptionLevel, 'nft')
 
-  // Helper function to determine subscription level from package
-  const getSubscriptionLevelFromPackage = (pkg: Package): SubscriptionLevel => {
-    const identifier = pkg.identifier.toLowerCase()
-    if (identifier.includes('pro') || identifier.includes('19')) {
-      return 'pro'
-    } else if (identifier.includes('student') || identifier.includes('9')) {
-      return 'student'
-    }
-    return 'free'
-  }
-
   // Helper function to verify payment success
-  const verifyPaymentSuccess = async (customerInfo: CustomerInfo | null): Promise<boolean> => {
-    if (!customerInfo) return false
+  const verifyPaymentSuccess = async (info: CustomerInfo | null): Promise<boolean> => {
+    if (!info) return false
 
     // Log the full customer info for debugging
-    console.log('Customer info for verification:', customerInfo)
+    console.log('Customer info for verification:', info)
 
     // Check if user has an active subscription
-    const hasActiveSubscription = customerInfo.activeSubscriptions.size > 0
+    const hasActiveSubscription = info.activeSubscriptions.size > 0
     if (!hasActiveSubscription) {
       console.error('No active subscription found')
       return false
     }
 
     console.log('Payment verified successfully:', {
-      activeSubscriptions: Array.from(customerInfo.activeSubscriptions),
-      entitlements: Object.keys(customerInfo.entitlements.active)
+      activeSubscriptions: Array.from(info.activeSubscriptions),
+      entitlements: Object.keys(info.entitlements.active)
     })
 
     return true
   }
 
   // Handle successful payment
-  const handleSuccessfulPayment = async () => {
+  const handleSuccessfulPayment = async (customerInfo: CustomerInfo) => {
     try {
-      // Refresh customer info to ensure we have the latest data
-      const latestCustomerInfo = await getCustomerInfo()
-      if (!latestCustomerInfo) {
-        throw new Error('Failed to verify payment status')
-      }
-
-      // Verify the payment was successful
-      const isPaymentVerified = await verifyPaymentSuccess(latestCustomerInfo)
-      if (!isPaymentVerified) {
-        throw new Error('Payment verification failed')
-      }
-
-      // Update customer info and subscription level
-      setCustomerInfo(latestCustomerInfo)
+      // Update customer info
+      setCustomerInfo(customerInfo)
       
       // Determine new subscription level from the active entitlement
-      const premiumEntitlement = latestCustomerInfo.entitlements.active[ENTITLEMENTS.PREMIUM]
+      const premiumEntitlement = customerInfo.entitlements.active[ENTITLEMENTS.PREMIUM]
       if (premiumEntitlement) {
         const productId = premiumEntitlement.productIdentifier.toLowerCase()
         const newLevel = productId.includes('pro') || productId.includes('19') 
@@ -172,9 +164,15 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
         setSubscriptionLevel(newLevel)
       }
 
+      // Verify the payment was successful
+      const isPaymentVerified = await verifyPaymentSuccess(customerInfo)
+      if (!isPaymentVerified) {
+        throw new Error('Payment verification failed')
+      }
+
       console.log('✅ Payment verified and subscription level updated:', {
         subscriptionLevel,
-        entitlements: Object.keys(latestCustomerInfo.entitlements.active),
+        entitlements: Object.keys(customerInfo.entitlements.active),
         expirationDate: premiumEntitlement?.expirationDate
       })
 
@@ -189,6 +187,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
   const initializePremium = async (userIdOverride?: string) => {
     try {
       setIsLoading(true)
+      setError(null)
       
       // Initialize RevenueCat with user ID
       const finalUserId = userIdOverride || userId
@@ -200,13 +199,18 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
         getOfferings()
       ])
       
-      setCustomerInfo(initialCustomerInfo)
-      setOfferings(initialOfferings)
+      if (initialCustomerInfo) {
+        setCustomerInfo(initialCustomerInfo)
+        const newLevel = getSubscriptionLevel(initialCustomerInfo)
+        setSubscriptionLevel(newLevel)
+      }
       
+      setOfferings(initialOfferings)
       setIsInitialized(true)
       console.log('✅ Premium context initialized successfully')
     } catch (error) {
       console.error('❌ Failed to initialize premium context:', error)
+      setError(error instanceof Error ? error.message : 'Failed to initialize premium features')
     } finally {
       setIsLoading(false)
     }
@@ -234,6 +238,20 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
     }
   }
 
+  // Update subscription level when customer info changes
+  useEffect(() => {
+    if (customerInfo) {
+      const newLevel = getSubscriptionLevel(customerInfo)
+      console.log('Updating subscription level:', { 
+        current: subscriptionLevel, 
+        new: newLevel,
+        entitlements: Object.keys(customerInfo.entitlements.active),
+        activeSubscriptions: Array.from(customerInfo.activeSubscriptions)
+      })
+      setSubscriptionLevel(newLevel)
+    }
+  }, [customerInfo])
+
   // Initialize on mount
   useEffect(() => {
     initializePremium()
@@ -248,7 +266,9 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
       setCustomerInfo(updatedCustomerInfo)
     })
 
-    return removeListener
+    return () => {
+      removeListener()
+    }
   }, [isInitialized])
 
   // Log premium status changes
@@ -299,18 +319,30 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
       try {
         setPurchasing(pkg.identifier)
         
-        const { customerInfo, success, error } = await purchasePackage(pkg)
+        const { customerInfo: newCustomerInfo, success, error } = await purchasePackage(pkg)
         
-        if (success && customerInfo) {
-          // Update customer info and subscription level
-          setCustomerInfo(customerInfo)
-          const newLevel = getSubscriptionLevelFromPackage(pkg)
+        if (success && newCustomerInfo) {
+          // Update customer info
+          setCustomerInfo(newCustomerInfo)
+          
+          // Determine new subscription level from the package
+          const newLevel = getSubscriptionLevel(newCustomerInfo)
           setSubscriptionLevel(newLevel)
+          
+          // Verify the purchase was successful
+          const isPaymentVerified = await verifyPaymentSuccess(newCustomerInfo)
+          if (!isPaymentVerified) {
+            console.error('❌ Payment verification failed')
+            return false
+          }
+
+          // Handle successful payment
+          await handleSuccessfulPayment(newCustomerInfo)
           
           console.log('✅ Purchase successful:', {
             package: pkg.identifier,
             newLevel,
-            entitlements: Object.keys(customerInfo.entitlements.active)
+            entitlements: Object.keys(newCustomerInfo.entitlements.active)
           })
           
           return true
@@ -325,6 +357,14 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
         setPurchasing(null)
       }
     },
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 text-red-500">
+        Error initializing premium features: {error}
+      </div>
+    )
   }
 
   return (

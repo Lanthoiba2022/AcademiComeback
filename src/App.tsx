@@ -13,6 +13,7 @@ import { FilesPage } from './pages/FilesPage'
 import { UnderDevelopment } from './pages/UnderDevelopment'
 import { PremiumSettingsPage } from './pages/PremiumSettingsPage'
 import { PricingPage } from './pages/PricingPage'
+import { Settings } from './pages/Settings'
 import { AchievementsList } from './components/gamification/AchievementsList'
 import { RewardsMarketplace } from './components/gamification/RewardsMarketplace'
 import { Leaderboard } from './components/gamification/Leaderboard'
@@ -20,6 +21,7 @@ import { Sidebar } from './components/dashboard/Sidebar'
 import { ToastContainer } from './components/ui/Toast'
 import { PremiumOnboarding } from './components/premium/PremiumOnboarding'
 import { useGamification } from './hooks/useGamification'
+import { Premium } from './pages/Premium'
 
 // Gamification Pages
 export const AchievementsPage = () => {
@@ -98,7 +100,15 @@ function App() {
               path="/premium" 
               element={
                 <ProtectedRoute>
-                  <PremiumSettingsPage />
+                  <Premium />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/settings" 
+              element={
+                <ProtectedRoute>
+                  <Settings />
                 </ProtectedRoute>
               } 
             />
