@@ -740,3 +740,70 @@ export const validateRoomCode = async (code: string) => {
 
   return { data: roomData, error }
 }
+
+// Task User Status functions
+export const getTaskUserStatuses = async (taskId: string) => {
+  const { data, error } = await supabase
+    .from('task_user_status')
+    .select('*')
+    .eq('task_id', taskId)
+  return { data, error }
+}
+
+export const upsertTaskUserStatus = async (taskId: string, userId: string, userName: string, status: string) => {
+  const { data, error } = await supabase
+    .from('task_user_status')
+    .upsert([
+      { task_id: taskId, user_id: userId, user_name: userName, status, updated_at: new Date().toISOString().slice(0, 19).replace('T', ' ') }
+    ], { onConflict: 'task_id,user_id' })
+    .select()
+    .single()
+  return { data, error }
+}
+
+export const subscribeToTaskUserStatus = (taskId: string, callback: (payload: any) => void) => {
+  const channel = supabase
+    .channel(`task_user_status:${taskId}`)
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'task_user_status', filter: `task_id=eq.${taskId}` },
+      (payload) => callback(payload)
+    )
+    .subscribe()
+  return channel
+}
+
+// Task Activity Log functions
+export const getTaskActivityLog = async (taskId: string) => {
+  const { data, error } = await supabase
+    .from('task_activity_log')
+    .select('*')
+    .eq('task_id', taskId)
+    .order('timestamp', { ascending: false })
+  return { data, error }
+}
+
+export const addTaskActivityLog = async (taskId: string, userId: string, userName: string, action: string) => {
+  const { data, error } = await supabase
+    .from('task_activity_log')
+    .insert({
+      task_id: taskId,
+      user_id: userId,
+      user_name: userName,
+      action,
+      timestamp: new Date().toISOString().slice(0, 19).replace('T', ' ')
+    })
+    .select()
+    .single()
+  return { data, error }
+}
+
+export const subscribeToTaskActivityLog = (taskId: string, callback: (payload: any) => void) => {
+  const channel = supabase
+    .channel(`task_activity_log:${taskId}`)
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'task_activity_log', filter: `task_id=eq.${taskId}` },
+      (payload) => callback(payload)
+    )
+    .subscribe()
+  return channel
+}
