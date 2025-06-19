@@ -161,7 +161,59 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
-      }
+      },
+      task_user_status: {
+        Row: {
+          id: string;
+          task_id: string;
+          user_id: string;
+          user_name: string;
+          status: 'Todo' | 'In Progress' | 'In Review' | 'Completed';
+          updated_at: string;
+        }
+        Insert: {
+          id?: string;
+          task_id: string;
+          user_id: string;
+          user_name: string;
+          status: 'Todo' | 'In Progress' | 'In Review' | 'Completed';
+          updated_at?: string;
+        }
+        Update: {
+          id?: string;
+          task_id?: string;
+          user_id?: string;
+          user_name?: string;
+          status?: 'Todo' | 'In Progress' | 'In Review' | 'Completed';
+          updated_at?: string;
+        }
+      },
+      task_activity_log: {
+        Row: {
+          id: string;
+          task_id: string;
+          user_id: string;
+          user_name: string;
+          action: string;
+          timestamp: string;
+        }
+        Insert: {
+          id?: string;
+          task_id: string;
+          user_id: string;
+          user_name: string;
+          action: string;
+          timestamp?: string;
+        }
+        Update: {
+          id?: string;
+          task_id?: string;
+          user_id?: string;
+          user_name?: string;
+          action?: string;
+          timestamp?: string;
+        }
+      },
       chat_messages: {
         Row: {
           id: string

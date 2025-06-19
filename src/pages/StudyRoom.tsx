@@ -11,7 +11,7 @@ import {
   Video, VideoOff, MoreVertical, Edit3, Trash2, User, Timer,
   Volume2, VolumeX, ArrowLeft, Crown, Dot
 } from 'lucide-react'
-import { Task, ChatMessage, StudySession, User as UserType, Room } from '../types'
+import { Task, ChatMessage, StudySession, User as UserType, Room, TaskStatus, TaskPriority } from '../types'
 import { TaskItem } from '../components/room/TaskItem'
 import { ChatArea } from '../components/room/ChatArea'
 import { ChatProvider, useChat } from '../contexts/ChatContext'
@@ -24,7 +24,8 @@ import {
   getRoomById, getTasks, createTask, updateTask, deleteTask, 
   getRoomTotalStudyTime, getUserStudyStats, startFocusSession, 
   updateFocusSession, endStudySession, subscribeToRoom, updateUserPresence,
-  getProfile
+  getProfile,
+  upsertTaskUserStatus
 } from '../lib/supabase'
 
 // Wrapper component to access chat context
@@ -45,6 +46,10 @@ const StudyRoomContent = ({
   setShowAddTask,
   newTaskTitle,
   setNewTaskTitle,
+  newTaskDescription,
+  setNewTaskDescription,
+  newTaskPriority,
+  setNewTaskPriority,
   addTask,
   updateTaskHandler,
   deleteTaskHandler,
@@ -75,6 +80,10 @@ const StudyRoomContent = ({
   setShowAddTask: (value: boolean) => void
   newTaskTitle: string
   setNewTaskTitle: (value: string) => void
+  newTaskDescription: string
+  setNewTaskDescription: (value: string) => void
+  newTaskPriority: TaskPriority
+  setNewTaskPriority: (value: TaskPriority) => void
   addTask: () => Promise<void>
   updateTaskHandler: (taskId: string, updates: Partial<Task>) => Promise<void>
   deleteTaskHandler: (taskId: string) => Promise<void>
@@ -92,10 +101,9 @@ const StudyRoomContent = ({
   const { sendActivityMessage } = useChat()
 
   // Enhanced task handlers with activity messages
-  const handleTaskComplete = async (taskId: string, updates: Partial<Task>) => {
+  const handleTaskComplete = async (taskId: string, updates: Partial<Task>): Promise<void> => {
     await updateTaskHandler(taskId, updates)
-    
-    if (updates.status === 'completed') {
+    if (updates.status === 'Completed') {
       const task = tasks.find((t: Task) => t.id === taskId)
       await sendActivityMessage('Task Completed', {
         message: `${currentUser.name} completed task: "${task?.title}"`
@@ -136,7 +144,7 @@ const StudyRoomContent = ({
     }
   }
 
-  const completedTasksCount = tasks.filter((t: Task) => t.status === 'completed').length
+  const completedTasksCount = tasks.filter((t: Task) => t.status === 'Completed').length
   const totalTasks = tasks.length
   const progressPercentage = totalTasks > 0 ? (completedTasksCount / totalTasks) * 100 : 0
 
@@ -197,7 +205,7 @@ const StudyRoomContent = ({
           <div className="flex-1 p-6 overflow-y-auto">
             {showAddTask && (
               <Card className="mb-4 animate-slide-down">
-                <div className="flex gap-3">
+                <div className="flex flex-col gap-3">
                   <Input
                     placeholder="Enter task title..."
                     value={newTaskTitle}
@@ -205,18 +213,41 @@ const StudyRoomContent = ({
                     onKeyPress={(e) => e.key === 'Enter' && handleTaskCreate()}
                     className="flex-1"
                   />
-                  <Button onClick={handleTaskCreate} disabled={!newTaskTitle.trim()}>
-                    Add
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      setShowAddTask(false)
-                      setNewTaskTitle('')
-                    }}
-                  >
-                    Cancel
-                  </Button>
+                  <textarea
+                    placeholder="Enter task description (optional)..."
+                    value={newTaskDescription}
+                    onChange={(e) => setNewTaskDescription(e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-2 bg-dark-800/50 border border-dark-700 rounded-lg text-white placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 resize-none"
+                  />
+                  <div className="flex items-center space-x-3">
+                    <label className="text-sm text-dark-400">Priority:</label>
+                    <select
+                      value={newTaskPriority}
+                      onChange={e => setNewTaskPriority(e.target.value as TaskPriority)}
+                      className="px-2 py-1 rounded border"
+                    >
+                      <option value="High">High</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Low">Low</option>
+                    </select>
+                  </div>
+                  <div className="flex gap-3">
+                    <Button onClick={handleTaskCreate} disabled={!newTaskTitle.trim()}>
+                      Add
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setShowAddTask(false)
+                        setNewTaskTitle('')
+                        setNewTaskDescription('')
+                        setNewTaskPriority('Medium')
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
               </Card>
             )}
@@ -231,8 +262,8 @@ const StudyRoomContent = ({
                     members={room.members}
                     onUpdate={handleTaskComplete}
                     onDelete={handleTaskDelete}
-                    onReorder={reorderTasks}
                     index={index}
+                    currentUserId={currentUser.id}
                   />
                 ))}
             </div>
@@ -309,6 +340,8 @@ export const StudyRoom = () => {
   const [loading, setLoading] = useState(true)
   const [tasks, setTasks] = useState<Task[]>([])
   const [newTaskTitle, setNewTaskTitle] = useState('')
+  const [newTaskDescription, setNewTaskDescription] = useState('')
+  const [newTaskPriority, setNewTaskPriority] = useState<TaskPriority>('Medium')
   const [showAddTask, setShowAddTask] = useState(false)
   const [studySession, setStudySession] = useState<StudySession | null>(null)
   const [roomTotalStudyTime, setRoomTotalStudyTime] = useState(0)
@@ -350,11 +383,13 @@ export const StudyRoom = () => {
           description: task.description,
           duration: task.duration,
           assigneeId: task.assignee_id,
-          status: task.status,
+          status: (task.status === 'Completed' ? 'Completed' : task.status === 'In Progress' ? 'In Progress' : task.status === 'In Review' ? 'In Review' : task.status === 'Todo' ? 'Todo' : task.status) as TaskStatus,
           createdAt: task.created_at,
           order: task.order_index,
           roomId: task.room_id,
-          createdBy: task.created_by
+          createdBy: task.created_by,
+          priority: (task.priority as TaskPriority) || 'Medium',
+          creatorName: (task.creator?.full_name || task.creator_name || 'Unknown')
         }))
         setTasks(transformedTasks)
         console.log('✅ Tasks reloaded:', transformedTasks.length, 'tasks')
@@ -477,11 +512,13 @@ export const StudyRoom = () => {
             description: payload.new.description || '',
             duration: payload.new.duration || 30,
             assigneeId: payload.new.assignee_id,
-            status: payload.new.status || 'pending',
+            status: (payload.new.status === 'Completed' ? 'Completed' : payload.new.status === 'In Progress' ? 'In Progress' : payload.new.status === 'In Review' ? 'In Review' : payload.new.status === 'Todo' ? 'Todo' : 'Todo') as TaskStatus,
             createdAt: payload.new.created_at,
             order: payload.new.order_index || 0,
             roomId: payload.new.room_id,
-            createdBy: payload.new.created_by
+            createdBy: payload.new.created_by,
+            priority: (payload.new.priority as TaskPriority) || 'Medium',
+            creatorName: (payload.new.creator_name || 'Unknown')
           }
           setTasks(prev => [...prev, newTask])
         } else if (payload.eventType === 'UPDATE' && payload.new) {
@@ -493,9 +530,11 @@ export const StudyRoom = () => {
                   title: payload.new.title,
                   description: payload.new.description || task.description,
                   duration: payload.new.duration || task.duration,
-                  status: payload.new.status || task.status,
+                  status: (payload.new.status === 'Completed' ? 'Completed' : payload.new.status === 'In Progress' ? 'In Progress' : payload.new.status === 'In Review' ? 'In Review' : payload.new.status === 'Todo' ? 'Todo' : task.status) as TaskStatus,
                   order: payload.new.order_index || task.order,
-                  assigneeId: payload.new.assignee_id || task.assigneeId
+                  assigneeId: payload.new.assignee_id || task.assigneeId,
+                  priority: (payload.new.priority as TaskPriority) || task.priority,
+                  creatorName: (payload.new.creator_name || task.creatorName)
                 }
               : task
           ))
@@ -557,7 +596,7 @@ export const StudyRoom = () => {
       // End current study session if active
       if (currentSessionId.current && sessionStartTime.current) {
         const focusTime = Math.floor((Date.now() - sessionStartTime.current.getTime()) / 1000 / 60)
-        const completedTasks = tasks.filter(t => t.status === 'completed').length
+        const completedTasks = tasks.filter(t => t.status === 'Completed').length
         endStudySession(currentSessionId.current, focusTime, completedTasks)
       }
     }
@@ -622,89 +661,134 @@ export const StudyRoom = () => {
     )
   }
 
+  // Helper to map UI status to DB status
+  const uiStatusToDbStatus = (status: string) => {
+    switch (status) {
+      case 'Todo': return 'pending';
+      case 'In Progress': return 'in-progress';
+      case 'In Review': return 'in-review';
+      case 'Completed': return 'completed';
+      default: return 'pending';
+    }
+  }
+
   // Task management functions
   const addTask = async () => {
     if (!newTaskTitle.trim() || !roomId || !currentUser) return
+
+    const now = new Date().toISOString()
+    // Create a temporary task object for optimistic UI
+    const tempTask: Task = {
+      id: 'temp-' + Math.random().toString(36).substr(2, 9),
+      title: newTaskTitle.trim(),
+      description: newTaskDescription.trim(),
+      duration: 30,
+      assigneeId: currentUser.id,
+      status: 'Todo',
+      createdAt: now,
+      order: tasks.length,
+      roomId: roomId,
+      createdBy: currentUser.id,
+      priority: newTaskPriority,
+      creatorName: currentUser.name
+    }
+    setTasks(prev => [...prev, tempTask])
 
     try {
       const { data, error } = await createTask({
         room_id: roomId,
         title: newTaskTitle.trim(),
-        description: '',
+        description: newTaskDescription.trim(),
         duration: 30,
         assignee_id: currentUser.id,
-        status: 'pending',
+        status: uiStatusToDbStatus('Todo'),
         order_index: tasks.length,
-        created_by: currentUser.id
+        created_by: currentUser.id,
+        created_at: now,
+        updated_at: now,
+        priority: newTaskPriority
       })
       
       if (error) {
+        // Remove the optimistic task if error
+        setTasks(prev => prev.filter(t => t.id !== tempTask.id))
         console.error('Error creating task:', error)
         return
       }
       
       if (data) {
         setNewTaskTitle('')
+        setNewTaskDescription('')
+        setNewTaskPriority('Medium')
         setShowAddTask(false)
-        
         // Award points for task creation
         useGamificationAwardTaskCompletion(10)
+        // Set all users' statuses to 'Todo' for the new task
+        if (room && room.members) {
+          room.members.forEach(member => {
+            upsertTaskUserStatus(data.id, member.id, member.name, 'Todo')
+          })
+        }
       }
     } catch (error) {
+      setTasks(prev => prev.filter(t => t.id !== tempTask.id))
       console.error('Error creating task:', error)
     }
   }
 
   const updateTaskHandler = async (taskId: string, updates: Partial<Task>) => {
+    // Optimistically update the task in local state
+    const prevTasks = [...tasks];
+    setTasks(prev => prev.map(task =>
+      task.id === taskId ? { ...task, ...updates } : task
+    ));
     try {
-      console.log('📝 Updating task:', taskId, updates)
-      
-      const dbUpdates: any = {}
-      
-      if (updates.title !== undefined) dbUpdates.title = updates.title
-      if (updates.description !== undefined) dbUpdates.description = updates.description
-      if (updates.duration !== undefined) dbUpdates.duration = updates.duration
-      if (updates.status !== undefined) dbUpdates.status = updates.status
-      if (updates.assigneeId !== undefined) dbUpdates.assignee_id = updates.assigneeId
-      if (updates.order !== undefined) dbUpdates.order_index = updates.order
-
-      const { error } = await updateTask(taskId, dbUpdates)
-      
+      console.log('📝 Updating task:', taskId, updates);
+      const dbUpdates: any = {};
+      if (updates.title !== undefined) dbUpdates.title = updates.title;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.duration !== undefined) dbUpdates.duration = updates.duration;
+      if (updates.status !== undefined) dbUpdates.status = uiStatusToDbStatus(updates.status as string);
+      if (updates.assigneeId !== undefined) dbUpdates.assignee_id = updates.assigneeId;
+      if (updates.order !== undefined) dbUpdates.order_index = updates.order;
+      if (updates.priority !== undefined) dbUpdates.priority = updates.priority;
+      const { error } = await updateTask(taskId, dbUpdates);
       if (error) {
-        console.error('Error updating task:', error)
-        return
+        setTasks(prevTasks); // revert
+        console.error('Error updating task:', error);
+        return;
       }
-
       // Award points for task completion
-      if (updates.status === 'completed') {
-        const task = tasks.find(t => t.id === taskId)
-        const assignee = room.members.find(m => m.id === task?.assigneeId)
-        
+      if (updates.status === 'Completed') {
+        const task = tasks.find(t => t.id === taskId);
+        const assignee = room.members.find(m => m.id === task?.assigneeId);
         if (task && assignee?.id === currentUser.id) {
-          useGamificationAwardTaskCompletion(task.duration)
+          useGamificationAwardTaskCompletion(task.duration);
         }
       }
-      
-      console.log('✅ Task updated successfully')
+      console.log('✅ Task updated successfully');
     } catch (error) {
-      console.error('Error updating task:', error)
+      setTasks(prevTasks); // revert
+      console.error('Error updating task:', error);
     }
   }
 
   const deleteTaskHandler = async (taskId: string) => {
+    // Optimistically remove the task from local state
+    const prevTasks = [...tasks];
+    setTasks(prev => prev.filter(task => task.id !== taskId));
     try {
-      console.log('🗑️ Deleting task:', taskId)
-      
-      const { error } = await deleteTask(taskId)
-      
+      console.log('🗑️ Deleting task:', taskId);
+      const { error } = await deleteTask(taskId);
       if (error) {
-        console.error('Error deleting task:', error)
-        return
+        setTasks(prevTasks); // revert
+        console.error('Error deleting task:', error);
+        return;
       }
-      
-      console.log('✅ Task deleted successfully')
+      console.log('✅ Task deleted successfully');
     } catch (error) {
-      console.error('Error deleting task:', error)
+      setTasks(prevTasks); // revert
+      console.error('Error deleting task:', error);
     }
   }
 
@@ -758,7 +842,7 @@ export const StudyRoom = () => {
     // End current session if active
     if (currentSessionId.current) {
       const focusTime = Math.floor(timerState.totalElapsed / 60)
-      const completedTasks = tasks.filter(t => t.status === 'completed').length
+      const completedTasks = tasks.filter(t => t.status === 'Completed').length
       endStudySession(currentSessionId.current, focusTime, completedTasks)
       currentSessionId.current = null
     }
@@ -783,7 +867,7 @@ export const StudyRoom = () => {
     // End current session if active
     if (currentSessionId.current) {
       const focusTime = Math.floor(timerState.totalElapsed / 60)
-      const completedTasks = tasks.filter(t => t.status === 'completed').length
+      const completedTasks = tasks.filter(t => t.status === 'Completed').length
       endStudySession(currentSessionId.current, focusTime, completedTasks)
       currentSessionId.current = null
     }
@@ -812,6 +896,10 @@ export const StudyRoom = () => {
         setShowAddTask={setShowAddTask}
         newTaskTitle={newTaskTitle}
         setNewTaskTitle={setNewTaskTitle}
+        newTaskDescription={newTaskDescription}
+        setNewTaskDescription={setNewTaskDescription}
+        newTaskPriority={newTaskPriority}
+        setNewTaskPriority={setNewTaskPriority}
         addTask={addTask}
         updateTaskHandler={updateTaskHandler}
         deleteTaskHandler={deleteTaskHandler}

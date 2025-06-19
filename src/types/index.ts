@@ -42,11 +42,13 @@ export interface Task {
   description: string
   duration: number // in minutes
   assigneeId: string
-  status: 'pending' | 'in-progress' | 'completed'
+  status: TaskStatus
+  priority: TaskPriority
   createdAt: string
   order: number
   roomId: string
   createdBy: string
+  creatorName: string
 }
 
 export interface ChatMessage {
@@ -143,4 +145,25 @@ export interface StudySessionData {
   focus_time: number
   completed_tasks: number
   is_active: boolean
+}
+
+export type TaskStatus = 'Todo' | 'In Progress' | 'In Review' | 'Completed';
+export type TaskPriority = 'High' | 'Medium' | 'Low';
+
+export interface TaskUserStatus {
+  id: string;
+  taskId: string;
+  userId: string;
+  userName: string;
+  status: TaskStatus;
+  updatedAt: string; // YYYY-MM-DD HH:MM:SS
+}
+
+export interface TaskActivityLog {
+  id: string;
+  taskId: string;
+  userId: string;
+  userName: string;
+  action: string;
+  timestamp: string; // YYYY-MM-DD HH:MM:SS
 }
