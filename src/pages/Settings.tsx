@@ -123,7 +123,7 @@ export const Settings = () => {
         year: formData.year,
         location: formData.location,
         bio: formData.bio
-      })
+      }, authUser.email)
 
       if (updateError) {
         throw updateError

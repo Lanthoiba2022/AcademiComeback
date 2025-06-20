@@ -25,6 +25,7 @@ export const signUp = async (email: string, password: string, fullName: string) 
       .insert({
         id: data.user.id,
         full_name: fullName,
+        email: email,
         total_points: 0,
         rank: 'Beginner',
         achievements: [],
@@ -70,12 +71,13 @@ export const getProfile = async (userId: string) => {
   return { data, error }
 }
 
-export const createProfile = async (userId: string, fullName: string) => {
+export const createProfile = async (userId: string, fullName: string, email: string) => {
   const { data, error } = await supabase
     .from('profiles')
     .insert({
       id: userId,
       full_name: fullName,
+      email: email,
       total_points: 0,
       rank: 'Beginner',
       achievements: []
@@ -86,7 +88,7 @@ export const createProfile = async (userId: string, fullName: string) => {
   return { data, error }
 }
 
-export const updateProfile = async (userId: string, updates: any) => {
+export const updateProfile = async (userId: string, updates: any, email?: string) => {
   // First check if profile exists
   const { data: existingProfile, error: checkError } = await supabase
     .from('profiles')
@@ -101,6 +103,7 @@ export const updateProfile = async (userId: string, updates: any) => {
       .insert({
         id: userId,
         ...updates,
+        email: email,
         total_points: 0,
         rank: 'Beginner',
         achievements: [],
@@ -118,6 +121,7 @@ export const updateProfile = async (userId: string, updates: any) => {
     .from('profiles')
     .update({
       ...updates,
+      ...(email ? { email } : {}),
       updated_at: new Date().toISOString()
     })
     .eq('id', userId)
