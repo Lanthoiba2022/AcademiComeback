@@ -172,19 +172,12 @@ export const TimerControls = ({
 
         {/* Study Stats */}
         <div className="text-right space-y-1">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center">
             <div>
               <div className="text-lg font-semibold text-white">
                 {formatDuration(userTodayFocusTime)}
               </div>
               <div className="text-sm text-dark-300">Your focus today</div>
-            </div>
-            <div className="h-8 w-px bg-dark-600" />
-            <div>
-              <div className="text-lg font-semibold text-white">
-                {formatDuration(roomTotalStudyTime)}
-              </div>
-              <div className="text-sm text-dark-300">Room total</div>
             </div>
           </div>
         </div>

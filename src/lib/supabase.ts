@@ -908,3 +908,11 @@ export const subscribeToTaskActivityLog = (taskId: string, callback: (payload: a
     })
   return channel
 }
+
+export const getUserRoomTodayFocusTime = async (userId: string, roomId: string) => {
+  const { data, error } = await supabase.rpc('get_user_room_today_focus_time', {
+    user_uuid: userId,
+    room_uuid: roomId
+  })
+  return { data, error }
+}

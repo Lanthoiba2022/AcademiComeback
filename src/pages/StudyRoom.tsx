@@ -24,7 +24,7 @@ import {
   getRoomById, getTasks, createTask, updateTask, deleteTask, 
   getRoomTotalStudyTime, getUserStudyStats, startFocusSession, 
   updateFocusSession, endStudySession, subscribeToRoom, updateUserPresence,
-  getProfile, upsertTaskUserStatus, addTaskActivityLog
+  getProfile, upsertTaskUserStatus, addTaskActivityLog, getUserRoomTodayFocusTime
 } from '../lib/supabase'
 
 // Wrapper component to access chat context
@@ -484,10 +484,9 @@ export const StudyRoom = () => {
 
         // Load user today focus time
         if (profile) {
-          const { data: userStats } = await getUserStudyStats(profile.id)
-          if (userStats) {
-            setUserTodayFocusTime(Number(userStats.today_focus_minutes) || 0)
-          }
+          getUserRoomTodayFocusTime(profile.id, roomId).then(({ data: todayFocus }) => {
+            setUserTodayFocusTime(Number(todayFocus) || 0)
+          })
 
           // Update user presence
           await updateUserPresence(roomId, profile.id, true)
@@ -593,11 +592,9 @@ export const StudyRoom = () => {
         }
         
         // Update user today focus time if it's the current user's session
-        if (authUser && payload.new?.user_id === authUser.id) {
-          getUserStudyStats(authUser.id).then(({ data: userStats }) => {
-            if (userStats) {
-              setUserTodayFocusTime(Number(userStats.today_focus_minutes) || 0)
-            }
+        if (authUser) {
+          getUserRoomTodayFocusTime(authUser.id, roomId).then(({ data: todayFocus }) => {
+            setUserTodayFocusTime(Number(todayFocus) || 0)
           })
         }
       }

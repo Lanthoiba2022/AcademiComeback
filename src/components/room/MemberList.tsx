@@ -93,12 +93,6 @@ export const MemberList = ({ members, currentUserId, adminId }: MemberListProps)
       </div>
 
       {/* Study Stats */}
-      <div className="mt-4 pt-4 border-t border-dark-700/50">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-white mb-1">2h 34m</div>
-          <div className="text-xs text-dark-400">Total study time</div>
-        </div>
-      </div>
     </div>
   )
 }
