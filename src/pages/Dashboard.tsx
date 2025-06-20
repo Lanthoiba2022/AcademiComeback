@@ -171,13 +171,13 @@ export const Dashboard = () => {
       }
       
       if (roomsData) {
-        const formattedRooms: Room[] = roomsData.map((room: RoomData) => ({
+        const formattedRooms: Room[] = roomsData.map((room: any) => ({
           id: room.id,
           name: room.name,
           code: room.code,
           description: room.description,
           tags: room.tags,
-          members: room.members?.map(member => ({
+          members: room.members?.map((member: any) => ({
             id: member.user?.id || '',
             name: member.user?.full_name || 'User',
             email: '',
@@ -314,7 +314,10 @@ export const Dashboard = () => {
 
   // Convert focus time from minutes to hours for display
   const studyHours = Math.round(studyStats.totalFocusMinutes / 60 * 10) / 10 // Round to 1 decimal place
-  const todayHours = Math.round(studyStats.todayFocusMinutes / 60 * 10) / 10
+  const todayMinutes = studyStats.todayFocusMinutes;
+  const todayH = Math.floor(todayMinutes / 60);
+  const todayM = todayMinutes % 60;
+  const todayFormatted = `${todayH}h ${todayM}m`;
 
   const stats = [
     {
@@ -334,7 +337,11 @@ export const Dashboard = () => {
     {
       name: 'Focus Time',
       value: `${studyHours}h`,
-      change: `${todayHours}h today`,
+      change: (
+        <span>
+          <span className="font-medium text-accent-400">{todayFormatted}</span> <span className="text-dark-400">today</span>
+        </span>
+      ),
       icon: Clock,
       color: 'text-accent-400'
     },
@@ -459,18 +466,24 @@ export const Dashboard = () => {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
           {stats.map((stat, index) => (
-            <Card key={index} className="animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs lg:text-sm text-dark-400 mb-1">{stat.name}</p>
-                  <p className="text-lg lg:text-2xl font-bold text-white">{stat.value}</p>
-                  <p className="text-xs lg:text-sm text-accent-400">{stat.change}</p>
+            <div key={index} className="animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
+              <Card>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs lg:text-sm text-dark-400 mb-1">{stat.name}</p>
+                    <p className="text-lg lg:text-2xl font-bold text-white">{stat.value}</p>
+                    {typeof stat.change === 'string' ? (
+                      <p className="text-xs lg:text-sm text-accent-400">{stat.change}</p>
+                    ) : (
+                      <div className="text-xs lg:text-sm">{stat.change}</div>
+                    )}
+                  </div>
+                  <div className={`p-2 lg:p-3 bg-dark-800 rounded-xl ${stat.color}`}>
+                    <stat.icon className="w-4 h-4 lg:w-6 lg:h-6" />
+                  </div>
                 </div>
-                <div className={`p-2 lg:p-3 bg-dark-800 rounded-xl ${stat.color}`}>
-                  <stat.icon className="w-4 h-4 lg:w-6 lg:h-6" />
-                </div>
-              </div>
-            </Card>
+              </Card>
+            </div>
           ))}
         </div>
 
