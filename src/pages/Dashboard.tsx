@@ -75,7 +75,7 @@ export const Dashboard = () => {
           // Get user metadata from auth
           const fullName = authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User'
           
-          const { data: newProfile, error: createError } = await createProfile(authUser.id, fullName)
+          const { data: newProfile, error: createError } = await createProfile(authUser.id, fullName, authUser.email || '')
           
           if (createError) {
             console.error('Error creating profile:', createError)

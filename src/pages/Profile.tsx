@@ -107,7 +107,7 @@ export const Profile = () => {
         bio: formData.bio.trim() || null
       }
 
-      const { data, error: updateError } = await updateProfile(authUser.id, updates)
+      const { data, error: updateError } = await updateProfile(authUser.id, updates, authUser.email)
       
       if (updateError) {
         console.error('Error updating profile:', updateError)
