@@ -17,7 +17,7 @@ export const PremiumUpgradeModal = ({
   const navigate = useNavigate()
 
   const handleUpgrade = () => {
-    navigate('/pricing')
+    navigate('/premium')
   }
 
   return (

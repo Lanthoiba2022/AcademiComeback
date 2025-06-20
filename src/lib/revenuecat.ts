@@ -47,18 +47,12 @@ async function getStoredAnonymousId(userId: string): Promise<string | null> {
 }
 
 // Store RevenueCat ID in Supabase
-async function storeAnonymousId(userId: string, anonymousId: string): Promise<boolean> {
+async function storeAnonymousId(userId: string): Promise<boolean> {
   try {
-    // First check if the ID already exists
-    const existingId = await getStoredAnonymousId(userId)
-    if (existingId) {
-      console.log('RevenueCat ID already exists for user:', existingId)
-      return true
-    }
-
+    // Always set revenuecat_id to userId (uuid)
     const { error } = await supabase
       .from('profiles')
-      .update({ revenuecat_id: anonymousId })
+      .update({ revenuecat_id: userId })
       .eq('id', userId)
 
     if (error) {
@@ -66,7 +60,7 @@ async function storeAnonymousId(userId: string, anonymousId: string): Promise<bo
       return false
     }
 
-    console.log('Successfully stored RevenueCat ID:', anonymousId)
+    console.log('Successfully stored RevenueCat ID:', userId)
     return true
   } catch (error) {
     console.error('Error in storeAnonymousId:', error)
@@ -95,30 +89,13 @@ export async function initializeRevenueCat(): Promise<void> {
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.log('No user found, initializing RevenueCat anonymously');
-      // Generate a temporary anonymous ID
-      const tempId = `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      await Purchases.configure(apiKey, tempId);
+      console.log('No user found, cannot initialize RevenueCat');
       return;
     }
 
-    // Try to get existing RevenueCat ID from database
-    const existingId = await getStoredAnonymousId(user.id);
-    
-    if (existingId) {
-      console.log('Using existing RevenueCat ID:', existingId);
-      await Purchases.configure(apiKey, existingId);
-    } else {
-      console.log('No existing RevenueCat ID found, generating new one');
-      // Use the user's ID as the initial RevenueCat ID
-      await Purchases.configure(apiKey, user.id);
-
-      // Get the generated ID and store it
-      const customerInfo = await Purchases.getSharedInstance().getCustomerInfo();
-      if (customerInfo.originalAppUserId) {
-        await storeAnonymousId(user.id, customerInfo.originalAppUserId);
-      }
-    }
+    // Always use the user's ID as the RevenueCat ID
+    await Purchases.configure(apiKey, user.id);
+    await storeAnonymousId(user.id);
 
     // Set log level to debug in development
     if (import.meta.env.DEV) {
@@ -177,7 +154,6 @@ export const purchasePackage = async (packageToPurchase: Package): Promise<{
     // Configure purchase options
     const purchaseOptions = {
       rcPackage: packageToPurchase,
-      // Add any additional purchase options here
       displayMode: 'modal' // This ensures the payment modal is shown
     }
     
@@ -186,8 +162,8 @@ export const purchasePackage = async (packageToPurchase: Package): Promise<{
     // Get the current user ID from Supabase
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      // Store the RevenueCat ID in the database after successful purchase
-      await storeAnonymousId(user.id, customerInfo.originalAppUserId)
+      // Always store the user.id as RevenueCat ID in the database after successful purchase
+      await storeAnonymousId(user.id)
     }
     
     console.log('✅ Purchase successful:', {

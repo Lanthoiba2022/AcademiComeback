@@ -6,7 +6,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
 
-// Auth functions
+// Auth functions (keep existing ones)
 export const signUp = async (email: string, password: string, fullName: string) => {
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -18,13 +18,13 @@ export const signUp = async (email: string, password: string, fullName: string) 
     }
   })
   
-  // Create profile after signup
   if (data.user && !error) {
     const { error: profileError } = await supabase
       .from('profiles')
       .insert({
         id: data.user.id,
         full_name: fullName,
+        email: email,
         total_points: 0,
         rank: 'Beginner',
         achievements: [],
@@ -59,7 +59,7 @@ export const getCurrentUser = async () => {
   return { data, error }
 }
 
-// Profile functions
+// Profile functions (keep existing ones)
 export const getProfile = async (userId: string) => {
   const { data, error } = await supabase
     .from('profiles')
@@ -70,12 +70,13 @@ export const getProfile = async (userId: string) => {
   return { data, error }
 }
 
-export const createProfile = async (userId: string, fullName: string) => {
+export const createProfile = async (userId: string, fullName: string, email: string) => {
   const { data, error } = await supabase
     .from('profiles')
     .insert({
       id: userId,
       full_name: fullName,
+      email: email,
       total_points: 0,
       rank: 'Beginner',
       achievements: []
@@ -86,8 +87,7 @@ export const createProfile = async (userId: string, fullName: string) => {
   return { data, error }
 }
 
-export const updateProfile = async (userId: string, updates: any) => {
-  // First check if profile exists
+export const updateProfile = async (userId: string, updates: any, email?: string) => {
   const { data: existingProfile, error: checkError } = await supabase
     .from('profiles')
     .select('id')
@@ -95,12 +95,12 @@ export const updateProfile = async (userId: string, updates: any) => {
     .single()
 
   if (checkError || !existingProfile) {
-    // Profile doesn't exist, create it
     const { data: newProfile, error: createError } = await supabase
       .from('profiles')
       .insert({
         id: userId,
         ...updates,
+        email: email,
         total_points: 0,
         rank: 'Beginner',
         achievements: [],
@@ -113,11 +113,11 @@ export const updateProfile = async (userId: string, updates: any) => {
     return { data: newProfile, error: createError }
   }
 
-  // Profile exists, update it
   const { data, error } = await supabase
     .from('profiles')
     .update({
       ...updates,
+      ...(email ? { email } : {}),
       updated_at: new Date().toISOString()
     })
     .eq('id', userId)
@@ -127,7 +127,7 @@ export const updateProfile = async (userId: string, updates: any) => {
   return { data, error }
 }
 
-// Study session functions
+// Study session functions (keep existing ones)
 export const getUserStudyStats = async (userId: string) => {
   const { data, error } = await supabase.rpc('get_user_study_stats', {
     user_uuid: userId
@@ -181,9 +181,8 @@ export const endStudySession = async (sessionId: string, focusTime: number, comp
   return { data, error }
 }
 
-// Room functions
+// Room functions (keep existing ones but add the missing ones)
 export const createRoom = async (roomData: any) => {
-  // Generate unique room code using database function
   const { data: codeData, error: codeError } = await supabase.rpc('generate_room_code')
   
   if (codeError) {
@@ -201,7 +200,6 @@ export const createRoom = async (roomData: any) => {
     .single()
   
   if (data && !error) {
-    // Add creator as first member
     const { error: memberError } = await supabase
       .from('room_members')
       .insert({
@@ -254,10 +252,8 @@ export const getRooms = async (filters?: any) => {
     return { data: [], error }
   }
   
-  // Get room members and admin profiles separately to avoid recursion
   const roomIds = roomsData.map(room => room.id)
   
-  // Get all room members
   const { data: membersData } = await supabase
     .from('room_members')
     .select(`
@@ -277,14 +273,12 @@ export const getRooms = async (filters?: any) => {
     `)
     .in('room_id', roomIds)
   
-  // Get admin profiles
   const adminIds = [...new Set(roomsData.map(room => room.admin_id))]
   const { data: adminProfiles } = await supabase
     .from('profiles')
     .select('id, full_name, avatar_url, total_points, rank, achievements, created_at')
     .in('id', adminIds)
   
-  // Create maps for quick lookup
   const adminProfilesMap = new Map(adminProfiles?.map(profile => [profile.id, profile]) || [])
   const membersByRoom = new Map()
   
@@ -298,7 +292,6 @@ export const getRooms = async (filters?: any) => {
     })
   })
   
-  // Combine rooms with their data
   const roomsWithMembers = roomsData.map(room => ({
     ...room,
     admin: adminProfilesMap.get(room.admin_id) || null,
@@ -331,14 +324,12 @@ export const getRoomById = async (roomId: string) => {
     return { data: null, error }
   }
   
-  // Get admin profile
   const { data: adminProfile } = await supabase
     .from('profiles')
     .select('id, full_name, avatar_url, total_points, rank, achievements, created_at')
     .eq('id', roomData.admin_id)
     .single()
   
-  // Get room members with profiles
   const { data: membersData } = await supabase
     .from('room_members')
     .select(`
@@ -392,14 +383,12 @@ export const getRoomByCode = async (code: string) => {
     return { data: null, error }
   }
   
-  // Get admin profile
   const { data: adminProfile } = await supabase
     .from('profiles')
     .select('id, full_name, avatar_url, total_points, rank, achievements, created_at')
     .eq('id', roomData.admin_id)
     .single()
   
-  // Get room members with profiles
   const { data: membersData } = await supabase
     .from('room_members')
     .select(`
@@ -430,7 +419,6 @@ export const getRoomByCode = async (code: string) => {
   return { data: roomWithMembers, error: null }
 }
 
-// Updated join room function using the new database function
 export const joinRoom = async (roomId: string, userId: string) => {
   const { data, error } = await supabase
     .from('room_members')
@@ -445,7 +433,6 @@ export const joinRoom = async (roomId: string, userId: string) => {
   return { data, error }
 }
 
-// New function to join room with code validation
 export const joinRoomWithCode = async (code: string, userId: string) => {
   const { data, error } = await supabase.rpc('join_room_with_code', {
     room_code: code.toUpperCase(),
@@ -456,7 +443,6 @@ export const joinRoomWithCode = async (code: string, userId: string) => {
     return { data: null, error }
   }
   
-  // The function returns an array, get the first result
   const result = data?.[0]
   
   if (!result?.success) {
@@ -482,7 +468,27 @@ export const leaveRoom = async (roomId: string, userId: string) => {
   return { error }
 }
 
-// Task functions
+// **IMPROVED Task functions with proper status mapping**
+const uiStatusToDbStatus = (status: string) => {
+  switch (status) {
+    case 'Todo': return 'pending'
+    case 'In Progress': return 'in-progress'
+    case 'In Review': return 'in-review'
+    case 'Completed': return 'completed'
+    default: return 'pending'
+  }
+}
+
+const dbStatusToUiStatus = (status: string) => {
+  switch (status) {
+    case 'pending': return 'Todo'
+    case 'in-progress': return 'In Progress'
+    case 'in-review': return 'In Review'
+    case 'completed': return 'Completed'
+    default: return 'Todo'
+  }
+}
+
 export const getTasks = async (roomId: string) => {
   const { data, error } = await supabase
     .from('tasks')
@@ -494,13 +500,28 @@ export const getTasks = async (roomId: string) => {
     .eq('room_id', roomId)
     .order('order_index', { ascending: true })
   
+  if (data) {
+    // Transform database status to UI status
+    const transformedData = data.map(task => ({
+      ...task,
+      status: dbStatusToUiStatus(task.status)
+    }))
+    return { data: transformedData, error }
+  }
+  
   return { data, error }
 }
 
 export const createTask = async (taskData: any) => {
+  // Transform UI status to database status
+  const dbTaskData = {
+    ...taskData,
+    status: uiStatusToDbStatus(taskData.status || 'Todo')
+  }
+  
   const { data, error } = await supabase
     .from('tasks')
-    .insert(taskData)
+    .insert(dbTaskData)
     .select(`
       *,
       assignee:profiles!assignee_id(*),
@@ -508,13 +529,28 @@ export const createTask = async (taskData: any) => {
     `)
     .single()
   
+  if (data && !error) {
+    // Transform back to UI status
+    const transformedData = {
+      ...data,
+      status: dbStatusToUiStatus(data.status)
+    }
+    return { data: transformedData, error }
+  }
+  
   return { data, error }
 }
 
 export const updateTask = async (taskId: string, updates: any) => {
+  // Transform UI status to database status if status is being updated
+  const dbUpdates = { ...updates }
+  if (updates.status) {
+    dbUpdates.status = uiStatusToDbStatus(updates.status)
+  }
+  
   const { data, error } = await supabase
     .from('tasks')
-    .update(updates)
+    .update(dbUpdates)
     .eq('id', taskId)
     .select(`
       *,
@@ -522,6 +558,15 @@ export const updateTask = async (taskId: string, updates: any) => {
       creator:profiles!created_by(*)
     `)
     .single()
+  
+  if (data && !error) {
+    // Transform back to UI status
+    const transformedData = {
+      ...data,
+      status: dbStatusToUiStatus(data.status)
+    }
+    return { data: transformedData, error }
+  }
   
   return { data, error }
 }
@@ -535,7 +580,7 @@ export const deleteTask = async (taskId: string) => {
   return { error }
 }
 
-// Chat functions
+// Chat functions (keep existing ones)
 export const getChatMessages = async (roomId: string) => {
   const { data, error } = await supabase
     .from('chat_messages')
@@ -562,7 +607,7 @@ export const sendChatMessage = async (messageData: any) => {
   return { data, error }
 }
 
-// Enhanced Real-time subscriptions with better error handling
+// **ENHANCED Real-time subscriptions**
 export const subscribeToRooms = (callback: (payload: any) => void) => {
   const channel = supabase
     .channel('public:rooms')
@@ -587,25 +632,57 @@ export const subscribeToRooms = (callback: (payload: any) => void) => {
   return channel
 }
 
-// Enhanced room subscription with immediate updates
 export const subscribeToRoom = (roomId: string, callbacks: {
   onTaskChange?: (payload: any) => void
   onChatMessage?: (payload: any) => void
   onMemberChange?: (payload: any) => void
   onStudySessionChange?: (payload: any) => void
+  onTaskUserStatusChange?: (payload: any) => void
+  onTaskActivityChange?: (payload: any) => void
 }) => {
-  console.log(`Setting up real-time subscription for room: ${roomId}`)
+  console.log(`🔗 Setting up comprehensive real-time subscription for room: ${roomId}`)
   
   const channel = supabase
     .channel(`room:${roomId}`)
     
-  // Tasks subscription
+  // Tasks subscription with status transformation
   if (callbacks.onTaskChange) {
     channel.on('postgres_changes', 
       { event: '*', schema: 'public', table: 'tasks', filter: `room_id=eq.${roomId}` },
       (payload) => {
-        console.log('Task change detected:', payload)
+        console.log('📝 Task change detected:', payload)
+        
+        // Transform database status to UI status in the payload
+        if (payload.new) {
+          payload.new.status = dbStatusToUiStatus(payload.new.status)
+        }
+        if (payload.old) {
+          payload.old.status = dbStatusToUiStatus(payload.old.status)
+        }
+        
         callbacks.onTaskChange!(payload)
+      }
+    )
+  }
+  
+  // Task User Status subscription
+  if (callbacks.onTaskUserStatusChange) {
+    channel.on('postgres_changes',
+      { event: '*', schema: 'public', table: 'task_user_status' },
+      (payload) => {
+        console.log('👤 Task user status change detected:', payload)
+        callbacks.onTaskUserStatusChange!(payload)
+      }
+    )
+  }
+  
+  // Task Activity Log subscription
+  if (callbacks.onTaskActivityChange) {
+    channel.on('postgres_changes',
+      { event: '*', schema: 'public', table: 'task_activity_log' },
+      (payload) => {
+        console.log('📋 Task activity change detected:', payload)
+        callbacks.onTaskActivityChange!(payload)
       }
     )
   }
@@ -615,7 +692,7 @@ export const subscribeToRoom = (roomId: string, callbacks: {
     channel.on('postgres_changes',
       { event: '*', schema: 'public', table: 'chat_messages', filter: `room_id=eq.${roomId}` },
       (payload) => {
-        console.log('Chat message change detected:', payload)
+        console.log('💬 Chat message change detected:', payload)
         callbacks.onChatMessage!(payload)
       }
     )
@@ -626,7 +703,7 @@ export const subscribeToRoom = (roomId: string, callbacks: {
     channel.on('postgres_changes',
       { event: '*', schema: 'public', table: 'room_members', filter: `room_id=eq.${roomId}` },
       (payload) => {
-        console.log('Member change detected:', payload)
+        console.log('👥 Member change detected:', payload)
         callbacks.onMemberChange!(payload)
       }
     )
@@ -637,16 +714,16 @@ export const subscribeToRoom = (roomId: string, callbacks: {
     channel.on('postgres_changes',
       { event: '*', schema: 'public', table: 'study_sessions', filter: `room_id=eq.${roomId}` },
       (payload) => {
-        console.log('Study session change detected:', payload)
+        console.log('⏱️ Study session change detected:', payload)
         callbacks.onStudySessionChange!(payload)
       }
     )
   }
   
   channel.subscribe((status) => {
-    console.log(`Room ${roomId} subscription status:`, status)
+    console.log(`🔔 Room ${roomId} subscription status:`, status)
     if (status === 'SUBSCRIBED') {
-      console.log(`✅ Successfully subscribed to room ${roomId} real-time updates`)
+      console.log(`✅ Successfully subscribed to room ${roomId} comprehensive real-time updates`)
     } else if (status === 'CHANNEL_ERROR') {
       console.error(`❌ Failed to subscribe to room ${roomId} real-time updates`)
     }
@@ -692,7 +769,7 @@ export const updateUserPresence = async (roomId: string, userId: string, isOnlin
   return { error }
 }
 
-// Timer and focus tracking
+// Timer and focus tracking (keep existing ones)
 export const startFocusSession = async (roomId: string, userId: string) => {
   const { data, error } = await supabase
     .from('study_sessions')
@@ -729,24 +806,23 @@ export const updateFocusSession = async (sessionId: string, focusTime: number, c
   return { data, error }
 }
 
-// Validate room code in real-time
 export const validateRoomCode = async (code: string) => {
   const { data, error } = await supabase.rpc('get_room_details_for_join', { 
     room_code: code.toUpperCase() 
   })
   
-  // RPC returns an array of results, even if it's a single row, so we take the first element
   const roomData = data ? data[0] : null
 
   return { data: roomData, error }
 }
 
-// Task User Status functions
+// **ENHANCED Task User Status functions**
 export const getTaskUserStatuses = async (taskId: string) => {
   const { data, error } = await supabase
     .from('task_user_status')
     .select('*')
     .eq('task_id', taskId)
+    .order('updated_at', { ascending: false })
   return { data, error }
 }
 
@@ -754,10 +830,24 @@ export const upsertTaskUserStatus = async (taskId: string, userId: string, userN
   const { data, error } = await supabase
     .from('task_user_status')
     .upsert([
-      { task_id: taskId, user_id: userId, user_name: userName, status, updated_at: new Date().toISOString().slice(0, 19).replace('T', ' ') }
-    ], { onConflict: 'task_id,user_id' })
+      { 
+        task_id: taskId, 
+        user_id: userId, 
+        user_name: userName, 
+        status, 
+        updated_at: new Date().toISOString()
+      }
+    ], { 
+      onConflict: 'task_id,user_id',
+      ignoreDuplicates: false 
+    })
     .select()
-    .single()
+  
+  // Also log the activity
+  if (!error) {
+    await addTaskActivityLog(taskId, userId, userName, `Changed status to ${status}`)
+  }
+  
   return { data, error }
 }
 
@@ -766,19 +856,25 @@ export const subscribeToTaskUserStatus = (taskId: string, callback: (payload: an
     .channel(`task_user_status:${taskId}`)
     .on('postgres_changes',
       { event: '*', schema: 'public', table: 'task_user_status', filter: `task_id=eq.${taskId}` },
-      (payload) => callback(payload)
+      (payload) => {
+        console.log('Task user status change:', payload)
+        callback(payload)
+      }
     )
-    .subscribe()
+    .subscribe((status) => {
+      console.log(`Task user status subscription for ${taskId}:`, status)
+    })
   return channel
 }
 
-// Task Activity Log functions
+// **ENHANCED Task Activity Log functions**
 export const getTaskActivityLog = async (taskId: string) => {
   const { data, error } = await supabase
     .from('task_activity_log')
     .select('*')
     .eq('task_id', taskId)
     .order('timestamp', { ascending: false })
+    .limit(50) // Limit to recent 50 activities
   return { data, error }
 }
 
@@ -790,7 +886,7 @@ export const addTaskActivityLog = async (taskId: string, userId: string, userNam
       user_id: userId,
       user_name: userName,
       action,
-      timestamp: new Date().toISOString().slice(0, 19).replace('T', ' ')
+      timestamp: new Date().toISOString()
     })
     .select()
     .single()
@@ -802,8 +898,13 @@ export const subscribeToTaskActivityLog = (taskId: string, callback: (payload: a
     .channel(`task_activity_log:${taskId}`)
     .on('postgres_changes',
       { event: '*', schema: 'public', table: 'task_activity_log', filter: `task_id=eq.${taskId}` },
-      (payload) => callback(payload)
+      (payload) => {
+        console.log('Task activity log change:', payload)
+        callback(payload)
+      }
     )
-    .subscribe()
+    .subscribe((status) => {
+      console.log(`Task activity log subscription for ${taskId}:`, status)
+    })
   return channel
 }

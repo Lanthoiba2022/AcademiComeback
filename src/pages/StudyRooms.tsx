@@ -47,7 +47,8 @@ export const StudyRooms = () => {
         if (!profile) {
           const { data: newProfile } = await createProfile(
             authUser.id,
-            authUser.user_metadata?.full_name || 'Anonymous User'
+            authUser.user_metadata?.full_name || 'Anonymous User',
+            authUser.email || ''
           )
           profile = newProfile
         }
