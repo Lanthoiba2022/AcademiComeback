@@ -103,6 +103,11 @@ export const TaskItem = ({ task, members, currentUserId, onUpdate, onDelete, ind
     setShowActions(false)
   }
 
+  // Fallback: If creatorName is 'Unknown', try to find from members
+  const displayCreatorName = task.creatorName === 'Unknown'
+    ? (members.find(m => m.id === task.createdBy)?.name || 'Unknown')
+    : task.creatorName;
+
   if (isEditing) {
     return (
       <div className={`bg-card-gradient backdrop-blur-xl border rounded-lg p-4 animate-slide-down ${getPriorityStyle()}`}>
@@ -128,7 +133,7 @@ export const TaskItem = ({ task, members, currentUserId, onUpdate, onDelete, ind
               value={editPriority}
               onChange={e => setEditPriority(e.target.value as any)}
               disabled={!isCreator}
-              className={`px-2 py-1 rounded border ${isCreator ? '' : 'opacity-60 cursor-not-allowed'}`}
+              className={`px-2 py-1 bg-dark-800 border border-dark-700 rounded text-white ${isCreator ? '' : 'opacity-60 cursor-not-allowed'}`}
             >
               <option value="High">High</option>
               <option value="Medium">Medium</option>
@@ -161,7 +166,10 @@ export const TaskItem = ({ task, members, currentUserId, onUpdate, onDelete, ind
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <h4 className={`font-medium flex items-center gap-2 ${task.status === 'Completed' ? 'text-dark-400 line-through' : 'text-white'}`}>
+              <h4 
+                className={`font-medium flex items-center gap-2 cursor-pointer ${task.status === 'Completed' ? 'text-dark-400 line-through' : 'text-white'}`}
+                onClick={toggleStatus}
+              >
                 {statusIcon(task.status)}
                 {task.title}
               </h4>
@@ -170,11 +178,15 @@ export const TaskItem = ({ task, members, currentUserId, onUpdate, onDelete, ind
               )}
               <div className="flex items-center space-x-4 mt-2">
                 {/* Priority */}
-                <span className={`text-xs font-semibold ${task.priority === 'High' ? 'text-red-400' : task.priority === 'Medium' ? 'text-yellow-400' : 'text-blue-400'}`}>{task.priority} Priority</span>
+                <span className={`text-xs font-semibold ${task.priority === 'High' ? 'text-red-400' : task.priority === 'Medium' ? 'text-yellow-400' : 'text-blue-400'}`}>
+                  {task.priority} Priority
+                </span>
                 {/* Creator */}
-                <span className="text-xs text-dark-400">By: {task.creatorName}</span>
+                <span className="text-xs text-dark-400">By: {displayCreatorName}</span>
                 {/* Timestamp */}
-                <span className="text-xs text-dark-400">Created: {task.createdAt}</span>
+                <span className="text-xs text-dark-400">
+                  Created: {new Date(task.createdAt).toLocaleDateString()}
+                </span>
               </div>
             </div>
             {/* Actions */}
@@ -188,14 +200,15 @@ export const TaskItem = ({ task, members, currentUserId, onUpdate, onDelete, ind
                     onClick={() => setIsEditing(true)}
                   />
                 )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  icon={Trash2}
-                  onClick={() => onDelete(task.id)}
-                  className="text-red-400 hover:text-red-300"
-                  disabled={!isCreator}
-                />
+                {isCreator && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={Trash2}
+                    onClick={() => onDelete(task.id)}
+                    className="text-red-400 hover:text-red-300"
+                  />
+                )}
               </div>
             )}
           </div>
