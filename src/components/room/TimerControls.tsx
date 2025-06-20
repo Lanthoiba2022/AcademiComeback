@@ -19,7 +19,7 @@ interface TimerControlsProps {
   timerState: TimerState
   onToggleTimer: () => void
   onResetTimer: () => void
-  onSetCustomTimer: (minutes: number, mode: 'work' | 'break', label?: string) => void
+  onSetCustomTimer: (minutes: number, mode: 'work' | 'break', label?: string, cycles?: number) => void
   audioEnabled: boolean
   onToggleAudio: () => void
   roomTotalStudyTime: number // in minutes
@@ -65,8 +65,8 @@ export const TimerControls = ({
   // Calculate session progress (elapsed time)
   const sessionElapsedMinutes = Math.floor(timerState.totalElapsed / 60)
 
-  const handleCustomTimerSubmit = (minutes: number, mode: 'work' | 'break', label?: string) => {
-    onSetCustomTimer(minutes, mode, label)
+  const handleCustomTimerSubmit = (minutes: number, mode: 'work' | 'break', label?: string, cycles?: number) => {
+    onSetCustomTimer(minutes, mode, label, cycles)
     setIsCustomTimerModalOpen(false)
   }
 
@@ -348,7 +348,7 @@ export const CustomTimerModal = ({ isOpen, onClose, onSubmit }: CustomTimerModal
             className="flex-1"
             disabled={minutes <= 0 || cycles <= 0}
           >
-            Start Timer
+            Set Timer
           </Button>
         </div>
       </form>
