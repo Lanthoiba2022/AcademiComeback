@@ -70,17 +70,21 @@ export const Dashboard = () => {
     streakData,
     streakStats,
     loading: streakLoading,
+    error: streakError,
     refreshStreak
   } = useStudyStreak(user?.id || '')
 
-  useEffect(() => {
-    const loadTodayMinutes = async () => {
-      if (!authUser) return
-      
-      const { data } = await getTodayStudyMinutes(authUser.id)
-      setTodayStudyMinutes(data || 0)
-    }
+  // Debug log to verify streak stats
+  console.log('Dashboard - streakStats:', streakStats, 'user?.id:', user?.id)
 
+  const loadTodayMinutes = async () => {
+    if (!authUser) return
+    
+    const { data } = await getTodayStudyMinutes(authUser.id)
+    setTodayStudyMinutes(data || 0)
+  }
+
+  useEffect(() => {
     if (authUser) {
       loadTodayMinutes()
     }
@@ -256,7 +260,12 @@ export const Dashboard = () => {
       
       // Reload stats when study sessions change
       if (payload.table === 'study_sessions') {
+        console.log('Study session changed, refreshing data...')
         loadStudyStats()
+        // Refresh study streak data when study sessions change
+        refreshStreak()
+        // Reload today's study minutes
+        loadTodayMinutes()
       }
       
       // Update user profile if it changed
@@ -270,6 +279,15 @@ export const Dashboard = () => {
       }
     })
 
+    // Set up periodic refresh for streak data (every 2 minutes)
+    const streakRefreshInterval = setInterval(() => {
+      if (authUser && user) {
+        console.log('Periodic streak refresh...')
+        refreshStreak()
+        loadTodayMinutes()
+      }
+    }, 2 * 60 * 1000) // 2 minutes
+
     return () => {
       if (roomsSubscription) {
         roomsSubscription.unsubscribe()
@@ -277,6 +295,7 @@ export const Dashboard = () => {
       if (userStatsSubscription) {
         userStatsSubscription.unsubscribe()
       }
+      clearInterval(streakRefreshInterval)
     }
   }, [authUser, user])
 
@@ -374,8 +393,8 @@ export const Dashboard = () => {
     },
     {
       name: 'Study Streak',
-      value: `${studyStats.currentStreakDays}d`,
-      change: studyStats.currentStreakDays > 0 ? 'Keep it up!' : 'Start today!',
+      value: `${streakStats.currentStreak}d`,
+      change: streakStats.currentStreak > 0 ? 'Keep it up!' : 'Start today!',
       icon: Flame,
       color: 'text-primary-400'
     }
@@ -515,13 +534,15 @@ export const Dashboard = () => {
         </div>
 
         <div className="mb-8 animate-slide-up" style={{ animationDelay: '0.4s' }}>
-  <StudyStreakCard
-    streakStats={streakStats}
-    todayMinutes={todayStudyMinutes}
-    loading={streakLoading}
-    onViewHeatmap={() => setShowHeatmapModal(true)}
-  />
-</div>
+          <StudyStreakCard
+            streakStats={streakStats}
+            todayMinutes={todayStudyMinutes}
+            loading={streakLoading}
+            error={streakError}
+            onViewHeatmap={() => setShowHeatmapModal(true)}
+            onRefresh={refreshStreak}
+          />
+        </div>
 
         {/* Recent Achievements */}
         {gamificationStats && gamificationStats.achievements.length > 0 && (

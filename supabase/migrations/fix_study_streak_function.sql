@@ -1,21 +1,4 @@
--- Add columns if they don't exist
-ALTER TABLE study_sessions 
-ADD COLUMN IF NOT EXISTS focus_minutes INTEGER DEFAULT 0,
-ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
-
--- Create separate indexes
-CREATE INDEX IF NOT EXISTS idx_study_sessions_user_id 
-ON study_sessions(user_id);
-
-CREATE INDEX IF NOT EXISTS idx_study_sessions_created_at 
-ON study_sessions(created_at);
-
--- Index for focus minutes queries
-CREATE INDEX IF NOT EXISTS idx_study_sessions_focus 
-ON study_sessions(user_id, created_at, focus_minutes);
-
-
-
+-- Fix study streak function to use correct column name
 CREATE OR REPLACE FUNCTION get_study_streak_data(
   p_user_id UUID,
   p_start_date TIMESTAMP WITH TIME ZONE,
@@ -40,4 +23,4 @@ BEGIN
   GROUP BY created_at::date
   ORDER BY study_date;
 END;
-$$ LANGUAGE plpgsql STABLE;
+$$ LANGUAGE plpgsql STABLE; 

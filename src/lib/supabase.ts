@@ -933,7 +933,6 @@ export const getStudyStreakData = async (userId: string, startDate: Date, endDat
   }
 }
 
-
 export const getTodayStudyMinutes = async (userId: string) => {
   try {
     const today = new Date()
@@ -942,15 +941,15 @@ export const getTodayStudyMinutes = async (userId: string) => {
 
     const { data, error } = await supabase
       .from('study_sessions')
-      .select('focus_minutes')
+      .select('focus_time')
       .eq('user_id', userId)
       .gte('created_at', startOfDay.toISOString())
       .lt('created_at', endOfDay.toISOString())
-      .not('focus_minutes', 'is', null)
+      .not('focus_time', 'is', null)
 
     if (error) return { data: 0, error }
 
-    const totalMinutes = data?.reduce((sum, session) => sum + (session.focus_minutes || 0), 0) || 0
+    const totalMinutes = data?.reduce((sum, session) => sum + (session.focus_time || 0), 0) || 0
     return { data: totalMinutes, error: null }
   } catch (error) {
     console.error('Error fetching today study minutes:', error)

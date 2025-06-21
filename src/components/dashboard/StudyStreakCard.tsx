@@ -1,24 +1,33 @@
 import React from 'react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
-import { Flame, Calendar, Clock, TrendingUp, Target } from 'lucide-react'
+import { Flame, Calendar, Clock, TrendingUp, Target, RefreshCw } from 'lucide-react'
 import { StreakStats } from '../../hooks/useStudyStreak'
 
 interface StudyStreakCardProps {
   streakStats: StreakStats
   todayMinutes: number
   loading?: boolean
+  error?: string | null
   onViewHeatmap: () => void
+  onRefresh?: () => void
 }
 
 export const StudyStreakCard: React.FC<StudyStreakCardProps> = ({
   streakStats,
   todayMinutes,
   loading,
-  onViewHeatmap
+  error,
+  onViewHeatmap,
+  onRefresh
 }) => {
+  // Cap today's minutes at 30 for display purposes when goal is achieved
+  const displayMinutes = Math.min(todayMinutes, 30)
   const todayProgress = Math.min((todayMinutes / 30) * 100, 100)
   const isStreakActive = todayMinutes >= 30
+  
+  // Debug log to verify values
+  console.log('StudyStreakCard - todayMinutes:', todayMinutes, 'displayMinutes:', displayMinutes, 'isStreakActive:', isStreakActive)
   
   return (
     <Card className="relative overflow-hidden">
@@ -36,20 +45,49 @@ export const StudyStreakCard: React.FC<StudyStreakCardProps> = ({
             </div>
           </div>
           
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onViewHeatmap}
-            className="text-primary-400 hover:text-primary-300"
-          >
-            View Heatmap
-          </Button>
+          <div className="flex items-center space-x-2">
+            {onRefresh && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onRefresh}
+                disabled={loading}
+                className="text-primary-400 hover:text-primary-300"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onViewHeatmap}
+              className="text-primary-400 hover:text-primary-300"
+            >
+              View Heatmap
+            </Button>
+          </div>
         </div>
 
-        {loading ? (
+        {error ? (
+          <div className="text-center py-8">
+            <div className="text-red-400 mb-2">⚠️</div>
+            <p className="text-sm text-red-400 mb-4">{error}</p>
+            {onRefresh && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onRefresh}
+                disabled={loading}
+              >
+                Retry
+              </Button>
+            )}
+          </div>
+        ) : loading ? (
           <div className="space-y-4">
             <div className="animate-pulse bg-dark-800 h-4 rounded w-3/4" />
             <div className="animate-pulse bg-dark-800 h-4 rounded w-1/2" />
+            <div className="animate-pulse bg-dark-800 h-4 rounded w-2/3" />
           </div>
         ) : (
           <>
@@ -66,7 +104,7 @@ export const StudyStreakCard: React.FC<StudyStreakCardProps> = ({
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-dark-300">Today's progress</span>
-                <span className="text-sm text-white">{todayMinutes}/30 min</span>
+                <span className="text-sm text-white">{displayMinutes}/30 min</span>
               </div>
               <div className="w-full bg-dark-800 rounded-full h-2">
                 <div
