@@ -270,7 +270,7 @@ export const FileManager = ({
             />
           </div>
           
-          <div className="flex space-x-2 overflow-x-auto">
+          <div className="flex space-x-2 overflow-x-auto custom-scrollbar">
             {categories.map(category => {
               const Icon = category.icon
               return (
@@ -427,7 +427,7 @@ export const FileManager = ({
             <div>
               <h4 className="text-white font-medium mb-4">Comments ({selectedFile.comments.length})</h4>
               
-              <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
+              <div className="space-y-3 mb-4 max-h-64 overflow-y-auto custom-scrollbar">
                 {selectedFile.comments.map(comment => (
                   <div key={comment.id} className="flex space-x-3">
                     {comment.userAvatar ? (

@@ -1,3 +1,168 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Study Heatmap Styles */
+.study-heatmap-container {
+    overflow-x: auto;
+    padding: 10px 0;
+  }
+  
+  .react-calendar-heatmap {
+    width: 100%;
+    height: auto;
+  }
+  
+  .react-calendar-heatmap .color-empty {
+    fill: #1f2937; /* dark-800 */
+  }
+  
+  .react-calendar-heatmap .color-scale-1 {
+    fill: #22c55e; /* green-500 - light activity */
+  }
+  
+  .react-calendar-heatmap .color-scale-2 {
+    fill: #16a34a; /* green-600 - moderate activity */
+  }
+  
+  .react-calendar-heatmap .color-scale-3 {
+    fill: #15803d; /* green-700 - high activity */
+  }
+  
+  .react-calendar-heatmap .color-scale-4 {
+    fill: #166534; /* green-800 - very high activity */
+  }
+  
+  .react-calendar-heatmap text {
+    fill: #9ca3af; /* dark-400 */
+    font-size: 10px;
+  }
+  
+  .react-calendar-heatmap .react-calendar-heatmap-weekday-label {
+    font-size: 9px;
+  }
+  
+  .react-calendar-heatmap .react-calendar-heatmap-month-label {
+    font-size: 10px;
+  }
+  
+  .react-calendar-heatmap rect:hover {
+    stroke: #ffffff;
+    stroke-width: 1px;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .study-heatmap-container {
+      font-size: 8px;
+    }
+    
+    .react-calendar-heatmap text {
+      font-size: 8px;
+    }
+  }
+
+/* Sleek Scrollbar Styles - Perplexity-inspired */
+/* Webkit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.5);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.7);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(71, 85, 105, 0.5) transparent;
+}
+
+/* Custom scrollbar for specific containers */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(71, 85, 105, 0.5) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.4);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+}
+
+/* Dark mode scrollbar adjustments */
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-thumb {
+    background: rgba(71, 85, 105, 0.5);
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.7);
+  }
+  
+  * {
+    scrollbar-color: rgba(71, 85, 105, 0.5) transparent;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(71, 85, 105, 0.4);
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.6);
+  }
+  
+  .custom-scrollbar {
+    scrollbar-color: rgba(71, 85, 105, 0.4) transparent;
+  }
+}
+
+/* Hide scrollbar for specific elements when not needed */
+.scrollbar-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth scrolling for better UX */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Ensure scrollbars don't cause layout shifts */
+* {
+  box-sizing: border-box;
+}
+  

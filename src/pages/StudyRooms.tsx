@@ -379,7 +379,7 @@ export const StudyRooms = () => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex space-x-1 mb-6 overflow-x-auto">
+        <div className="flex space-x-1 mb-6 overflow-x-auto custom-scrollbar">
           <button
             onClick={() => setActiveTab('my-rooms')}
             className={`px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${

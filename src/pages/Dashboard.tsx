@@ -22,6 +22,10 @@ import {
 } from '../lib/supabase'
 import { getRankProgress, getRankColor } from '../utils/roomUtils'
 import { Room, RoomFilters as RoomFiltersType, User, RoomData, Profile } from '../types'
+import { StudyStreakCard } from '../components/dashboard/StudyStreakCard'
+import { StudyHeatmapModal } from '../components/dashboard/StudyHeatmapModal'
+import { useStudyStreak } from '../hooks/useStudyStreak'
+import { getTodayStudyMinutes } from '../lib/supabase'
 
 export const Dashboard = () => {
   const navigate = useNavigate()
@@ -58,6 +62,29 @@ export const Dashboard = () => {
     isActive: undefined,
     maxMembers: undefined
   })
+
+  const [showHeatmapModal, setShowHeatmapModal] = useState(false)
+  const [todayStudyMinutes, setTodayStudyMinutes] = useState(0)
+
+  const {
+    streakData,
+    streakStats,
+    loading: streakLoading,
+    refreshStreak
+  } = useStudyStreak(user?.id || '')
+
+  useEffect(() => {
+    const loadTodayMinutes = async () => {
+      if (!authUser) return
+      
+      const { data } = await getTodayStudyMinutes(authUser.id)
+      setTodayStudyMinutes(data || 0)
+    }
+
+    if (authUser) {
+      loadTodayMinutes()
+    }
+  }, [authUser])
 
   // Load user profile and rooms
   useEffect(() => {
@@ -487,6 +514,15 @@ export const Dashboard = () => {
           ))}
         </div>
 
+        <div className="mb-8 animate-slide-up" style={{ animationDelay: '0.4s' }}>
+  <StudyStreakCard
+    streakStats={streakStats}
+    todayMinutes={todayStudyMinutes}
+    loading={streakLoading}
+    onViewHeatmap={() => setShowHeatmapModal(true)}
+  />
+</div>
+
         {/* Recent Achievements */}
         {gamificationStats && gamificationStats.achievements.length > 0 && (
           <Card className="mb-8 animate-slide-up">
@@ -496,7 +532,7 @@ export const Dashboard = () => {
                 View All
               </Button>
             </div>
-            <div className="flex space-x-4 overflow-x-auto pb-2">
+            <div className="flex space-x-4 overflow-x-auto pb-2 custom-scrollbar">
               {gamificationStats.achievements.slice(0, 5).map((achievement, index) => (
                 <div
                   key={achievement.id}
@@ -514,7 +550,7 @@ export const Dashboard = () => {
         )}
 
         {/* Tab Navigation */}
-        <div className="flex space-x-1 mb-6 overflow-x-auto">
+        <div className="flex space-x-1 mb-6 overflow-x-auto custom-scrollbar">
           <button
             onClick={() => setActiveTab('overview')}
             className={`px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
@@ -701,6 +737,13 @@ export const Dashboard = () => {
         isVisible={!!pendingNotification}
         onComplete={clearNotification}
       />
+
+<StudyHeatmapModal
+  isOpen={showHeatmapModal}
+  onClose={() => setShowHeatmapModal(false)}
+  data={streakData}
+  streakStats={streakStats}
+/>
 
       <AchievementUnlock
         achievement={pendingAchievement}

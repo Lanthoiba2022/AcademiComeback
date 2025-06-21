@@ -916,3 +916,44 @@ export const getUserRoomTodayFocusTime = async (userId: string, roomId: string) 
   })
   return { data, error }
 }
+
+export const getStudyStreakData = async (userId: string, startDate: Date, endDate: Date) => {
+  try {
+    const { data, error } = await supabase
+      .rpc('get_study_streak_data', {
+        p_user_id: userId,
+        p_start_date: startDate.toISOString(),
+        p_end_date: endDate.toISOString()
+      })
+
+    return { data, error }
+  } catch (error) {
+    console.error('Error fetching study streak data:', error)
+    return { data: null, error }
+  }
+}
+
+
+export const getTodayStudyMinutes = async (userId: string) => {
+  try {
+    const today = new Date()
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+
+    const { data, error } = await supabase
+      .from('study_sessions')
+      .select('focus_minutes')
+      .eq('user_id', userId)
+      .gte('created_at', startOfDay.toISOString())
+      .lt('created_at', endOfDay.toISOString())
+      .not('focus_minutes', 'is', null)
+
+    if (error) return { data: 0, error }
+
+    const totalMinutes = data?.reduce((sum, session) => sum + (session.focus_minutes || 0), 0) || 0
+    return { data: totalMinutes, error: null }
+  } catch (error) {
+    console.error('Error fetching today study minutes:', error)
+    return { data: 0, error }
+  }
+}

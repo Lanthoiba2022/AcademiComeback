@@ -207,7 +207,7 @@ const StudyRoomContent = ({
           </div>
 
           {/* Tasks List */}
-          <div className="flex-1 p-6 overflow-y-auto">
+          <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
             {showAddTask && (
               <Card className="mb-4 animate-slide-down">
                 <div className="flex flex-col gap-3">
