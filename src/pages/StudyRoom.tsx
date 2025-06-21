@@ -615,9 +615,12 @@ export const StudyRoom = () => {
 
       // End current study session if active
       if (currentSessionId.current && sessionStartTime.current) {
-        const focusTime = Math.floor((Date.now() - sessionStartTime.current.getTime()) / 1000 / 60)
-        const completedTasks = tasks.filter(t => t.status === 'Completed').length
-        endStudySession(currentSessionId.current, focusTime, completedTasks)
+        // Only count focus time if mode is 'work'
+        if (timerState.mode === 'work') {
+          const focusTime = Math.floor((Date.now() - sessionStartTime.current.getTime()) / 1000 / 60)
+          const completedTasks = tasks.filter(t => t.status === 'Completed').length
+          endStudySession(currentSessionId.current, focusTime, completedTasks)
+        }
       }
     }
   }, [roomId, authUser, navigate])
@@ -835,16 +838,18 @@ export const StudyRoom = () => {
       // Stop timer
       setTimerState(prev => ({ ...prev, isRunning: false }))
       if (currentSessionId.current && sessionStartTime.current) {
-        const focusTime = Math.floor((Date.now() - sessionStartTime.current.getTime()) / 1000 / 60)
-        const completedTasks = tasks.filter(t => t.status === 'Completed').length
-        await endStudySession(currentSessionId.current, focusTime, completedTasks)
+        // Only count focus time if mode is 'work'
+        if (timerState.mode === 'work') {
+          const focusTime = Math.floor((Date.now() - sessionStartTime.current.getTime()) / 1000 / 60)
+          const completedTasks = tasks.filter(t => t.status === 'Completed').length
+          await endStudySession(currentSessionId.current, focusTime, completedTasks)
+          // Award points for focus time
+          if (focusTime > 0) {
+            useGamificationAwardTaskCompletion(focusTime * 2) // 2 points per minute
+          }
+        }
         currentSessionId.current = null
         sessionStartTime.current = null
-        
-        // Award points for focus time
-        if (focusTime > 0) {
-          useGamificationAwardTaskCompletion(focusTime * 2) // 2 points per minute
-        }
       }
     } else {
       // Start timer
@@ -886,7 +891,11 @@ export const StudyRoom = () => {
   }
 
   return (
-    <ChatProvider roomId={roomId || ''} currentUser={currentUser}>
+    <ChatProvider
+      roomId={roomId || ''}
+      currentUser={currentUser}
+      wsUrl={(import.meta.env.VITE_SUPABASE_URL || '').replace(/^http/, 'ws')}
+    >
       <StudyRoomContent
         room={room!}
         currentUser={currentUser!}
