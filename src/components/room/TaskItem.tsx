@@ -157,14 +157,15 @@ export const TaskItem = ({ task, members, currentUserId, onUpdate, onDelete, ind
 
   return (
     <div 
-      className={`group relative border rounded-lg p-4 transition-all duration-200 hover:shadow-lg hover:shadow-primary-500/10 ${getStatusColor()}`}
+      className={`group relative border rounded-lg p-4 transition-all duration-200 hover:shadow-lg hover:shadow-primary-500/10 ${getStatusColor()} 
+        flex flex-col gap-2 sm:block`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         {/* Left: Task Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex-1">
               <h4 
                 className={`font-medium flex items-center gap-2 cursor-pointer ${task.status === 'Completed' ? 'text-dark-400 line-through' : 'text-white'}`}
@@ -176,7 +177,7 @@ export const TaskItem = ({ task, members, currentUserId, onUpdate, onDelete, ind
               {task.description && (
                 <p className="text-sm text-dark-300 mt-1">{task.description}</p>
               )}
-              <div className="flex items-center space-x-4 mt-2">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">
                 {/* Priority */}
                 <span className={`text-xs font-semibold ${task.priority === 'High' ? 'text-red-400' : task.priority === 'Medium' ? 'text-yellow-400' : 'text-blue-400'}`}>
                   {task.priority} Priority
@@ -191,7 +192,7 @@ export const TaskItem = ({ task, members, currentUserId, onUpdate, onDelete, ind
             </div>
             {/* Actions */}
             {showActions && (
-              <div className="flex items-center space-x-1 animate-fade-in">
+              <div className="flex items-center space-x-1 animate-fade-in mt-2 sm:mt-0">
                 {isCreator && (
                   <Button
                     variant="ghost"
@@ -214,7 +215,7 @@ export const TaskItem = ({ task, members, currentUserId, onUpdate, onDelete, ind
           </div>
         </div>
         {/* Right: User Status Dropdown */}
-        <div className="ml-4 flex-shrink-0 flex items-center">
+        <div className="mt-2 sm:mt-0 sm:ml-4 flex-shrink-0 flex items-center w-full sm:w-auto">
           <UserStatusDropdown
             taskId={task.id}
             members={members}
