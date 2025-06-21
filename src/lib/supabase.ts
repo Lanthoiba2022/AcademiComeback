@@ -943,8 +943,8 @@ export const getTodayStudyMinutes = async (userId: string) => {
       .from('study_sessions')
       .select('focus_time')
       .eq('user_id', userId)
-      .gte('created_at', startOfDay.toISOString())
-      .lt('created_at', endOfDay.toISOString())
+      .gte('start_time', startOfDay.toISOString())
+      .lt('start_time', endOfDay.toISOString())
       .not('focus_time', 'is', null)
 
     if (error) return { data: 0, error }
