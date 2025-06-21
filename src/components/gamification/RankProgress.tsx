@@ -47,11 +47,24 @@ export const RankProgress = ({
       {nextRank && (
         <>
           <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-dark-300">Progress to {nextRank.name}</span>
-              <span className="text-sm text-primary-400 font-medium">
-                {Math.round(progressPercentage)}%
-              </span>
+            {/* Progress label and percentage - stacked vertically to prevent overlap */}
+            <div className="mb-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm text-dark-300">Progress to {nextRank.name}</span>
+                <span className="text-sm text-primary-400 font-medium">
+                  {Math.round(progressPercentage)}%
+                </span>
+              </div>
+              
+              {/* Next rank indicator - positioned above the progress bar */}
+              <div className="flex items-center justify-end space-x-2 mb-2">
+                {NextIcon && (
+                  <div className={`w-6 h-6 rounded-full bg-dark-800 flex items-center justify-center ${nextRank.color} opacity-60`}>
+                    <NextIcon className="w-3 h-3" />
+                  </div>
+                )}
+                <span className="text-xs text-dark-400">{nextRank.name}</span>
+              </div>
             </div>
             
             <div className="relative">
@@ -63,16 +76,6 @@ export const RankProgress = ({
                   {/* Animated shine effect */}
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
                 </div>
-              </div>
-              
-              {/* Next rank indicator */}
-              <div className="absolute right-0 -top-8 flex items-center space-x-2">
-                {NextIcon && (
-                  <div className={`w-8 h-8 rounded-full bg-dark-800 flex items-center justify-center ${nextRank.color} opacity-60`}>
-                    <NextIcon className="w-4 h-4" />
-                  </div>
-                )}
-                <span className="text-xs text-dark-400">{nextRank.name}</span>
               </div>
             </div>
             
