@@ -111,49 +111,61 @@ export const FileManager = ({
   }
 
   const renderGridView = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
       {filteredFiles.map(file => {
         const FileIcon = getFileIcon(file.type, file.category)
         
         return (
           <Card 
             key={file.id} 
-            className="hover:scale-105 transition-transform duration-200 cursor-pointer"
-            onClick={() => {
-              setSelectedFile(file)
-              setShowFileModal(true)
-            }}
+            className="hover:scale-105 transition-transform duration-200 cursor-pointer p-3 sm:p-6"
           >
-            <div className="text-center">
-              {file.thumbnailUrl ? (
-                <img
-                  src={file.thumbnailUrl}
-                  alt={file.name}
-                  className="w-full h-32 object-cover rounded-lg mb-3"
-                />
-              ) : (
-                <div className="w-full h-32 bg-dark-800 rounded-lg flex items-center justify-center mb-3">
-                  <FileIcon className="w-12 h-12 text-dark-400" />
-                </div>
-              )}
-              
-              <h4 className="text-white font-medium mb-1 truncate">{file.name}</h4>
-              <p className="text-dark-400 text-sm">{formatFileSize(file.size)}</p>
-              
-              <div className="flex items-center justify-between mt-3 text-xs text-dark-400">
-                <span>{file.downloadCount} downloads</span>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onFavorite(file.id)
-                    }}
-                    className="hover:text-yellow-400 transition-colors"
-                  >
-                    <Star className="w-4 h-4" />
-                  </button>
-                  <span>{file.comments.length}</span>
-                  <MessageSquare className="w-4 h-4" />
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                setSelectedFile(file)
+                setShowFileModal(true)
+              }}
+              onKeyPress={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  setSelectedFile(file)
+                  setShowFileModal(true)
+                }
+              }}
+              className="outline-none"
+            >
+              <div className="text-center">
+                {file.thumbnailUrl ? (
+                  <img
+                    src={file.thumbnailUrl}
+                    alt={file.name}
+                    className="w-full h-24 sm:h-32 object-cover rounded-lg mb-2 sm:mb-3"
+                  />
+                ) : (
+                  <div className="w-full h-24 sm:h-32 bg-dark-800 rounded-lg flex items-center justify-center mb-2 sm:mb-3">
+                    <FileIcon className="w-10 h-10 sm:w-12 sm:h-12 text-dark-400" />
+                  </div>
+                )}
+                
+                <h4 className="text-white font-medium mb-1 truncate text-sm sm:text-base">{file.name}</h4>
+                <p className="text-dark-400 text-xs sm:text-sm">{formatFileSize(file.size)}</p>
+                
+                <div className="flex items-center justify-between mt-2 sm:mt-3 text-xs text-dark-400">
+                  <span>{file.downloadCount} downloads</span>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onFavorite(file.id)
+                      }}
+                      className="hover:text-yellow-400 transition-colors"
+                    >
+                      <Star className="w-4 h-4" />
+                    </button>
+                    <span>{file.comments.length}</span>
+                    <MessageSquare className="w-4 h-4" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -171,50 +183,64 @@ export const FileManager = ({
         return (
           <Card 
             key={file.id} 
-            className="hover:bg-dark-800/70 transition-colors duration-200 cursor-pointer"
-            onClick={() => {
-              setSelectedFile(file)
-              setShowFileModal(true)
-            }}
+            className="hover:bg-dark-800/70 transition-colors duration-200 cursor-pointer p-3 sm:p-6"
           >
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-dark-800 rounded-lg flex items-center justify-center flex-shrink-0">
-                <FileIcon className="w-6 h-6 text-dark-400" />
-              </div>
-              
-              <div className="flex-1 min-w-0">
-                <h4 className="text-white font-medium truncate">{file.name}</h4>
-                <p className="text-dark-400 text-sm">{file.description || 'No description'}</p>
-              </div>
-              
-              <div className="flex items-center space-x-4 text-sm text-dark-400">
-                <span>{formatFileSize(file.size)}</span>
-                <span>{new Date(file.uploadedAt).toLocaleDateString()}</span>
-                <div className="flex items-center space-x-1">
-                  <Download className="w-4 h-4" />
-                  <span>{file.downloadCount}</span>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                setSelectedFile(file)
+                setShowFileModal(true)
+              }}
+              onKeyPress={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  setSelectedFile(file)
+                  setShowFileModal(true)
+                }
+              }}
+              className="outline-none"
+            >
+              <div className="flex flex-col xs:flex-row items-start xs:items-center space-y-2 xs:space-y-0 xs:space-x-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-dark-800 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <FileIcon className="w-6 h-6 sm:w-8 sm:h-8 text-dark-400" />
                 </div>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onDownload(file.id)
-                  }}
-                  icon={Download}
-                />
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onFavorite(file.id)
-                  }}
-                  icon={Star}
-                />
+                
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-white font-medium truncate text-sm sm:text-base">{file.name}</h4>
+                  <p className="text-dark-400 text-xs sm:text-sm">{file.description || 'No description'}</p>
+                </div>
+                
+                <div className="flex items-center space-x-2 sm:space-x-4 text-xs sm:text-sm text-dark-400">
+                  <span>{formatFileSize(file.size)}</span>
+                  <span>{new Date(file.uploadedAt).toLocaleDateString()}</span>
+                  <div className="flex items-center space-x-1">
+                    <Download className="w-4 h-4" />
+                    <span>{file.downloadCount}</span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onDownload(file.id)
+                    }}
+                    icon={Download}
+                    className="text-xs sm:text-sm"
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onFavorite(file.id)
+                    }}
+                    icon={Star}
+                    className="text-xs sm:text-sm"
+                  />
+                </div>
               </div>
             </div>
           </Card>
@@ -226,33 +252,33 @@ export const FileManager = ({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-2">File Library</h2>
-          <p className="text-dark-300">Share and organize study materials</p>
+          <h2 className="text-2xl font-bold text-white mb-1 sm:mb-2">File Library</h2>
+          <p className="text-dark-300 text-sm sm:text-base">Share and organize study materials</p>
         </div>
-        
-        <div className="flex items-center space-x-3">
-          <div className="flex space-x-1">
+        <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2 sm:gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+          <div className="flex flex-row xs:flex-row gap-1 w-full xs:w-auto">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-lg transition-colors ${
+              className={`p-2 rounded-lg w-full xs:w-auto transition-colors ${
                 viewMode === 'grid' ? 'bg-primary-500 text-white' : 'bg-dark-800 text-dark-300 hover:text-white'
               }`}
+              aria-label="Grid view"
             >
-              <Grid className="w-4 h-4" />
+              <Grid className="w-4 h-4 mx-auto" />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded-lg transition-colors ${
+              className={`p-2 rounded-lg w-full xs:w-auto transition-colors ${
                 viewMode === 'list' ? 'bg-primary-500 text-white' : 'bg-dark-800 text-dark-300 hover:text-white'
               }`}
+              aria-label="List view"
             >
-              <List className="w-4 h-4" />
+              <List className="w-4 h-4 mx-auto" />
             </button>
           </div>
-          
-          <Button onClick={handleFileSelect} icon={Upload}>
+          <Button onClick={handleFileSelect} icon={Upload} className="w-full xs:w-auto text-sm py-2">
             Upload Files
           </Button>
         </div>
@@ -260,17 +286,17 @@ export const FileManager = ({
 
       {/* Filters */}
       <Card>
-        <div className="flex flex-col lg:flex-row gap-4">
+        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4">
           <div className="flex-1">
             <Input
               placeholder="Search files..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               icon={Search}
+              className="text-sm py-2"
             />
           </div>
-          
-          <div className="flex space-x-2 overflow-x-auto custom-scrollbar">
+          <div className="flex space-x-2 overflow-x-auto custom-scrollbar pb-1 -mx-2 px-2">
             {categories.map(category => {
               const Icon = category.icon
               return (
@@ -281,11 +307,12 @@ export const FileManager = ({
                     category: category.id === 'all' ? undefined : category.id 
                   }))}
                   className={`
-                    flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 whitespace-nowrap
+                    flex items-center space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium transition-all duration-200 whitespace-nowrap
                     ${(!filter.category && category.id === 'all') || filter.category === category.id
                       ? 'bg-primary-500 text-white'
                       : 'bg-dark-800 text-dark-300 hover:bg-dark-700 hover:text-white'
                     }
+                    text-xs sm:text-sm
                   `}
                 >
                   <Icon className="w-4 h-4" />
@@ -302,23 +329,23 @@ export const FileManager = ({
         ref={dropZoneRef}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
-        className="border-2 border-dashed border-dark-600 rounded-lg p-8 text-center hover:border-primary-500 transition-colors duration-200"
+        className="border-2 border-dashed border-dark-600 rounded-lg p-4 sm:p-8 text-center hover:border-primary-500 transition-colors duration-200"
       >
-        <Upload className="w-12 h-12 text-dark-400 mx-auto mb-4" />
-        <p className="text-white font-medium mb-2">Drag and drop files here</p>
-        <p className="text-dark-400 text-sm mb-4">or click to browse</p>
-        <Button onClick={handleFileSelect} variant="outline">
+        <Upload className="w-10 h-10 sm:w-12 sm:h-12 text-dark-400 mx-auto mb-3 sm:mb-4" />
+        <p className="text-white font-medium mb-1 sm:mb-2 text-base sm:text-lg">Drag and drop files here</p>
+        <p className="text-dark-400 text-xs sm:text-sm mb-3 sm:mb-4">or click to browse</p>
+        <Button onClick={handleFileSelect} variant="outline" className="w-full sm:w-auto text-sm py-2">
           Choose Files
         </Button>
       </div>
 
       {/* Files */}
       {filteredFiles.length === 0 ? (
-        <div className="text-center py-12">
-          <FolderOpen className="w-16 h-16 text-dark-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-white mb-2">No Files Found</h3>
-          <p className="text-dark-300 mb-4">Upload some files to get started</p>
-          <Button onClick={handleFileSelect} icon={Upload}>
+        <div className="text-center py-8 sm:py-12">
+          <FolderOpen className="w-12 h-12 sm:w-16 sm:h-16 text-dark-400 mx-auto mb-3 sm:mb-4" />
+          <h3 className="text-base sm:text-lg font-semibold text-white mb-1 sm:mb-2">No Files Found</h3>
+          <p className="text-dark-300 mb-3 sm:mb-4 text-sm sm:text-base">Upload some files to get started</p>
+          <Button onClick={handleFileSelect} icon={Upload} className="w-full sm:w-auto text-sm py-2">
             Upload First File
           </Button>
         </div>
@@ -346,27 +373,27 @@ export const FileManager = ({
         size="lg"
       >
         {selectedFile && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6 p-2 sm:p-4">
             {/* File Preview */}
             <div className="text-center">
               {selectedFile.category === 'image' && selectedFile.url ? (
                 <img
                   src={selectedFile.url}
                   alt={selectedFile.name}
-                  className="max-w-full max-h-64 mx-auto rounded-lg"
+                  className="max-w-full max-h-40 sm:max-h-64 mx-auto rounded-lg"
                 />
               ) : (
-                <div className="w-32 h-32 bg-dark-800 rounded-lg flex items-center justify-center mx-auto">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 bg-dark-800 rounded-lg flex items-center justify-center mx-auto">
                   {(() => {
                     const FileIcon = getFileIcon(selectedFile.type, selectedFile.category)
-                    return <FileIcon className="w-16 h-16 text-dark-400" />
+                    return <FileIcon className="w-10 h-10 sm:w-16 sm:h-16 text-dark-400" />
                   })()}
                 </div>
               )}
             </div>
 
             {/* File Info */}
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
               <div>
                 <span className="text-dark-400">Size:</span>
                 <span className="text-white ml-2">{formatFileSize(selectedFile.size)}</span>
@@ -388,18 +415,18 @@ export const FileManager = ({
             {/* Description */}
             {selectedFile.description && (
               <div>
-                <h4 className="text-white font-medium mb-2">Description</h4>
-                <p className="text-dark-300">{selectedFile.description}</p>
+                <h4 className="text-white font-medium mb-1 sm:mb-2 text-sm sm:text-base">Description</h4>
+                <p className="text-dark-300 text-xs sm:text-sm">{selectedFile.description}</p>
               </div>
             )}
 
             {/* Tags */}
             {selectedFile.tags.length > 0 && (
               <div>
-                <h4 className="text-white font-medium mb-2">Tags</h4>
+                <h4 className="text-white font-medium mb-1 sm:mb-2 text-sm sm:text-base">Tags</h4>
                 <div className="flex flex-wrap gap-2">
                   {selectedFile.tags.map(tag => (
-                    <span key={tag} className="px-2 py-1 bg-primary-500/20 text-primary-400 rounded text-sm">
+                    <span key={tag} className="px-2 py-1 bg-primary-500/20 text-primary-400 rounded text-xs sm:text-sm">
                       #{tag}
                     </span>
                   ))}
@@ -408,64 +435,62 @@ export const FileManager = ({
             )}
 
             {/* Actions */}
-            <div className="flex space-x-3">
-              <Button onClick={() => onDownload(selectedFile.id)} icon={Download}>
+            <div className="flex flex-col xs:flex-row gap-2 xs:gap-3">
+              <Button onClick={() => onDownload(selectedFile.id)} icon={Download} className="w-full xs:w-auto text-xs sm:text-sm py-2">
                 Download
               </Button>
-              <Button variant="outline" onClick={() => onFavorite(selectedFile.id)} icon={Star}>
+              <Button variant="outline" onClick={() => onFavorite(selectedFile.id)} icon={Star} className="w-full xs:w-auto text-xs sm:text-sm py-2">
                 Favorite
               </Button>
-              <Button variant="outline" icon={Share2}>
+              <Button variant="outline" icon={Share2} className="w-full xs:w-auto text-xs sm:text-sm py-2">
                 Share
               </Button>
-              <Button variant="outline" onClick={() => onDelete(selectedFile.id)} icon={Trash2}>
+              <Button variant="outline" onClick={() => onDelete(selectedFile.id)} icon={Trash2} className="w-full xs:w-auto text-xs sm:text-sm py-2">
                 Delete
               </Button>
             </div>
 
             {/* Comments */}
             <div>
-              <h4 className="text-white font-medium mb-4">Comments ({selectedFile.comments.length})</h4>
-              
-              <div className="space-y-3 mb-4 max-h-64 overflow-y-auto custom-scrollbar">
+              <h4 className="text-white font-medium mb-2 sm:mb-4 text-sm sm:text-base">Comments ({selectedFile.comments.length})</h4>
+              <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4 max-h-32 sm:max-h-64 overflow-y-auto custom-scrollbar">
                 {selectedFile.comments.map(comment => (
-                  <div key={comment.id} className="flex space-x-3">
+                  <div key={comment.id} className="flex space-x-2 sm:space-x-3">
                     {comment.userAvatar ? (
                       <img
                         src={comment.userAvatar}
                         alt={comment.userName}
-                        className="w-8 h-8 rounded-full"
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full"
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary-500 flex items-center justify-center">
                         <span className="text-xs text-white font-medium">
                           {comment.userName.charAt(0)}
                         </span>
                       </div>
                     )}
                     <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <span className="text-white font-medium text-sm">{comment.userName}</span>
-                        <span className="text-dark-400 text-xs">
+                      <div className="flex items-center space-x-1 sm:space-x-2 mb-0.5 sm:mb-1">
+                        <span className="text-white font-medium text-xs sm:text-sm">{comment.userName}</span>
+                        <span className="text-dark-400 text-[10px] sm:text-xs">
                           {new Date(comment.createdAt).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className="text-dark-300 text-sm">{comment.content}</p>
+                      <p className="text-dark-300 text-xs sm:text-sm">{comment.content}</p>
                     </div>
                   </div>
                 ))}
               </div>
-
-              <div className="flex space-x-3">
+              <div className="flex gap-2 sm:gap-3">
                 <input
                   type="text"
                   placeholder="Add a comment..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleAddComment()}
-                  className="flex-1 px-3 py-2 bg-dark-800/50 border border-dark-700 rounded-lg text-white placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="flex-1 px-3 py-2 bg-dark-800/50 border border-dark-700 rounded-lg text-xs sm:text-sm text-white placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
-                <Button onClick={handleAddComment} disabled={!newComment.trim()}>
+                <Button onClick={handleAddComment} disabled={!newComment.trim()} className="text-xs sm:text-sm py-2">
                   Comment
                 </Button>
               </div>

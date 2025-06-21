@@ -59,14 +59,13 @@ export const AnalyticsDashboard = ({ analytics, timeframe, onTimeframeChange }: 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-white mb-2">Study Analytics</h2>
-          <p className="text-dark-300">Track your progress and identify areas for improvement</p>
+      <div className="flex flex-col items-center text-center gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between sm:text-left sm:gap-0">
+        <div className="flex flex-col items-center sm:items-start">
+          <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">Study Analytics</h2>
+          <p className="text-dark-300 text-base sm:text-lg">Track your progress and identify areas for improvement</p>
         </div>
-        
         {/* Timeframe Selector */}
-        <div className="flex space-x-2">
+        <div className="flex flex-row gap-2 mt-3 sm:mt-0">
           {timeframes.map((tf) => {
             const Icon = tf.icon
             return (
@@ -74,7 +73,7 @@ export const AnalyticsDashboard = ({ analytics, timeframe, onTimeframeChange }: 
                 key={tf.id}
                 onClick={() => onTimeframeChange(tf.id as any)}
                 className={`
-                  flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200
+                  flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-all duration-200
                   ${timeframe === tf.id
                     ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
                     : 'bg-dark-800 text-dark-300 hover:bg-dark-700 hover:text-white'
@@ -88,54 +87,49 @@ export const AnalyticsDashboard = ({ analytics, timeframe, onTimeframeChange }: 
           })}
         </div>
       </div>
-
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <Card className="text-center">
-          <Clock className="w-8 h-8 text-primary-400 mx-auto mb-2" />
-          <div className="text-2xl font-bold text-white">
+          <Clock className="w-7 h-7 sm:w-8 sm:h-8 text-primary-400 mx-auto mb-2" />
+          <div className="text-xl sm:text-2xl font-bold text-white">
             {formatTime(analytics.dailyStats.reduce((sum, day) => sum + day.focusTime, 0))}
           </div>
-          <p className="text-dark-400 text-sm">Total Focus Time</p>
+          <p className="text-dark-400 text-xs sm:text-sm">Total Focus Time</p>
           <div className="text-xs text-green-400 mt-1">
             +12% from last {timeframe}
           </div>
         </Card>
-        
         <Card className="text-center">
-          <Target className="w-8 h-8 text-green-400 mx-auto mb-2" />
-          <div className="text-2xl font-bold text-white">
+          <Target className="w-7 h-7 sm:w-8 sm:h-8 text-green-400 mx-auto mb-2" />
+          <div className="text-xl sm:text-2xl font-bold text-white">
             {analytics.dailyStats.reduce((sum, day) => sum + day.tasksCompleted, 0)}
           </div>
-          <p className="text-dark-400 text-sm">Tasks Completed</p>
+          <p className="text-dark-400 text-xs sm:text-sm">Tasks Completed</p>
           <div className="text-xs text-green-400 mt-1">
             +8% from last {timeframe}
           </div>
         </Card>
-        
         <Card className="text-center">
-          <Brain className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-          <div className="text-2xl font-bold text-white">
+          <Brain className="w-7 h-7 sm:w-8 sm:h-8 text-blue-400 mx-auto mb-2" />
+          <div className="text-xl sm:text-2xl font-bold text-white">
             {analytics.quizPerformance.reduce((sum, quiz) => sum + quiz.averageScore, 0) / analytics.quizPerformance.length || 0}%
           </div>
-          <p className="text-dark-400 text-sm">Avg Quiz Score</p>
+          <p className="text-dark-400 text-xs sm:text-sm">Avg Quiz Score</p>
           <div className="text-xs text-green-400 mt-1">
             +5% from last {timeframe}
           </div>
         </Card>
-        
         <Card className="text-center">
-          <Zap className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-          <div className="text-2xl font-bold text-white">{analytics.streaks.currentStreak}</div>
-          <p className="text-dark-400 text-sm">Current Streak</p>
+          <Zap className="w-7 h-7 sm:w-8 sm:h-8 text-yellow-400 mx-auto mb-2" />
+          <div className="text-xl sm:text-2xl font-bold text-white">{analytics.streaks.currentStreak}</div>
+          <p className="text-dark-400 text-xs sm:text-sm">Current Streak</p>
           <div className="text-xs text-yellow-400 mt-1">
             Best: {analytics.streaks.longestStreak} days
           </div>
         </Card>
       </div>
-
       {/* Tab Navigation */}
-      <div className="flex space-x-1 overflow-x-auto custom-scrollbar">
+      <div className="flex space-x-1 overflow-x-auto custom-scrollbar pb-2">
         {tabs.map((tab) => {
           const Icon = tab.icon
           return (
@@ -149,7 +143,7 @@ export const AnalyticsDashboard = ({ analytics, timeframe, onTimeframeChange }: 
                 onClick={() => setActiveTab(tab.id as any)}
                 disabled={tab.premium}
                 className={`
-                  flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 whitespace-nowrap relative
+                  flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-all duration-200 whitespace-nowrap relative
                   ${activeTab === tab.id
                     ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
                     : 'bg-dark-800 text-dark-300 hover:bg-dark-700 hover:text-white'

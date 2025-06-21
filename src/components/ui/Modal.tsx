@@ -79,7 +79,7 @@ export const Modal = ({ isOpen, onClose, title, children, size = 'md' }: ModalPr
         )}
         
         {/* Content */}
-        <div className="p-2">
+        <div className="p-2 sm:p-4 max-h-[90vh] overflow-y-auto">
           {children}
         </div>
       </div>

@@ -19,7 +19,6 @@ export const PremiumFeatureTooltip = ({
   position = 'top'
 }: PremiumFeatureTooltipProps) => {
   const [isVisible, setIsVisible] = useState(false)
-  const [isDismissed, setIsDismissed] = useState(false)
   
   const { 
     isPremium, 
@@ -47,8 +46,8 @@ export const PremiumFeatureTooltip = ({
     }
   }
 
-  // Don't show tooltip if user has access or if dismissed
-  if (hasAccess() || isDismissed) {
+  // Don't show tooltip if user has access
+  if (hasAccess()) {
     return <>{children}</>
   }
 
@@ -89,44 +88,75 @@ export const PremiumFeatureTooltip = ({
       onMouseLeave={() => setIsVisible(false)}
     >
       {children}
-      
       {isVisible && (
-        <div className={`absolute z-50 ${getPositionClasses()}`}>
-          <div className="bg-dark-800 border border-dark-600 rounded-lg p-4 shadow-xl max-w-xs">
-            {/* Arrow */}
-            <div className={`absolute w-0 h-0 border-4 ${getArrowClasses()}`} />
-            
-            {/* Header */}
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <Crown className="w-4 h-4 text-primary-400" />
-                <span className="text-primary-400 text-sm font-medium">Premium Feature</span>
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setIsDismissed(true)
-                }}
-                className="text-dark-400 hover:text-white transition-colors"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-            
-            {/* Content */}
-            <h4 className="text-white font-medium mb-1">{title}</h4>
-            <p className="text-dark-300 text-sm mb-3">{description}</p>
-            
-            {/* Upgrade button */}
-            <PremiumUpgradeModal
-              trigger={
-                <button className="w-full px-3 py-2 bg-gradient-to-r from-primary-500 to-secondary-500 text-white text-sm font-medium rounded-lg hover:shadow-lg hover:shadow-primary-500/25 transition-all duration-200">
-                  Upgrade Now
+        <>
+          {/* Mobile: fixed, centered, no arrow */}
+          <div className="sm:hidden fixed inset-0 z-[9999] flex items-center justify-center px-2">
+            <div className="bg-dark-800 border border-dark-600 rounded-lg p-4 shadow-xl max-w-xs w-full mt-12 relative">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2">
+                  <Crown className="w-4 h-4 text-primary-400" />
+                  <span className="text-primary-400 text-sm font-medium">Premium Feature</span>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsVisible(false)
+                  }}
+                  className="text-dark-400 hover:text-white transition-colors"
+                >
+                  <X className="w-3 h-3" />
                 </button>
-              }
-            />
+              </div>
+              {/* Content */}
+              <h4 className="text-white font-medium mb-1">{title}</h4>
+              <p className="text-dark-300 text-sm mb-3">{description}</p>
+              {/* Upgrade button */}
+              <PremiumUpgradeModal
+                trigger={
+                  <button className="w-full px-3 py-2 bg-gradient-to-r from-primary-500 to-secondary-500 text-white text-sm font-medium rounded-lg hover:shadow-lg hover:shadow-primary-500/25 transition-all duration-200">
+                    Upgrade Now
+                  </button>
+                }
+              />
+            </div>
           </div>
-        </div>
+          {/* Desktop: original absolute tooltip with arrow */}
+          <div className={`hidden sm:block absolute z-50 ${getPositionClasses()}`}>
+            <div className="bg-dark-800 border border-dark-600 rounded-lg p-4 shadow-xl max-w-xs">
+              {/* Arrow */}
+              <div className={`absolute w-0 h-0 border-4 ${getArrowClasses()}`} />
+              {/* Header */}
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2">
+                  <Crown className="w-4 h-4 text-primary-400" />
+                  <span className="text-primary-400 text-sm font-medium">Premium Feature</span>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsVisible(false)
+                  }}
+                  className="text-dark-400 hover:text-white transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+              {/* Content */}
+              <h4 className="text-white font-medium mb-1">{title}</h4>
+              <p className="text-dark-300 text-sm mb-3">{description}</p>
+              {/* Upgrade button */}
+              <PremiumUpgradeModal
+                trigger={
+                  <button className="w-full px-3 py-2 bg-gradient-to-r from-primary-500 to-secondary-500 text-white text-sm font-medium rounded-lg hover:shadow-lg hover:shadow-primary-500/25 transition-all duration-200">
+                    Upgrade Now
+                  </button>
+                }
+              />
+            </div>
+          </div>
+        </>
       )}
     </div>
   )

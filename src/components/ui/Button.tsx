@@ -4,7 +4,7 @@ import { DivideIcon as LucideIcon } from 'lucide-react'
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost'
   size?: 'sm' | 'md' | 'lg'
-  icon?: LucideIcon
+  icon?: typeof LucideIcon
   iconPosition?: 'left' | 'right'
   loading?: boolean
 }
@@ -33,7 +33,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const sizes = {
       sm: 'px-3 py-1.5 text-sm rounded-md',
       md: 'px-4 py-2 text-sm rounded-lg',
-      lg: 'px-6 py-3 text-base rounded-xl'
+      lg: 'px-4 py-3 sm:px-6 text-base rounded-xl min-h-[44px]'
     }
 
     const isDisabled = disabled || loading

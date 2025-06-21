@@ -466,7 +466,7 @@ export const Dashboard = () => {
     <div className="min-h-screen bg-hero-gradient">
       <Sidebar />
       
-      <div className="lg:ml-64 p-4 lg:p-8">
+      <div className="min-h-screen bg-hero-gradient lg:ml-64 p-2 sm:p-4 lg:p-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -502,7 +502,7 @@ export const Dashboard = () => {
 
         {/* Gamification Section */}
         {gamificationStats && (
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             <RankProgress
               currentRank={gamificationStats.currentRank}
               nextRank={gamificationStats.nextRank}
@@ -514,22 +514,22 @@ export const Dashboard = () => {
         )}
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-6 sm:mb-8 overflow-x-auto scrollbar-hidden">
           {stats.map((stat, index) => (
-            <div key={index} className="animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
-              <Card>
+            <div key={index} className="animate-slide-up min-w-[140px]" style={{ animationDelay: `${index * 0.1}s` }}>
+              <Card className="p-3 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs lg:text-sm text-dark-400 mb-1">{stat.name}</p>
-                    <p className="text-lg lg:text-2xl font-bold text-white">{stat.value}</p>
+                    <p className="text-xs sm:text-sm text-dark-400 mb-1">{stat.name}</p>
+                    <p className="text-base sm:text-lg font-bold text-white">{stat.value}</p>
                     {typeof stat.change === 'string' ? (
-                      <p className="text-xs lg:text-sm text-accent-400">{stat.change}</p>
+                      <p className="text-xs sm:text-sm text-accent-400">{stat.change}</p>
                     ) : (
-                      <div className="text-xs lg:text-sm">{stat.change}</div>
+                      <div className="text-xs sm:text-sm">{stat.change}</div>
                     )}
                   </div>
-                  <div className={`p-2 lg:p-3 bg-dark-800 rounded-xl ${stat.color}`}>
-                    <stat.icon className="w-4 h-4 lg:w-6 lg:h-6" />
+                  <div className={`p-2 sm:p-3 bg-dark-800 rounded-xl ${stat.color}`}>
+                    <stat.icon className="w-4 h-4 sm:w-6 sm:h-6" />
                   </div>
                 </div>
               </Card>
@@ -537,7 +537,7 @@ export const Dashboard = () => {
           ))}
         </div>
 
-        <div className="mb-8 animate-slide-up" style={{ animationDelay: '0.4s' }}>
+        <div className="mb-6 sm:mb-8 animate-slide-up" style={{ animationDelay: '0.4s' }}>
           <StudyStreakCard
             streakStats={streakStats}
             todayMinutes={todayStudyMinutes}
@@ -550,23 +550,23 @@ export const Dashboard = () => {
 
         {/* Recent Achievements */}
         {gamificationStats && gamificationStats.achievements.length > 0 && (
-          <Card className="mb-8 animate-slide-up">
+          <Card className="mb-6 sm:mb-8 animate-slide-up p-3 sm:p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Recent Achievements</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-white">Recent Achievements</h3>
               <Button variant="ghost" size="sm" onClick={() => navigate('/achievements')}>
                 View All
               </Button>
             </div>
-            <div className="flex space-x-4 overflow-x-auto pb-2 custom-scrollbar">
+            <div className="flex space-x-3 sm:space-x-4 overflow-x-auto pb-2 custom-scrollbar">
               {gamificationStats.achievements.slice(0, 5).map((achievement, index) => (
                 <div
                   key={achievement.id}
-                  className="flex-shrink-0 text-center p-3 bg-dark-800/50 rounded-lg"
+                  className="flex-shrink-0 text-center p-2 sm:p-3 bg-dark-800/50 rounded-lg min-w-[120px]"
                 >
-                  <div className="w-12 h-12 bg-gradient-to-br from-accent-500 to-primary-500 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <Award className="w-6 h-6 text-white" />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-accent-500 to-primary-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <Award className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                   </div>
-                  <p className="text-sm font-medium text-white">{achievement.name}</p>
+                  <p className="text-xs sm:text-sm font-medium text-white">{achievement.name}</p>
                   <p className="text-xs text-accent-400">+{achievement.points} pts</p>
                 </div>
               ))}
@@ -575,10 +575,10 @@ export const Dashboard = () => {
         )}
 
         {/* Tab Navigation */}
-        <div className="flex space-x-1 mb-6 overflow-x-auto custom-scrollbar">
+        <div className="flex space-x-1 mb-4 sm:mb-6 overflow-x-auto custom-scrollbar">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
+            className={`px-3 sm:px-4 lg:px-6 py-2 sm:py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
               activeTab === 'overview'
                 ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
                 : 'text-dark-300 hover:text-white hover:bg-dark-800'
@@ -588,7 +588,7 @@ export const Dashboard = () => {
           </button>
           <button
             onClick={() => setActiveTab('discover')}
-            className={`px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
+            className={`px-3 sm:px-4 lg:px-6 py-2 sm:py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
               activeTab === 'discover'
                 ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
                 : 'text-dark-300 hover:text-white hover:bg-dark-800'
@@ -600,20 +600,19 @@ export const Dashboard = () => {
 
         {/* Content based on active tab */}
         {activeTab === 'overview' ? (
-          <div className="space-y-8">
+          <div className="space-y-6 sm:space-y-8">
             {/* Recent Rooms */}
             <div>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl lg:text-2xl font-semibold text-white">Your Study Rooms</h2>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-2 sm:gap-0">
+                <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-white">Your Study Rooms</h2>
                 {userRooms.length > 4 && (
                   <Button variant="ghost" size="sm">
                     View All ({userRooms.length})
                   </Button>
                 )}
               </div>
-              
               {recentRooms.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
                   {recentRooms.map((room, index) => (
                     <div
                       key={room.id}
@@ -630,13 +629,13 @@ export const Dashboard = () => {
                   ))}
                 </div>
               ) : (
-                <Card className="text-center py-12">
-                  <BookOpen className="w-16 h-16 text-dark-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-white mb-2">No Study Rooms Yet</h3>
+                <Card className="text-center py-8 sm:py-12">
+                  <BookOpen className="w-12 h-12 sm:w-16 sm:h-16 text-dark-400 mx-auto mb-4" />
+                  <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">No Study Rooms Yet</h3>
                   <p className="text-dark-300 mb-6">
                     Create your first study room or join an existing one to get started
                   </p>
-                  <div className="flex flex-col sm:flex-row justify-center gap-3">
+                  <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-3">
                     <Button onClick={() => setCreateRoomModal(true)} icon={Plus}>
                       Create Room
                     </Button>
@@ -650,66 +649,61 @@ export const Dashboard = () => {
 
             {/* Quick Actions Grid */}
             <div>
-              <h2 className="text-xl lg:text-2xl font-semibold text-white mb-6">Quick Actions</h2>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-white mb-4 sm:mb-6">Quick Actions</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
                 <button
                   onClick={() => setCreateRoomModal(true)}
-                  className="p-4 lg:p-6 bg-dark-800/50 rounded-lg hover:bg-dark-800/70 transition-colors duration-200 text-center group"
+                  className="p-3 sm:p-4 lg:p-6 bg-dark-800/50 rounded-lg hover:bg-dark-800/70 transition-colors duration-200 text-center group"
                 >
-                  <Plus className="w-6 lg:w-8 h-6 lg:h-8 text-primary-400 mx-auto mb-3 group-hover:scale-110 transition-transform duration-200" />
-                  <p className="text-white font-medium text-sm lg:text-base">Create Room</p>
-                  <p className="text-xs lg:text-sm text-dark-400">Start a new study session</p>
+                  <Plus className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-primary-400 mx-auto mb-2 sm:mb-3 group-hover:scale-110 transition-transform duration-200" />
+                  <p className="text-xs sm:text-sm lg:text-base text-white font-medium">Create Room</p>
+                  <p className="text-xs text-dark-400">Start a new study session</p>
                 </button>
-                
                 <button
                   onClick={() => setActiveTab('discover')}
-                  className="p-4 lg:p-6 bg-dark-800/50 rounded-lg hover:bg-dark-800/70 transition-colors duration-200 text-center group"
+                  className="p-3 sm:p-4 lg:p-6 bg-dark-800/50 rounded-lg hover:bg-dark-800/70 transition-colors duration-200 text-center group"
                 >
-                  <Search className="w-6 lg:w-8 h-6 lg:h-8 text-secondary-400 mx-auto mb-3 group-hover:scale-110 transition-transform duration-200" />
-                  <p className="text-white font-medium text-sm lg:text-base">Discover</p>
-                  <p className="text-xs lg:text-sm text-dark-400">Find study partners</p>
+                  <Search className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-secondary-400 mx-auto mb-2 sm:mb-3 group-hover:scale-110 transition-transform duration-200" />
+                  <p className="text-xs sm:text-sm lg:text-base text-white font-medium">Discover</p>
+                  <p className="text-xs text-dark-400">Find study partners</p>
                 </button>
-                
                 <button 
                   onClick={() => navigate('/under-development')}
-                  className="p-4 lg:p-6 bg-dark-800/50 rounded-lg hover:bg-dark-800/70 transition-colors duration-200 text-center group"
+                  className="p-3 sm:p-4 lg:p-6 bg-dark-800/50 rounded-lg hover:bg-dark-800/70 transition-colors duration-200 text-center group"
                 >
-                  <FileText className="w-6 lg:w-8 h-6 lg:h-8 text-accent-400 mx-auto mb-3 group-hover:scale-110 transition-transform duration-200" />
-                  <p className="text-white font-medium text-sm lg:text-base">My Notes</p>
-                  <p className="text-xs lg:text-sm text-dark-400">Access your notes</p>
+                  <FileText className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-accent-400 mx-auto mb-2 sm:mb-3 group-hover:scale-110 transition-transform duration-200" />
+                  <p className="text-xs sm:text-sm lg:text-base text-white font-medium">My Notes</p>
+                  <p className="text-xs text-dark-400">Access your notes</p>
                 </button>
-                
                 <button 
                   onClick={() => navigate('/under-development')}
-                  className="p-4 lg:p-6 bg-dark-800/50 rounded-lg hover:bg-dark-800/70 transition-colors duration-200 text-center group"
+                  className="p-3 sm:p-4 lg:p-6 bg-dark-800/50 rounded-lg hover:bg-dark-800/70 transition-colors duration-200 text-center group"
                 >
-                  <Target className="w-6 lg:w-8 h-6 lg:h-8 text-primary-400 mx-auto mb-3 group-hover:scale-110 transition-transform duration-200" />
-                  <p className="text-white font-medium text-sm lg:text-base">Goals</p>
-                  <p className="text-xs lg:text-sm text-dark-400">Track your progress</p>
+                  <Target className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-primary-400 mx-auto mb-2 sm:mb-3 group-hover:scale-110 transition-transform duration-200" />
+                  <p className="text-xs sm:text-sm lg:text-base text-white font-medium">Goals</p>
+                  <p className="text-xs text-dark-400">Track your progress</p>
                 </button>
               </div>
             </div>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Filters */}
             <Card>
               <RoomFilters filters={filters} onFiltersChange={setFilters} />
             </Card>
-
             {/* Rooms Grid */}
             <div>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl lg:text-2xl font-semibold text-white">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-2 sm:gap-0">
+                <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-white">
                   Discover Study Rooms
-                  <span className="text-base lg:text-lg text-dark-400 ml-2">
+                  <span className="text-base sm:text-lg text-dark-400 ml-2">
                     ({filteredRooms.length} rooms)
                   </span>
                 </h2>
               </div>
-              
               {filteredRooms.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
                   {filteredRooms.map((room, index) => (
                     <div
                       key={room.id}
@@ -726,9 +720,9 @@ export const Dashboard = () => {
                   ))}
                 </div>
               ) : (
-                <Card className="text-center py-12">
-                  <Search className="w-16 h-16 text-dark-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-white mb-2">No Rooms Found</h3>
+                <Card className="text-center py-8 sm:py-12">
+                  <Search className="w-12 h-12 sm:w-16 sm:h-16 text-dark-400 mx-auto mb-4" />
+                  <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">No Rooms Found</h3>
                   <p className="text-dark-300 mb-6">
                     Try adjusting your filters or create a new room
                   </p>

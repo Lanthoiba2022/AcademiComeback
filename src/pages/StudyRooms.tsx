@@ -292,89 +292,88 @@ export const StudyRooms = () => {
       <div className="lg:ml-64 p-4 lg:p-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl lg:text-4xl font-bold text-white mb-2 flex items-center">
-                <Users className="w-8 h-8 text-primary-400 mr-3" />
+          <div className="flex flex-col items-center text-center gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between sm:text-left sm:gap-0">
+            <div className="flex flex-col items-center sm:items-start">
+              <h1 className="flex items-center justify-center text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-1">
+                <Users className="w-7 h-7 sm:w-8 sm:h-8 text-primary-400 mr-2" />
                 Study Rooms
-                <Sparkles className="w-6 h-6 text-accent-400 ml-2 animate-pulse" />
+                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-accent-400 ml-2 animate-pulse" />
               </h1>
-              <p className="text-dark-300 text-lg">
+              <p className="text-dark-300 text-base sm:text-lg max-w-xs sm:max-w-none">
                 Collaborate, learn, and achieve your goals together
               </p>
             </div>
-            
-            <div className="flex items-center space-x-3">
-              <Button
-                onClick={() => setJoinRoomModal(true)}
-                variant="outline"
-                icon={UserPlus}
-                className="hidden sm:flex"
-              >
-                Join Room
-              </Button>
-              <Button
-                onClick={() => setCreateRoomModal(true)}
-                icon={Plus}
-                className="bg-gradient-to-r from-primary-500 to-accent-500 hover:from-primary-600 hover:to-accent-600"
-              >
-                Create Room
-              </Button>
-            </div>
           </div>
+          <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs sm:max-w-none mx-auto sm:mx-0 mb-4">
+            <Button
+              onClick={() => setCreateRoomModal(true)}
+              icon={Plus}
+              className="w-full sm:w-auto bg-gradient-to-r from-primary-500 to-accent-500 hover:from-primary-600 hover:to-accent-600"
+            >
+              Create Room
+            </Button>
+            <Button
+              onClick={() => setJoinRoomModal(true)}
+              variant="outline"
+              icon={UserPlus}
+              className="w-full sm:w-auto"
+            >
+              Join Room
+            </Button>
+          </div>
+        </div>
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Card className="bg-gradient-to-br from-primary-500/20 to-primary-600/20 border-primary-500/30">
-              <div className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-dark-300 text-sm">My Rooms</p>
-                    <p className="text-2xl font-bold text-white">{userRooms.length}</p>
-                  </div>
-                  <BookOpen className="w-8 h-8 text-primary-400" />
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <Card className="bg-gradient-to-br from-primary-500/20 to-primary-600/20 border-primary-500/30">
+            <div className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-dark-300 text-sm">My Rooms</p>
+                  <p className="text-2xl font-bold text-white">{userRooms.length}</p>
                 </div>
+                <BookOpen className="w-8 h-8 text-primary-400" />
               </div>
-            </Card>
-            
-            <Card className="bg-gradient-to-br from-secondary-500/20 to-secondary-600/20 border-secondary-500/30">
-              <div className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-dark-300 text-sm">Admin Rooms</p>
-                    <p className="text-2xl font-bold text-white">{adminRooms.length}</p>
-                  </div>
-                  <Crown className="w-8 h-8 text-secondary-400" />
+            </div>
+          </Card>
+          
+          <Card className="bg-gradient-to-br from-secondary-500/20 to-secondary-600/20 border-secondary-500/30">
+            <div className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-dark-300 text-sm">Admin Rooms</p>
+                  <p className="text-2xl font-bold text-white">{adminRooms.length}</p>
                 </div>
+                <Crown className="w-8 h-8 text-secondary-400" />
               </div>
-            </Card>
-            
-            <Card className="bg-gradient-to-br from-accent-500/20 to-accent-600/20 border-accent-500/30">
-              <div className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-dark-300 text-sm">Total Rooms</p>
-                    <p className="text-2xl font-bold text-white">
-                      {rooms.filter(r => r.isActive).length}
-                    </p>
-                  </div>
-                  <Users className="w-8 h-8 text-accent-400" />
+            </div>
+          </Card>
+          
+          <Card className="bg-gradient-to-br from-accent-500/20 to-accent-600/20 border-accent-500/30">
+            <div className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-dark-300 text-sm">Total Rooms</p>
+                  <p className="text-2xl font-bold text-white">
+                    {rooms.filter(r => r.isActive).length}
+                  </p>
                 </div>
+                <Users className="w-8 h-8 text-accent-400" />
               </div>
-            </Card>
-            
-            <Card className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 border-purple-500/30">
-              <div className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-dark-300 text-sm">Available</p>
-                    <p className="text-2xl font-bold text-white">{filteredRooms.length}</p>
-                  </div>
-                  <TrendingUp className="w-8 h-8 text-purple-400" />
+            </div>
+          </Card>
+          
+          <Card className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 border-purple-500/30">
+            <div className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-dark-300 text-sm">Available</p>
+                  <p className="text-2xl font-bold text-white">{filteredRooms.length}</p>
                 </div>
+                <TrendingUp className="w-8 h-8 text-purple-400" />
               </div>
-            </Card>
-          </div>
+            </div>
+          </Card>
         </div>
 
         {/* Tab Navigation */}

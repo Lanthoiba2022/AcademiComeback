@@ -301,47 +301,45 @@ export const QuizInterface = ({ quiz, onComplete, onExit }: QuizInterfaceProps) 
   return (
     <div className="min-h-screen bg-hero-gradient">
       {/* Header */}
-      <div className="bg-dark-900/90 backdrop-blur-xl border-b border-dark-700/50 p-4">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
+      <div className="bg-dark-900/90 backdrop-blur-xl border-b border-dark-700/50 p-3 sm:p-4">
+        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
           <div>
-            <h1 className="text-xl font-semibold text-white">{quiz.title}</h1>
-            <p className="text-sm text-dark-300">
+            <h1 className="text-lg sm:text-xl font-semibold text-white">{quiz.title}</h1>
+            <p className="text-xs sm:text-sm text-dark-300">
               Question {currentQuestionIndex + 1} of {quiz.questions.length}
             </p>
           </div>
-          
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-row flex-wrap items-center gap-2 sm:space-x-4 justify-end">
             {timeRemaining !== null && (
               <div className={`
-                flex items-center space-x-2 px-3 py-2 rounded-lg
+                flex items-center space-x-2 px-2 py-1 sm:px-3 sm:py-2 rounded-lg
                 ${timeRemaining < 300 ? 'bg-red-500/20 text-red-400' : 'bg-dark-800 text-white'}
               `}>
                 <Clock className="w-4 h-4" />
-                <span className="font-mono">{formatTime(timeRemaining)}</span>
+                <span className="font-mono text-xs sm:text-base">{formatTime(timeRemaining)}</span>
               </div>
             )}
-            
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsPaused(!isPaused)}
               icon={isPaused ? Play : Pause}
+              className="min-w-[70px]"
             >
               {isPaused ? 'Resume' : 'Pause'}
             </Button>
-            
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowExitConfirm(true)}
+              className="min-w-[70px]"
             >
               Exit Quiz
             </Button>
           </div>
         </div>
-
         {/* Progress Bar */}
-        <div className="max-w-4xl mx-auto mt-4">
+        <div className="max-w-4xl mx-auto mt-3 sm:mt-4">
           <div className="w-full bg-dark-700 rounded-full h-2">
             <div 
               className="bg-gradient-to-r from-primary-500 to-accent-500 h-2 rounded-full transition-all duration-500"
@@ -354,25 +352,23 @@ export const QuizInterface = ({ quiz, onComplete, onExit }: QuizInterfaceProps) 
           </div>
         </div>
       </div>
-
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="max-w-4xl mx-auto p-2 sm:p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
           {/* Question Navigation */}
           <div className="lg:col-span-1">
             <Card className="sticky top-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Questions</h3>
-              <div className="grid grid-cols-5 lg:grid-cols-1 gap-2">
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Questions</h3>
+              <div className="grid grid-cols-5 lg:grid-cols-1 gap-2 overflow-x-auto scrollbar-hidden pb-2">
                 {quiz.questions.map((_, index) => {
                   const isAnswered = answers[quiz.questions[index].id]
                   const isCurrent = index === currentQuestionIndex
-                  
                   return (
                     <button
                       key={index}
                       onClick={() => navigateToQuestion(index)}
                       className={`
-                        w-10 h-10 lg:w-full lg:h-auto lg:p-2 rounded-lg font-medium transition-all duration-200
+                        w-9 h-9 sm:w-10 sm:h-10 lg:w-full lg:h-auto lg:p-2 rounded-lg font-medium transition-all duration-200
                         ${isCurrent 
                           ? 'bg-primary-500 text-white' 
                           : isAnswered 
@@ -390,8 +386,7 @@ export const QuizInterface = ({ quiz, onComplete, onExit }: QuizInterfaceProps) 
                   )
                 })}
               </div>
-              
-              <div className="mt-6 pt-4 border-t border-dark-700">
+              <div className="mt-4 sm:mt-6 pt-4 border-t border-dark-700">
                 <Button
                   variant="outline"
                   size="sm"
