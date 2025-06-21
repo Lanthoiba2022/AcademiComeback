@@ -128,7 +128,7 @@ export const StudyStreakCard: React.FC<StudyStreakCardProps> = ({
                   <Target className="w-4 h-4 text-primary-400" />
                 </div>
                 <p className="text-lg font-semibold text-white">{streakStats.longestStreak}</p>
-                <p className="text-xs text-dark-400">Longest</p>
+                <p className="text-xs text-dark-400">Longest Streak</p>
               </div>
               
               <div className="text-center">
