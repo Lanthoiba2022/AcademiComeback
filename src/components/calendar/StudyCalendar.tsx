@@ -129,13 +129,13 @@ export const StudyCalendar = ({ events, onCreateEvent, onUpdateEvent, onDeleteEv
     const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
     return (
-      <div className="bg-dark-800/50 rounded-lg p-4">
+      <div className="bg-dark-800/50 rounded-xl p-2 sm:p-4 shadow-md">
         {/* Calendar Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-white">
+        <div className="flex flex-col gap-2 mb-4">
+          <h3 className="text-base sm:text-lg font-semibold text-white text-center">
             {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </h3>
-          <div className="flex space-x-2">
+          <div className="flex flex-row justify-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => navigateMonth('prev')} icon={ChevronLeft} />
             <Button variant="ghost" size="sm" onClick={() => setCurrentDate(new Date())}>
               Today
@@ -143,32 +143,28 @@ export const StudyCalendar = ({ events, onCreateEvent, onUpdateEvent, onDeleteEv
             <Button variant="ghost" size="sm" onClick={() => navigateMonth('next')} icon={ChevronRight} />
           </div>
         </div>
-
         {/* Week Days Header */}
         <div className="grid grid-cols-7 gap-1 mb-2">
           {weekDays.map(day => (
-            <div key={day} className="p-2 text-center text-dark-400 text-sm font-medium">
+            <div key={day} className="p-1 sm:p-2 text-center text-dark-400 text-xs sm:text-sm font-medium">
               {day}
             </div>
           ))}
         </div>
-
         {/* Calendar Grid */}
         <div className="grid grid-cols-7 gap-1">
           {days.map((day, index) => {
             if (!day) {
-              return <div key={index} className="p-2 h-24" />
+              return <div key={index} className="min-h-[48px] sm:min-h-[72px] bg-transparent" />
             }
-
             const dayEvents = getEventsForDate(day)
             const isToday = day.toDateString() === new Date().toDateString()
             const isCurrentMonth = day.getMonth() === currentDate.getMonth()
-
             return (
               <div
                 key={index}
                 className={`
-                  p-2 h-24 border border-dark-700 rounded cursor-pointer hover:bg-dark-700/50 transition-colors
+                  flex flex-col items-center justify-start min-h-[48px] sm:min-h-[72px] p-1 sm:p-2 border border-dark-700 rounded-lg cursor-pointer hover:bg-dark-700/50 transition-colors
                   ${isToday ? 'bg-primary-500/20 border-primary-500' : ''}
                   ${!isCurrentMonth ? 'opacity-50' : ''}
                 `}
@@ -177,7 +173,6 @@ export const StudyCalendar = ({ events, onCreateEvent, onUpdateEvent, onDeleteEv
                   defaultStartTime.setHours(9, 0, 0, 0)
                   const defaultEndTime = new Date(day)
                   defaultEndTime.setHours(10, 0, 0, 0)
-                  
                   setEventForm(prev => ({
                     ...prev,
                     startTime: defaultStartTime.toISOString().slice(0, 16),
@@ -186,29 +181,27 @@ export const StudyCalendar = ({ events, onCreateEvent, onUpdateEvent, onDeleteEv
                   setShowEventModal(true)
                 }}
               >
-                <div className={`text-sm font-medium mb-1 ${isToday ? 'text-primary-300' : 'text-white'}`}>
-                  {day.getDate()}
-                </div>
-                <div className="space-y-1">
+                <div className={`text-xs sm:text-sm font-medium mb-1 ${isToday ? 'text-primary-300' : 'text-white'}`}>{day.getDate()}</div>
+                <div className="flex flex-col gap-0.5 w-full items-center">
                   {dayEvents.slice(0, 2).map(event => {
                     const typeInfo = getEventTypeInfo(event.type)
                     return (
                       <div
                         key={event.id}
-                        className={`text-xs p-1 rounded truncate ${typeInfo.color} text-white`}
+                        className={`w-full text-[10px] sm:text-xs px-1 py-0.5 rounded truncate ${typeInfo.color} text-white text-center`}
+                        title={event.title}
                         onClick={(e) => {
                           e.stopPropagation()
                           setSelectedEvent(event)
+                          setShowEventModal(true)
                         }}
                       >
-                        {event.title}
+                        {event.title.length > 8 ? event.title.slice(0, 8) + '…' : event.title}
                       </div>
                     )
                   })}
                   {dayEvents.length > 2 && (
-                    <div className="text-xs text-dark-400">
-                      +{dayEvents.length - 2} more
-                    </div>
+                    <div className="text-[10px] text-dark-400">+{dayEvents.length - 2} more</div>
                   )}
                 </div>
               </div>
@@ -301,15 +294,14 @@ export const StudyCalendar = ({ events, onCreateEvent, onUpdateEvent, onDeleteEv
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-white mb-2">Study Calendar</h2>
-          <p className="text-dark-300">Schedule and track your study sessions</p>
+      <div className="flex flex-col items-center text-center gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between sm:text-left sm:gap-0">
+        <div className="flex flex-col items-center sm:items-start">
+          <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">Study Calendar</h2>
+          <p className="text-dark-300 text-base sm:text-lg">Schedule and track your study sessions</p>
         </div>
-        
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-col gap-2 w-full max-w-xs sm:max-w-none sm:flex-row sm:items-center sm:justify-end sm:w-auto">
           {/* View Selector */}
-          <div className="flex space-x-1">
+          <div className="flex flex-row justify-center gap-1 sm:gap-2 mb-2 sm:mb-0">
             {views.map(viewOption => {
               const Icon = viewOption.icon
               return (
@@ -330,8 +322,7 @@ export const StudyCalendar = ({ events, onCreateEvent, onUpdateEvent, onDeleteEv
               )
             })}
           </div>
-          
-          <Button onClick={() => setShowEventModal(true)} icon={Plus}>
+          <Button onClick={() => setShowEventModal(true)} icon={Plus} className="w-full sm:w-auto">
             Add Event
           </Button>
         </div>

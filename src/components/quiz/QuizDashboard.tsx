@@ -67,18 +67,17 @@ export const QuizDashboard = ({ onStartQuiz, userStats, recentAttempts = [] }: Q
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-white mb-2">Quiz Center</h2>
-          <p className="text-dark-300">Test your knowledge and track your progress</p>
+      <div className="flex flex-col items-center text-center gap-2 mb-4 md:flex-row md:items-center md:justify-between md:text-left md:gap-0">
+        <div className="flex flex-col items-center md:items-start">
+          <h2 className="text-xl md:text-2xl font-bold text-white mb-1">Quiz Center</h2>
+          <p className="text-dark-300 text-base md:text-lg">Test your knowledge and track your progress</p>
         </div>
-        
         <PremiumGate feature="ai" showUpgradePrompt={false}>
           <Button
             onClick={() => setShowGenerator(true)}
             icon={Brain}
             size="lg"
-            className="bg-gradient-to-r from-purple-500 to-pink-500"
+            className="bg-gradient-to-r from-purple-500 to-pink-500 mt-3 md:mt-0"
           >
             Generate AI Quiz
           </Button>
@@ -87,35 +86,32 @@ export const QuizDashboard = ({ onStartQuiz, userStats, recentAttempts = [] }: Q
 
       {/* Stats Overview */}
       {userStats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4 mb-2">
           <Card className="text-center">
-            <Trophy className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-white">{userStats.totalQuizzes}</div>
-            <p className="text-dark-400 text-sm">Quizzes Taken</p>
+            <Trophy className="w-7 h-7 md:w-8 md:h-8 text-yellow-400 mx-auto mb-2" />
+            <div className="text-xl md:text-2xl font-bold text-white">{userStats.totalQuizzes}</div>
+            <p className="text-dark-400 text-xs md:text-sm">Quizzes Taken</p>
           </Card>
-          
           <Card className="text-center">
-            <Target className="w-8 h-8 text-green-400 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-white">{Math.round(userStats.averageScore)}%</div>
-            <p className="text-dark-400 text-sm">Average Score</p>
+            <Target className="w-7 h-7 md:w-8 md:h-8 text-green-400 mx-auto mb-2" />
+            <div className="text-xl md:text-2xl font-bold text-white">{Math.round(userStats.averageScore)}%</div>
+            <p className="text-dark-400 text-xs md:text-sm">Average Score</p>
           </Card>
-          
           <Card className="text-center">
-            <Star className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-white">{userStats.bestScore}%</div>
-            <p className="text-dark-400 text-sm">Best Score</p>
+            <Star className="w-7 h-7 md:w-8 md:h-8 text-blue-400 mx-auto mb-2" />
+            <div className="text-xl md:text-2xl font-bold text-white">{userStats.bestScore}%</div>
+            <p className="text-dark-400 text-xs md:text-sm">Best Score</p>
           </Card>
-          
           <Card className="text-center">
-            <Clock className="w-8 h-8 text-purple-400 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-white">{formatTime(userStats.totalTimeSpent)}</div>
-            <p className="text-dark-400 text-sm">Time Spent</p>
+            <Clock className="w-7 h-7 md:w-8 md:h-8 text-purple-400 mx-auto mb-2" />
+            <div className="text-xl md:text-2xl font-bold text-white">{formatTime(userStats.totalTimeSpent)}</div>
+            <p className="text-dark-400 text-xs md:text-sm">Time Spent</p>
           </Card>
         </div>
       )}
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4 mb-2">
         <PremiumFeatureTooltip
           feature="ai"
           title="AI Quiz Generation"
@@ -123,47 +119,44 @@ export const QuizDashboard = ({ onStartQuiz, userStats, recentAttempts = [] }: Q
         >
           <button
             onClick={() => setShowGenerator(true)}
-            className="p-6 bg-gradient-to-br from-primary-500/20 to-secondary-500/20 border border-primary-500/30 rounded-xl hover:scale-105 transition-transform duration-200 text-center group relative"
+            className="w-full p-4 md:p-6 bg-gradient-to-br from-primary-500/20 to-secondary-500/20 border border-primary-500/30 rounded-2xl shadow-md hover:scale-105 transition-transform duration-200 text-center group relative"
           >
             <PremiumGate feature="ai" showUpgradePrompt={false} fallback={
               <div className="absolute top-2 right-2">
                 <Crown className="w-4 h-4 text-primary-400" />
               </div>
             } />
-            <Brain className="w-8 h-8 text-primary-400 mx-auto mb-3 group-hover:scale-110 transition-transform" />
-            <h3 className="text-white font-semibold mb-1">AI Quiz</h3>
-            <p className="text-dark-300 text-sm">Generate custom quiz</p>
+            <Brain className="w-7 h-7 md:w-8 md:h-8 text-primary-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+            <h3 className="text-white font-semibold mb-1 text-base md:text-lg">AI Quiz</h3>
+            <p className="text-dark-300 text-xs md:text-sm">Generate custom quiz</p>
           </button>
         </PremiumFeatureTooltip>
-        
         <button
           onClick={() => {
             const quickQuiz = availableQuizzes.find(q => q.type === 'quick-assessment')
             if (quickQuiz) onStartQuiz(quickQuiz)
           }}
-          className="p-6 bg-gradient-to-br from-accent-500/20 to-primary-500/20 border border-accent-500/30 rounded-xl hover:scale-105 transition-transform duration-200 text-center group"
+          className="w-full p-4 md:p-6 bg-gradient-to-br from-accent-500/20 to-primary-500/20 border border-accent-500/30 rounded-2xl shadow-md hover:scale-105 transition-transform duration-200 text-center group"
         >
-          <Zap className="w-8 h-8 text-accent-400 mx-auto mb-3 group-hover:scale-110 transition-transform" />
-          <h3 className="text-white font-semibold mb-1">Quick Quiz</h3>
-          <p className="text-dark-300 text-sm">5 questions, 2 minutes</p>
+          <Zap className="w-7 h-7 md:w-8 md:h-8 text-accent-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+          <h3 className="text-white font-semibold mb-1 text-base md:text-lg">Quick Quiz</h3>
+          <p className="text-dark-300 text-xs md:text-sm">5 questions, 2 minutes</p>
         </button>
-        
         <button
           onClick={() => {
             const practiceQuiz = availableQuizzes.find(q => q.type === 'practice-mode')
             if (practiceQuiz) onStartQuiz(practiceQuiz)
           }}
-          className="p-6 bg-gradient-to-br from-secondary-500/20 to-accent-500/20 border border-secondary-500/30 rounded-xl hover:scale-105 transition-transform duration-200 text-center group"
+          className="w-full p-4 md:p-6 bg-gradient-to-br from-secondary-500/20 to-accent-500/20 border border-secondary-500/30 rounded-2xl shadow-md hover:scale-105 transition-transform duration-200 text-center group"
         >
-          <Target className="w-8 h-8 text-secondary-400 mx-auto mb-3 group-hover:scale-110 transition-transform" />
-          <h3 className="text-white font-semibold mb-1">Practice</h3>
-          <p className="text-dark-300 text-sm">Untimed with hints</p>
+          <Target className="w-7 h-7 md:w-8 md:h-8 text-secondary-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+          <h3 className="text-white font-semibold mb-1 text-base md:text-lg">Practice</h3>
+          <p className="text-dark-300 text-xs md:text-sm">Untimed with hints</p>
         </button>
-        
-        <button className="p-6 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-xl hover:scale-105 transition-transform duration-200 text-center group">
-          <BarChart3 className="w-8 h-8 text-yellow-400 mx-auto mb-3 group-hover:scale-110 transition-transform" />
-          <h3 className="text-white font-semibold mb-1">Analytics</h3>
-          <p className="text-dark-300 text-sm">View progress</p>
+        <button className="w-full p-4 md:p-6 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-2xl shadow-md hover:scale-105 transition-transform duration-200 text-center group">
+          <BarChart3 className="w-7 h-7 md:w-8 md:h-8 text-yellow-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+          <h3 className="text-white font-semibold mb-1 text-base md:text-lg">Analytics</h3>
+          <p className="text-dark-300 text-xs md:text-sm">View progress</p>
         </button>
       </div>
 

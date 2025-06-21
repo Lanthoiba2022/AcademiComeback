@@ -44,22 +44,22 @@ export const RewardsMarketplace = ({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 pt-8 sm:pt-0 relative z-10">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-2">Rewards Marketplace</h2>
-          <p className="text-dark-300">Redeem your points for virtual treats and perks</p>
+          <h2 className="text-2xl font-bold text-white mb-1 sm:mb-2">Rewards Marketplace</h2>
+          <p className="text-dark-300 text-sm sm:text-base">Redeem your points for virtual treats and perks</p>
         </div>
-        <div className="text-right">
-          <div className="flex items-center space-x-2 mb-1">
+        <div className="flex flex-row sm:flex-col items-center sm:items-end gap-1 sm:gap-0 mt-2 sm:mt-0">
+          <div className="flex items-center space-x-1 sm:space-x-2 mb-0 sm:mb-1">
             <Star className="w-5 h-5 text-yellow-400" />
-            <span className="text-2xl font-bold text-white">{availablePoints.toLocaleString()}</span>
+            <span className="text-xl sm:text-2xl font-bold text-white">{availablePoints.toLocaleString()}</span>
           </div>
-          <p className="text-sm text-dark-400">Available Points</p>
+          <p className="text-xs sm:text-sm text-dark-400">Available Points</p>
         </div>
       </div>
 
       {/* Category Filter */}
-      <div className="flex space-x-2 overflow-x-auto pb-2 custom-scrollbar">
+      <div className="flex space-x-2 overflow-x-auto pb-1 custom-scrollbar -mx-2 px-2">
         {categories.map((category) => {
           const Icon = category.icon
           return (
@@ -67,11 +67,12 @@ export const RewardsMarketplace = ({
               key={category.id}
               onClick={() => setSelectedCategory(category.id)}
               className={`
-                flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 whitespace-nowrap
+                flex items-center space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium transition-all duration-200 whitespace-nowrap
                 ${selectedCategory === category.id
                   ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
                   : 'bg-dark-800 text-dark-300 hover:bg-dark-700 hover:text-white'
                 }
+                text-xs sm:text-sm
               `}
             >
               <Icon className="w-4 h-4" />
@@ -82,7 +83,7 @@ export const RewardsMarketplace = ({
       </div>
 
       {/* Rewards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
         {filteredRewards.map((reward, index) => {
           const Icon = getRewardIcon(reward.icon)
           const canAfford = availablePoints >= reward.cost
@@ -91,28 +92,28 @@ export const RewardsMarketplace = ({
           return (
             <Card 
               key={reward.id} 
-              className="animate-slide-up hover:scale-105 transition-transform duration-200"
+              className="animate-slide-up hover:scale-105 transition-transform duration-200 p-3 sm:p-6"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               <div className="text-center">
                 <div className={`
-                  w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center
+                  w-12 h-12 sm:w-16 sm:h-16 rounded-full mx-auto mb-3 sm:mb-4 flex items-center justify-center
                   ${canAfford ? 'bg-primary-500/20' : 'bg-dark-700'}
                 `}>
-                  <Icon className={`w-8 h-8 ${canAfford ? 'text-primary-400' : 'text-dark-500'}`} />
+                  <Icon className={`w-7 h-7 sm:w-8 sm:h-8 ${canAfford ? 'text-primary-400' : 'text-dark-500'}`} />
                 </div>
                 
-                <h3 className="text-lg font-semibold text-white mb-2">{reward.name}</h3>
-                <p className="text-sm text-dark-300 mb-4">{reward.description}</p>
+                <h3 className="text-base sm:text-lg font-semibold text-white mb-1 sm:mb-2">{reward.name}</h3>
+                <p className="text-xs sm:text-sm text-dark-300 mb-2 sm:mb-4">{reward.description}</p>
                 
-                <div className="flex items-center justify-center space-x-2 mb-4">
+                <div className="flex items-center justify-center space-x-1 sm:space-x-2 mb-2 sm:mb-4">
                   <Star className="w-4 h-4 text-yellow-400" />
-                  <span className="text-lg font-bold text-white">{reward.cost}</span>
-                  <span className="text-sm text-dark-400">points</span>
+                  <span className="text-base sm:text-lg font-bold text-white">{reward.cost}</span>
+                  <span className="text-xs sm:text-sm text-dark-400">points</span>
                 </div>
 
                 {redemptionCount > 0 && (
-                  <p className="text-xs text-accent-400 mb-3">
+                  <p className="text-xs text-accent-400 mb-2 sm:mb-3">
                     Redeemed {redemptionCount} time{redemptionCount !== 1 ? 's' : ''}
                   </p>
                 )}
@@ -120,7 +121,7 @@ export const RewardsMarketplace = ({
                 <Button
                   onClick={() => onRedeemReward(reward.id)}
                   disabled={!canAfford || !reward.isAvailable}
-                  className="w-full"
+                  className="w-full text-xs sm:text-sm py-2"
                   size="sm"
                   variant={canAfford ? 'primary' : 'outline'}
                 >
@@ -133,10 +134,10 @@ export const RewardsMarketplace = ({
       </div>
 
       {filteredRewards.length === 0 && (
-        <div className="text-center py-12">
-          <Gift className="w-16 h-16 text-dark-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-white mb-2">No Rewards Available</h3>
-          <p className="text-dark-300">Check back later for new rewards!</p>
+        <div className="text-center py-8 sm:py-12">
+          <Gift className="w-12 h-12 sm:w-16 sm:h-16 text-dark-400 mx-auto mb-3 sm:mb-4" />
+          <h3 className="text-base sm:text-lg font-semibold text-white mb-1 sm:mb-2">No Rewards Available</h3>
+          <p className="text-dark-300 text-xs sm:text-base">Check back later for new rewards!</p>
         </div>
       )}
     </div>
