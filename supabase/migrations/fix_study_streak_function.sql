@@ -12,15 +12,15 @@ RETURNS TABLE (
 BEGIN
   RETURN QUERY
   SELECT 
-    created_at::date as study_date,
+    start_time::date as study_date,
     COALESCE(SUM(focus_time), 0)::INTEGER as total_minutes,
     COUNT(*)::BIGINT as session_count
   FROM study_sessions
   WHERE user_id = p_user_id
-    AND created_at >= p_start_date
-    AND created_at <= p_end_date
+    AND start_time >= p_start_date
+    AND start_time <= p_end_date
     AND focus_time IS NOT NULL
-  GROUP BY created_at::date
+  GROUP BY start_time::date
   ORDER BY study_date;
 END;
 $$ LANGUAGE plpgsql STABLE; 

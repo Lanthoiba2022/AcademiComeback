@@ -72,7 +72,7 @@ export const Dashboard = () => {
     loading: streakLoading,
     error: streakError,
     refreshStreak
-  } = useStudyStreak(user?.id || '')
+  } = useStudyStreak(user?.id || '', studyStats.totalFocusMinutes, user?.createdAt)
 
   // Debug log to verify streak stats
   console.log('Dashboard - streakStats:', streakStats, 'user?.id:', user?.id)

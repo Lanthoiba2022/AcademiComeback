@@ -15,7 +15,7 @@ export interface StreakStats {
   averageMinutesPerDay: number
 }
 
-export const useStudyStreak = (userId: string) => {
+export const useStudyStreak = (userId: string, totalFocusMinutes: number = 0, userCreatedAt?: string) => {
   const [streakData, setStreakData] = useState<StudyStreakData[]>([])
   const [streakStats, setStreakStats] = useState<StreakStats>({
     currentStreak: 0,
@@ -25,6 +25,34 @@ export const useStudyStreak = (userId: string) => {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Calculate average independently when totalFocusMinutes changes
+  const calculateAverageOnly = useCallback(() => {
+    if (!userCreatedAt) return
+    
+    let totalDays = 365 // Default to 365 days if no userCreatedAt
+    
+    const joinDate = new Date(userCreatedAt)
+    const today = new Date()
+    totalDays = differenceInDays(today, joinDate) + 1 // +1 to include both join date and today
+    totalDays = Math.max(totalDays, 1) // Ensure at least 1 day
+    
+    const averageMinutesPerDay = Math.round(totalFocusMinutes / totalDays)
+    
+    setStreakStats(prev => ({
+      ...prev,
+      averageMinutesPerDay
+    }))
+    
+    console.log('Updated average only - Total focus minutes:', totalFocusMinutes, 'Total active days:', totalDays, 'Average:', averageMinutesPerDay)
+  }, [totalFocusMinutes, userCreatedAt])
+
+  // Initialize average immediately when hook mounts and recalculate on every render
+  useEffect(() => {
+    if (userCreatedAt) {
+      calculateAverageOnly()
+    }
+  })
 
   const loadStreakData = useCallback(async () => {
     if (!userId) {
@@ -64,12 +92,12 @@ export const useStudyStreak = (userId: string) => {
         calculateStreakStats(formattedData)
       } else {
         setStreakData([])
-        setStreakStats({
+        setStreakStats(prev => ({
+          ...prev,
           currentStreak: 0,
           longestStreak: 0,
-          totalStudyDays: 0,
-          averageMinutesPerDay: 0
-        })
+          totalStudyDays: 0
+        }))
       }
     } catch (error) {
       console.error('Error loading streak data:', error)
@@ -132,9 +160,17 @@ export const useStudyStreak = (userId: string) => {
       lastDate = currentDate
     }
     
-    // Calculate average minutes per day (only counting study days)
-    const totalMinutes = studyDays.reduce((sum, day) => sum + day.count, 0)
-    const averageMinutesPerDay = studyDays.length > 0 ? Math.round(totalMinutes / studyDays.length) : 0
+    // Calculate average minutes per day using total focus time and user's active days
+    let totalDays = 365 // Default to 365 days if no userCreatedAt
+    
+    if (userCreatedAt) {
+      const joinDate = new Date(userCreatedAt)
+      const today = new Date()
+      totalDays = differenceInDays(today, joinDate) + 1 // +1 to include both join date and today
+      totalDays = Math.max(totalDays, 1) // Ensure at least 1 day
+    }
+    
+    const averageMinutesPerDay = Math.round(totalFocusMinutes / totalDays)
     
     const finalStats = {
       currentStreak,
@@ -144,12 +180,19 @@ export const useStudyStreak = (userId: string) => {
     }
     
     console.log('Calculated streak stats:', finalStats)
+    console.log('Total focus minutes:', totalFocusMinutes, 'Total active days:', totalDays, 'Average:', averageMinutesPerDay)
     setStreakStats(finalStats)
-  }, [])
+  }, [totalFocusMinutes, userCreatedAt])
 
   useEffect(() => {
     loadStreakData()
   }, [loadStreakData])
+
+  // Recalculate average when totalFocusMinutes changes (e.g., after page refresh)
+  useEffect(() => {
+    // Always recalculate average when totalFocusMinutes changes
+    calculateAverageOnly()
+  }, [totalFocusMinutes, calculateAverageOnly])
 
   // Auto-refresh every 5 minutes to keep data fresh
   useEffect(() => {
