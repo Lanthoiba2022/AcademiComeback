@@ -354,12 +354,12 @@ export const StudyRooms = () => {
               <div className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-dark-300 text-sm">Active Sessions</p>
+                    <p className="text-dark-300 text-sm">Total Rooms</p>
                     <p className="text-2xl font-bold text-white">
                       {rooms.filter(r => r.isActive).length}
                     </p>
                   </div>
-                  <Clock className="w-8 h-8 text-accent-400" />
+                  <Users className="w-8 h-8 text-accent-400" />
                 </div>
               </div>
             </Card>
