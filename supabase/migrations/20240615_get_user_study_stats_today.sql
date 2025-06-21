@@ -25,7 +25,18 @@ BEGIN
       WHERE user_id = user_uuid
         AND DATE_TRUNC('week', start_time AT TIME ZONE 'UTC') = DATE_TRUNC('week', CURRENT_DATE)
     ),
-    'current_streak_days', 0 -- (Optional: implement streak logic if needed)
+    'current_streak_days', 0, -- (Optional: implement streak logic if needed)
+    'joined_rooms_count', (
+      SELECT COUNT(DISTINCT room_id)
+      FROM room_members
+      WHERE user_id = user_uuid
+    ),
+    'total_tasks_count', (
+      SELECT COUNT(*)
+      FROM tasks t
+      INNER JOIN room_members rm ON t.room_id = rm.room_id
+      WHERE rm.user_id = user_uuid
+    )
   )
   INTO result
   FROM study_sessions

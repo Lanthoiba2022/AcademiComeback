@@ -50,7 +50,9 @@ export const Dashboard = () => {
     activeSessions: 0,
     todayFocusMinutes: 0,
     thisWeekFocusMinutes: 0,
-    currentStreakDays: 0
+    currentStreakDays: 0,
+    joinedRoomsCount: 0,
+    totalTasksCount: 0
   })
   const [loading, setLoading] = useState(true)
   const [createRoomModal, setCreateRoomModal] = useState(false)
@@ -183,7 +185,9 @@ export const Dashboard = () => {
           activeSessions: Number(stats.active_sessions) || 0,
           todayFocusMinutes: Number(stats.today_focus_minutes) || 0,
           thisWeekFocusMinutes: Number(stats.this_week_focus_minutes) || 0,
-          currentStreakDays: Number(stats.current_streak_days) || 0
+          currentStreakDays: Number(stats.current_streak_days) || 0,
+          joinedRoomsCount: Number(stats.joined_rooms_count) || 0,
+          totalTasksCount: Number(stats.total_tasks_count) || 0
         })
       }
     } catch (error) {
@@ -368,8 +372,8 @@ export const Dashboard = () => {
   const stats = [
     {
       name: 'Study Sessions',
-      value: studyStats.totalSessions.toString(),
-      change: studyStats.activeSessions > 0 ? `${studyStats.activeSessions} active` : 'No active sessions',
+      value: studyStats.joinedRoomsCount.toString(),
+      change: studyStats.totalTasksCount > 0 ? `${studyStats.totalTasksCount} tasks` : 'No tasks',
       icon: Users,
       color: 'text-primary-400'
     },
