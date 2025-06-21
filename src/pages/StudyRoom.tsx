@@ -9,7 +9,7 @@ import {
   Users, Settings, MessageSquare, Plus, Play, Pause, RotateCcw, 
   Clock, CheckCircle, Circle, AlertCircle, Send, Mic, MicOff,
   Video, VideoOff, MoreVertical, Edit3, Trash2, User, Timer,
-  Volume2, VolumeX, ArrowLeft, Crown, Dot
+  Volume2, VolumeX, ArrowLeft, Crown, Dot, Menu
 } from 'lucide-react'
 import { Task, ChatMessage, StudySession, User as UserType, Room, TaskStatus, TaskPriority } from '../types'
 import { TaskItem } from '../components/room/TaskItem'
@@ -98,6 +98,8 @@ const StudyRoomContent = ({
   clearAchievement: () => void
 }) => {
   const { sendActivityMessage } = useChat()
+  const [showMembers, setShowMembers] = useState(false)
+  const [showChat, setShowChat] = useState(false)
 
   // Enhanced task handlers with activity messages and user status tracking
   const handleTaskComplete = async (taskId: string, updates: Partial<Task>): Promise<void> => {
@@ -154,37 +156,61 @@ const StudyRoomContent = ({
   const progressPercentage = totalTasks > 0 ? (completedTasksCount / totalTasks) * 100 : 0
 
   return (
-    <div className="min-h-screen bg-hero-gradient">
-      {/* Room Header */}
-      <RoomHeader 
-        room={room}
-        onBack={onBack}
-        audioEnabled={audioEnabled}
-        micEnabled={micEnabled}
-        videoEnabled={videoEnabled}
-        onToggleAudio={onToggleAudio}
-        onToggleMic={onToggleMic}
-        onToggleVideo={onToggleVideo}
-      />
-
-      <div className="flex h-[calc(100vh-80px)]">
-        {/* Left Sidebar - Members */}
-        <div className="w-64 bg-card-gradient backdrop-blur-xl border-r border-dark-700/50">
+    <div className="min-h-screen bg-hero-gradient relative w-full max-w-full overflow-x-hidden">
+      {/* Room Header + Mobile Menu */}
+      <div className="relative w-full max-w-full overflow-x-hidden">
+        <RoomHeader 
+          room={room}
+          onBack={onBack}
+          audioEnabled={audioEnabled}
+          micEnabled={micEnabled}
+          videoEnabled={videoEnabled}
+          onToggleAudio={onToggleAudio}
+          onToggleMic={onToggleMic}
+          onToggleVideo={onToggleVideo}
+        />
+        <div className="flex gap-2 sm:hidden absolute right-2 top-1/2 -translate-y-1/2 z-30">
+          {/* Floating Chat Button */}
+          <button
+            className="relative bg-primary-600 rounded-full p-3 shadow-lg flex items-center justify-center"
+            onClick={() => setShowChat(true)}
+            aria-label="Open Chat"
+          >
+            <MessageSquare className="w-5 h-5 text-white" />
+            {/* Example badge for new messages */}
+            {/* <span className="absolute -top-1 -right-1 bg-red-500 text-xs text-white rounded-full px-1.5 py-0.5">2</span> */}
+          </button>
+        </div>
+      </div>
+      {/* Mobile Chat Drawer */}
+      <div className={`fixed inset-0 z-50 bg-black/60 transition-all duration-300 ${showChat ? 'block' : 'hidden'}`} onClick={() => setShowChat(false)} />
+      <div className={`fixed right-0 top-0 h-full w-full max-w-full bg-card-gradient z-50 shadow-xl transition-transform duration-300 ${showChat ? 'translate-x-0' : 'translate-x-full'} sm:hidden`}>
+        <div className="flex items-center justify-between p-4 border-b border-dark-700/50">
+          <h3 className="text-lg font-semibold text-white">Chat</h3>
+          <Button variant="ghost" size="sm" icon={Menu} onClick={() => setShowChat(false)} />
+        </div>
+        <div className="h-[calc(100vh-64px)] overflow-y-auto custom-scrollbar">
+          <ChatArea currentUser={currentUser} roomId={roomId || ''} />
+        </div>
+      </div>
+      {/* Main Layout */}
+      <div className="flex h-[calc(100vh-80px)] sm:flex-row flex-col w-full max-w-full overflow-x-hidden">
+        {/* Left Sidebar - Members (hidden on mobile) */}
+        <div className="w-64 bg-card-gradient backdrop-blur-xl border-r border-dark-700/50 hidden sm:block">
           <MemberList 
             members={room.members}
             currentUserId={currentUser.id}
             adminId={room.adminId}
           />
         </div>
-
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0 w-full max-w-full overflow-x-hidden">
           {/* Study Plan Header */}
-          <div className="p-6 border-b border-dark-700/50 bg-dark-900/50">
-            <div className="flex items-center justify-between mb-4">
+          <div className="p-3 sm:p-6 border-b border-dark-700/50 bg-dark-900/50 w-full max-w-full">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 w-full max-w-full">
               <div>
-                <h2 className="text-xl font-semibold text-white">Study Plan</h2>
-                <p className="text-dark-300 text-sm">
+                <h2 className="text-lg sm:text-xl font-semibold text-white">Study Plan</h2>
+                <p className="text-xs sm:text-sm text-dark-300">
                   {completedTasksCount} of {totalTasks} tasks completed
                 </p>
               </div>
@@ -192,11 +218,11 @@ const StudyRoomContent = ({
                 onClick={() => setShowAddTask(true)}
                 icon={Plus}
                 size="sm"
+                className="w-full sm:w-auto"
               >
                 Add Task
               </Button>
             </div>
-
             {/* Progress Bar */}
             <div className="w-full bg-dark-700 rounded-full h-2">
               <div 
@@ -205,9 +231,8 @@ const StudyRoomContent = ({
               />
             </div>
           </div>
-
           {/* Tasks List */}
-          <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
+          <div className="flex-1 p-3 sm:p-6 overflow-y-auto custom-scrollbar w-full max-w-full pb-24 sm:pb-0">
             {showAddTask && (
               <Card className="mb-4 animate-slide-down">
                 <div className="flex flex-col gap-3">
@@ -216,29 +241,29 @@ const StudyRoomContent = ({
                     value={newTaskTitle}
                     onChange={(e) => setNewTaskTitle(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleTaskCreate()}
-                    className="flex-1"
+                    className="flex-1 text-sm py-2"
                   />
                   <textarea
                     placeholder="Enter task description (optional)..."
                     value={newTaskDescription}
                     onChange={(e) => setNewTaskDescription(e.target.value)}
                     rows={2}
-                    className="w-full px-3 py-2 bg-dark-800/50 border border-dark-700 rounded-lg text-white placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 resize-none"
+                    className="w-full px-3 py-2 bg-dark-800/50 border border-dark-700 rounded-lg text-white placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 resize-none text-sm"
                   />
-                  <div className="flex items-center space-x-3">
-                    <label className="text-sm text-dark-400">Priority:</label>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                    <label className="text-xs sm:text-sm text-dark-400">Priority:</label>
                     <select
                       value={newTaskPriority}
                       onChange={e => setNewTaskPriority(e.target.value as TaskPriority)}
-                      className="px-2 py-1 rounded border"
+                      className="px-2 py-1 rounded border text-xs sm:text-sm w-full sm:w-auto"
                     >
                       <option value="High">High</option>
                       <option value="Medium">Medium</option>
                       <option value="Low">Low</option>
                     </select>
                   </div>
-                  <div className="flex gap-3">
-                    <Button onClick={handleTaskCreate} disabled={!newTaskTitle.trim()}>
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                    <Button onClick={handleTaskCreate} disabled={!newTaskTitle.trim()} className="text-xs sm:text-sm py-2 w-full sm:w-auto">
                       Add
                     </Button>
                     <Button 
@@ -249,6 +274,7 @@ const StudyRoomContent = ({
                         setNewTaskDescription('')
                         setNewTaskPriority('Medium')
                       }}
+                      className="text-xs sm:text-sm py-2 w-full sm:w-auto"
                     >
                       Cancel
                     </Button>
@@ -256,8 +282,7 @@ const StudyRoomContent = ({
                 </div>
               </Card>
             )}
-
-            <div className="space-y-3">
+            <div className="space-y-3 w-full max-w-full">
               {tasks
                 .sort((a: Task, b: Task) => a.order - b.order)
                 .map((task: Task, index: number) => (
@@ -272,31 +297,28 @@ const StudyRoomContent = ({
                   />
                 ))}
             </div>
-
             {tasks.length === 0 && (
-              <div className="text-center py-12">
-                <CheckCircle className="w-16 h-16 text-dark-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-white mb-2">No tasks yet</h3>
-                <p className="text-dark-300 mb-4">Add your first task to get started</p>
-                <Button onClick={() => setShowAddTask(true)} icon={Plus}>
+              <div className="text-center py-8 sm:py-12">
+                <CheckCircle className="w-12 h-12 sm:w-16 sm:h-16 text-dark-400 mx-auto mb-3 sm:mb-4" />
+                <h3 className="text-base sm:text-lg font-semibold text-white mb-1 sm:mb-2">No tasks yet</h3>
+                <p className="text-dark-300 text-xs sm:text-base mb-3 sm:mb-4">Add your first task to get started</p>
+                <Button onClick={() => setShowAddTask(true)} icon={Plus} className="w-full sm:w-auto text-xs sm:text-sm py-2">
                   Add Task
                 </Button>
               </div>
             )}
           </div>
         </div>
-
-        {/* Right Sidebar - Chat */}
-        <div className="w-80 bg-card-gradient backdrop-blur-xl border-l border-dark-700/50">
+        {/* Right Sidebar - Chat (hidden on mobile) */}
+        <div className="w-80 bg-card-gradient backdrop-blur-xl border-l border-dark-700/50 hidden sm:block">
           <ChatArea
             currentUser={currentUser}
             roomId={roomId || ''}
           />
         </div>
       </div>
-
-      {/* Bottom Timer Bar */}
-      <div className="h-20 bg-dark-900/90 backdrop-blur-xl border-t border-dark-700/50">
+      {/* Bottom Timer Bar (fixed only on mobile) */}
+      <div className="h-20 bg-dark-900/90 backdrop-blur-xl border-t border-dark-700/50 w-full max-w-full sm:static z-40 fixed bottom-0 left-0 sm:relative sm:z-auto">
         <TimerControls
           timerState={timerState}
           onToggleTimer={timerState.isRunning ? handleTimerStop : handleTimerStart}
@@ -308,7 +330,6 @@ const StudyRoomContent = ({
           userTodayFocusTime={userTodayFocusTime}
         />
       </div>
-
       {/* Gamification Notifications */}
       <PointsNotification
         points={pendingNotification?.points || 0}
@@ -316,7 +337,6 @@ const StudyRoomContent = ({
         isVisible={!!pendingNotification}
         onComplete={clearNotification}
       />
-
       <AchievementUnlock
         achievement={pendingAchievement}
         isOpen={!!pendingAchievement}

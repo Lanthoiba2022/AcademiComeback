@@ -181,4 +181,17 @@ html {
 .animate-slide-down {
   animation: slide-down 0.3s ease-out;
 }
+
+@media (min-width: 640px) {
+  /* Chrome, Safari, Edge, Opera */
+  input[type=number].hide-spin::-webkit-inner-spin-button,
+  input[type=number].hide-spin::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  /* Firefox */
+  input[type=number].hide-spin {
+    -moz-appearance: textfield;
+  }
+}
   

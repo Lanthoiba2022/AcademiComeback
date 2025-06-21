@@ -72,12 +72,11 @@ export const TimerControls = ({
 
   return (
     <>
-      <div className="flex items-center justify-between px-6 h-full">
+      <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between px-0.5 sm:px-6 h-full w-full bg-dark-900/95 sm:bg-transparent border-t border-dark-700/70 sm:border-none shadow-lg sm:shadow-none">
         {/* Timer Display */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center justify-center gap-0.5 sm:gap-4 w-full sm:w-auto py-0">
           <div className="relative">
-            {/* Circular Progress */}
-            <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 100 100">
+            <svg className="w-7 h-7 sm:w-16 sm:h-16 transform -rotate-90" viewBox="0 0 100 100">
               <circle
                 cx="50"
                 cy="50"
@@ -102,87 +101,81 @@ export const TimerControls = ({
                 strokeLinecap="round"
               />
             </svg>
-            
-            {/* Timer Icon */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <Timer className={`w-6 h-6 ${
+              <Timer className={`w-3.5 h-3.5 sm:w-6 sm:h-6 ${
                 timerState.mode === 'work' ? 'text-primary-400' : 'text-accent-400'
               }`} />
             </div>
           </div>
-
           <div>
-            <div className="text-2xl font-mono font-bold text-white">
+            <div className="text-base sm:text-2xl font-mono font-bold text-white">
               {formatTime(timerState.minutes, timerState.seconds)}
             </div>
-            <div className="text-sm text-dark-300">
+            <div className="text-[10px] sm:text-sm text-dark-200">
               {timerState.label || (timerState.mode === 'work' ? 'Focus Time' : 'Break Time')}
               {timerState.mode === 'work' && (
                 <span> • Cycle {timerState.cycle}/{timerState.totalCycles}</span>
               )}
             </div>
             {sessionElapsedMinutes > 0 && (
-              <div className="text-xs text-dark-400">
+              <div className="text-[10px] sm:text-xs text-dark-400">
                 Session: {formatDuration(sessionElapsedMinutes)}
               </div>
             )}
           </div>
         </div>
-
         {/* Timer Controls */}
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap justify-center gap-0.5 sm:flex-nowrap sm:items-center sm:space-x-3 w-full sm:w-auto mt-0.5">
           <Button
             variant={timerState.isRunning ? "outline" : "primary"}
-            size="lg"
+            size="sm"
             icon={timerState.isRunning ? Pause : Play}
             onClick={onToggleTimer}
+            className="px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-base"
           >
             {timerState.isRunning ? 'Pause' : 'Start'}
           </Button>
-          
           <Button
             variant="outline"
-            size="lg"
+            size="sm"
             icon={RotateCcw}
             onClick={onResetTimer}
+            className="px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-base"
           >
             Reset
           </Button>
-
           <Button
             variant="outline"
-            size="lg"
+            size="sm"
             icon={Settings}
             onClick={() => setIsCustomTimerModalOpen(true)}
             title="Custom Timer"
+            className="px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-base"
           >
             Custom
           </Button>
-
-          <div className="h-8 w-px bg-dark-600 mx-2" />
-
+          <div className="h-8 w-px bg-dark-600 mx-2 hidden sm:block" />
           <Button
             variant={audioEnabled ? "primary" : "outline"}
             size="sm"
             icon={audioEnabled ? Volume2 : VolumeX}
             onClick={onToggleAudio}
             title="Toggle audio notifications"
+            className="px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-base"
           />
         </div>
-
         {/* Study Stats */}
-        <div className="text-right space-y-1">
-          <div className="flex items-center">
+        <div className="text-center sm:text-right space-y-0.5 w-full sm:w-auto mt-0.5">
+          <div className="flex items-center justify-center sm:justify-end">
             <div>
-              <div className="text-lg font-semibold text-white">
+              <div className="text-[10px] sm:text-lg font-semibold text-white">
                 {formatDuration(userTodayFocusTime)}
               </div>
-              <div className="text-sm text-dark-300">Your focus today</div>
+              <div className="text-[10px] sm:text-sm text-dark-300">Your focus today</div>
             </div>
           </div>
         </div>
       </div>
-
       {/* Custom Timer Modal */}
       <CustomTimerModal
         isOpen={isCustomTimerModalOpen}
@@ -272,15 +265,34 @@ export const CustomTimerModal = ({ isOpen, onClose, onSubmit }: CustomTimerModal
             <label className="block text-xs font-medium text-dark-300 mb-1">
               Cycles
             </label>
-            <input
-              type="number"
-              min="1"
-              max="12"
-              value={cycles}
-              onChange={(e) => setCycles(Math.max(1, Math.min(12, parseInt(e.target.value) || 1)))}
-              className="w-full px-2 py-1.5 bg-dark-700 border border-dark-600 rounded-lg text-white focus:outline-none focus:border-primary-500 text-sm"
-              placeholder="Cycles"
-            />
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                className="px-2 py-1 rounded bg-dark-600 text-white text-xs focus:outline-none"
+                onClick={() => setCycles(c => Math.max(1, c - 1))}
+                tabIndex={-1}
+              >-</button>
+              <input
+                type="number"
+                min="1"
+                max="12"
+                value={cycles}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value)
+                  setCycles(isNaN(val) ? 1 : Math.max(1, Math.min(12, val)))
+                }}
+                className="w-10 px-2 py-1.5 bg-dark-700 border border-dark-600 rounded-lg text-white focus:outline-none focus:border-primary-500 text-sm text-center hide-spin"
+                placeholder="Cycles"
+                inputMode="numeric"
+                pattern="[0-9]*"
+              />
+              <button
+                type="button"
+                className="px-2 py-1 rounded bg-dark-600 text-white text-xs focus:outline-none"
+                onClick={() => setCycles(c => Math.min(12, c + 1))}
+                tabIndex={-1}
+              >+</button>
+            </div>
           </div>
         </div>
         <div>
