@@ -135,7 +135,7 @@ export const AnalyticsDashboard = ({ analytics, timeframe, onTimeframeChange }: 
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex space-x-1 overflow-x-auto">
+      <div className="flex space-x-1 overflow-x-auto custom-scrollbar">
         {tabs.map((tab) => {
           const Icon = tab.icon
           return (

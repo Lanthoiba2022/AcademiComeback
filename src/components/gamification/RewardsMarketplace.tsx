@@ -59,7 +59,7 @@ export const RewardsMarketplace = ({
       </div>
 
       {/* Category Filter */}
-      <div className="flex space-x-2 overflow-x-auto pb-2">
+      <div className="flex space-x-2 overflow-x-auto pb-2 custom-scrollbar">
         {categories.map((category) => {
           const Icon = category.icon
           return (

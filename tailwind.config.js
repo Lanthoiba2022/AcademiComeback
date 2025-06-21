@@ -57,7 +57,7 @@ export default {
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
-        'hero-gradient': 'linear-gradient(135deg, #0f172a 0%, #1e293b 25%, #334155 50%, #1e293b 75%, #0f172a 100%)',
+        'hero-gradient': 'linear-gradient(135deg, #0A0E14 0%, #10141c 50%, #0A0E14 100%)',
         'card-gradient': 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.4) 100%)',
         'button-gradient': 'linear-gradient(135deg, #0ea5e9 0%, #d946ef 50%, #14b8a6 100%)',
       },

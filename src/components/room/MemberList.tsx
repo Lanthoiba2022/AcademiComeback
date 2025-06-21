@@ -60,7 +60,7 @@ export const MemberList = ({ members, currentUserId, adminId }: MemberListProps)
         </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-1">
+      <div className="flex-1 overflow-y-auto space-y-1 custom-scrollbar">
         {/* Online Members */}
         {onlineMembers.length > 0 && (
           <div className="mb-4">
