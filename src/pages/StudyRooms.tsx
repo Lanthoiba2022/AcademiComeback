@@ -15,7 +15,7 @@ import {
 import { useAuth } from '../contexts/AuthContext'
 import { 
   getRooms, getProfile, createRoom, joinRoomWithCode, createProfile,
-  subscribeToRooms, subscribeToUserStats
+  subscribeToRooms, subscribeToUserStats, joinRoom
 } from '../lib/supabase'
 import { Room, RoomFilters as RoomFiltersType, User, Profile, RoomData } from '../types'
 
@@ -181,13 +181,12 @@ export const StudyRooms = () => {
     if (!user) return
 
     try {
-      const { error } = await joinRoomWithCode(roomId, user.id)
-      
+      // Use joinRoom for direct joins by roomId (public rooms)
+      const { data, error } = await joinRoom(roomId, user.id)
       if (error) {
         console.error('Error joining room:', error)
         return
       }
-      
       navigate(`/room/${roomId}`)
     } catch (error) {
       console.error('Error joining room:', error)
@@ -522,7 +521,7 @@ export const StudyRooms = () => {
                     >
                       <RoomCard
                         room={room}
-                        onJoinRoom={handleJoinRoomById}
+                        onJoinRoom={() => handleJoinRoomById(room.id)}
                         onViewRoom={handleViewRoom}
                         currentUserId={user.id}
                       />
