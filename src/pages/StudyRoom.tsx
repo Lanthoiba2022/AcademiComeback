@@ -620,9 +620,41 @@ export const StudyRoom = () => {
       }
     })
 
+    // Handle page unload to mark user as offline
+    const handleBeforeUnload = async () => {
+      if (authUser && roomId) {
+        try {
+          // Use navigator.sendBeacon for reliable delivery during page unload
+          const data = {
+            room_id: roomId,
+            user_id: authUser.id,
+            status: 'offline',
+            last_seen: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+          
+          // Send to a cleanup endpoint or directly to Supabase
+          navigator.sendBeacon(
+            `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/chat_presence`,
+            JSON.stringify(data)
+          )
+        } catch (error) {
+          console.error('Error marking user offline on page unload:', error)
+        }
+      }
+    }
+
+    // Add event listeners for page unload
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    window.addEventListener('pagehide', handleBeforeUnload)
+
     // Cleanup function
     return () => {
       console.log('🧹 Cleaning up room subscriptions...')
+      
+      // Remove event listeners
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      window.removeEventListener('pagehide', handleBeforeUnload)
       
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe()

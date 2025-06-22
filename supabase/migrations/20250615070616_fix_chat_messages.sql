@@ -396,4 +396,45 @@ SELECT
 FROM rooms r
 WHERE NOT EXISTS (
     SELECT 1 FROM chat_settings cs WHERE cs.room_id = r.id AND cs.setting_key = 'default_settings'
-); 
+);
+
+-- Create function to clean up old presence records
+CREATE OR REPLACE FUNCTION cleanup_stale_presence()
+RETURNS void AS $$
+BEGIN
+    -- Mark users as offline if they haven't been active for more than 5 minutes
+    UPDATE chat_presence 
+    SET status = 'offline', updated_at = NOW()
+    WHERE status = 'online' 
+    AND updated_at < NOW() - INTERVAL '5 minutes';
+    
+    -- Log the cleanup
+    RAISE NOTICE 'Cleaned up stale presence records';
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create a scheduled job to run cleanup every 2 minutes (optional)
+-- You can set this up in Supabase dashboard under Database > Functions > Scheduled Functions
+-- SELECT cron.schedule('cleanup-stale-presence', '*/2 * * * *', 'SELECT cleanup_stale_presence();');
+
+-- Create function to get online members for a room
+CREATE OR REPLACE FUNCTION get_online_members(room_uuid UUID)
+RETURNS TABLE(
+    user_id UUID,
+    user_name TEXT,
+    last_seen TIMESTAMP WITH TIME ZONE
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        cp.user_id,
+        p.full_name as user_name,
+        cp.last_seen
+    FROM chat_presence cp
+    JOIN profiles p ON p.id = cp.user_id
+    WHERE cp.room_id = room_uuid 
+    AND cp.status = 'online'
+    AND cp.updated_at > NOW() - INTERVAL '5 minutes'
+    ORDER BY cp.last_seen DESC;
+END;
+$$ LANGUAGE plpgsql; 

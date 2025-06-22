@@ -1,5 +1,6 @@
 import { Crown, Dot, User } from 'lucide-react'
 import { User as UserType } from '../../types'
+import { useChat } from '../../contexts/ChatContext'
 
 interface MemberListProps {
   members: UserType[]
@@ -8,8 +9,11 @@ interface MemberListProps {
 }
 
 export const MemberList = ({ members, currentUserId, adminId }: MemberListProps) => {
-  const onlineMembers = members.filter(() => Math.random() > 0.3) // Mock online status
-  const offlineMembers = members.filter(member => !onlineMembers.includes(member))
+  const { isUserOnline } = useChat()
+  
+  // Use real online status from ChatContext
+  const onlineMembers = members.filter(member => isUserOnline(member.id))
+  const offlineMembers = members.filter(member => !isUserOnline(member.id))
 
   const MemberItem = ({ member, isOnline }: { member: UserType; isOnline: boolean }) => (
     <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-dark-800/50 transition-colors duration-200">
