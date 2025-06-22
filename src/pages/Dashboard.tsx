@@ -18,7 +18,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useGamification } from '../hooks/useGamification'
 import { 
   getRooms, getProfile, createRoom, joinRoomWithCode, createProfile,
-  getUserStudyStats, subscribeToRooms, subscribeToUserStats
+  getUserStudyStats, subscribeToRooms, subscribeToUserStats, joinRoom
 } from '../lib/supabase'
 import { getRankProgress, getRankColor } from '../utils/roomUtils'
 import { Room, RoomFilters as RoomFiltersType, User, RoomData, Profile } from '../types'
@@ -452,9 +452,15 @@ export const Dashboard = () => {
   }
 
   const handleJoinRoomById = async (roomId: string) => {
+    if (!user) return
+
     try {
-      // For direct room joins (from room cards), we still use the old method
-      // since we already have the room ID
+      // Use joinRoom for direct joins by roomId (public rooms)
+      const { data, error } = await joinRoom(roomId, user.id)
+      if (error) {
+        console.error('Error joining room:', error)
+        return
+      }
       navigate(`/room/${roomId}`)
     } catch (error) {
       console.error('Error joining room:', error)
