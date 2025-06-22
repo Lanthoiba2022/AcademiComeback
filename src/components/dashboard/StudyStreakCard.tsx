@@ -7,6 +7,7 @@ import { StreakStats } from '../../hooks/useStudyStreak'
 interface StudyStreakCardProps {
   streakStats: StreakStats
   todayMinutes: number
+  totalVisitDays?: number
   loading?: boolean
   error?: string | null
   onViewHeatmap: () => void
@@ -16,6 +17,7 @@ interface StudyStreakCardProps {
 export const StudyStreakCard: React.FC<StudyStreakCardProps> = ({
   streakStats,
   todayMinutes,
+  totalVisitDays,
   loading,
   error,
   onViewHeatmap,
@@ -135,7 +137,7 @@ export const StudyStreakCard: React.FC<StudyStreakCardProps> = ({
                 <div className="flex items-center justify-center w-8 h-8 bg-dark-800 rounded-lg mx-auto mb-2">
                   <Calendar className="w-4 h-4 text-secondary-400" />
                 </div>
-                <p className="text-lg font-semibold text-white">{streakStats.totalStudyDays}</p>
+                <p className="text-lg font-semibold text-white">{totalVisitDays || streakStats.totalStudyDays}</p>
                 <p className="text-xs text-dark-400">Total days</p>
               </div>
               

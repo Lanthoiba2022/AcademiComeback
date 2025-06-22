@@ -52,7 +52,8 @@ export const Dashboard = () => {
     thisWeekFocusMinutes: 0,
     currentStreakDays: 0,
     joinedRoomsCount: 0,
-    totalTasksCount: 0
+    totalTasksCount: 0,
+    totalVisitDays: 0
   })
   const [loading, setLoading] = useState(true)
   const [createRoomModal, setCreateRoomModal] = useState(false)
@@ -187,7 +188,8 @@ export const Dashboard = () => {
           thisWeekFocusMinutes: Number(stats.this_week_focus_minutes) || 0,
           currentStreakDays: Number(stats.current_streak_days) || 0,
           joinedRoomsCount: Number(stats.joined_rooms_count) || 0,
-          totalTasksCount: Number(stats.total_tasks_count) || 0
+          totalTasksCount: Number(stats.total_tasks_count) || 0,
+          totalVisitDays: Number(stats.total_visit_days) || 0
         })
       }
     } catch (error) {
@@ -440,8 +442,9 @@ export const Dashboard = () => {
       if (data?.room_id) {
         setJoinRoomModal(false)
         
-        // Navigate to the room
-        navigate(`/room/${data.room_id}`)
+        // Navigate to the room, passing the new member data to ensure
+        // the user is immediately recognized as a member.
+        navigate(`/room/${data.room_id}`, { state: { newMember: data.member } })
       }
     } catch (error) {
       console.error('Error joining room:', error)
@@ -541,6 +544,7 @@ export const Dashboard = () => {
           <StudyStreakCard
             streakStats={streakStats}
             todayMinutes={todayStudyMinutes}
+            totalVisitDays={studyStats.totalVisitDays}
             loading={streakLoading}
             error={streakError}
             onViewHeatmap={() => setShowHeatmapModal(true)}
