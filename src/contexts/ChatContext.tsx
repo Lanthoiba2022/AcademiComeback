@@ -31,6 +31,7 @@ interface ChatState {
   lastReadMessageId: string | null
   isSearching: boolean
   isLoading: boolean
+  onlineMembers: string[]
 }
 
 type ChatAction =
@@ -55,6 +56,9 @@ type ChatAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'ADD_REACTION'; payload: { messageId: string; reaction: MessageReaction } }
   | { type: 'REMOVE_REACTION'; payload: { messageId: string; userId: string; emoji: string } }
+  | { type: 'SET_ONLINE_MEMBERS'; payload: string[] }
+  | { type: 'ADD_ONLINE_MEMBER'; payload: string }
+  | { type: 'REMOVE_ONLINE_MEMBER'; payload: string }
 
 const initialState: ChatState = {
   messages: [],
@@ -67,6 +71,7 @@ const initialState: ChatState = {
     search: '',
     dateRange: { start: '', end: '' },
     messageType: [],
+    userId: undefined,
     hasReactions: false,
     hasAttachments: false,
     isEdited: false
@@ -74,7 +79,8 @@ const initialState: ChatState = {
   unreadCount: 0,
   lastReadMessageId: null,
   isSearching: false,
-  isLoading: false
+  isLoading: false,
+  onlineMembers: []
 }
 
 const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
@@ -207,6 +213,26 @@ const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
         )
       }
     
+    case 'SET_ONLINE_MEMBERS':
+      return {
+        ...state,
+        onlineMembers: action.payload
+      }
+    
+    case 'ADD_ONLINE_MEMBER':
+      return {
+        ...state,
+        onlineMembers: state.onlineMembers.includes(action.payload) 
+          ? state.onlineMembers 
+          : [...state.onlineMembers, action.payload]
+      }
+    
+    case 'REMOVE_ONLINE_MEMBER':
+      return {
+        ...state,
+        onlineMembers: state.onlineMembers.filter(id => id !== action.payload)
+      }
+    
     default:
       return state
   }
@@ -226,6 +252,7 @@ interface ChatContextType {
   connect: (roomId: string, userId: string) => Promise<void>
   disconnect: () => void
   sendActivityMessage: (activityType: string, details: any) => Promise<void>
+  isUserOnline: (userId: string) => boolean
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined)
@@ -254,6 +281,77 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
   const [state, dispatch] = useReducer(chatReducer, initialState)
   const wsServiceRef = useRef<any>(null)
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const presenceSubscriptionRef = useRef<any>(null)
+
+  // Load online members for the room
+  const loadOnlineMembers = useCallback(async () => {
+    if (!roomId) return
+    
+    try {
+      console.log('👥 Loading online members for room:', roomId)
+      
+      const { data: presenceData, error } = await supabase
+        .from('chat_presence')
+        .select('user_id')
+        .eq('room_id', roomId)
+        .eq('status', 'online')
+        .gt('updated_at', new Date(Date.now() - 5 * 60 * 1000).toISOString()) // Only consider users active in last 5 minutes
+
+      if (error) {
+        console.error('Error loading online members:', error)
+        return
+      }
+
+      const onlineUserIds = presenceData?.map(p => p.user_id) || []
+      dispatch({ type: 'SET_ONLINE_MEMBERS', payload: onlineUserIds })
+      console.log('👥 Online members loaded:', onlineUserIds.length)
+      
+    } catch (error) {
+      console.error('Failed to load online members:', error)
+    }
+  }, [roomId])
+
+  // Subscribe to presence changes
+  const subscribeToPresence = useCallback(() => {
+    if (!roomId) return
+
+    console.log('🔗 Subscribing to presence changes for room:', roomId)
+    
+    presenceSubscriptionRef.current = supabase
+      .channel(`presence_${roomId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'chat_presence',
+          filter: `room_id=eq.${roomId}`
+        },
+        (payload) => {
+          console.log('👥 Presence change received:', payload)
+          
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const userId = payload.new?.user_id
+            const status = payload.new?.status
+            
+            if (userId && status === 'online') {
+              dispatch({ type: 'ADD_ONLINE_MEMBER', payload: userId })
+            } else if (userId && status === 'offline') {
+              dispatch({ type: 'REMOVE_ONLINE_MEMBER', payload: userId })
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const userId = payload.old?.user_id
+            if (userId) {
+              dispatch({ type: 'REMOVE_ONLINE_MEMBER', payload: userId })
+            }
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Presence subscription status:', status)
+      })
+
+  }, [roomId])
 
   const connectToWebSocket = useCallback(async () => {
     if (!roomId || !currentUser.id) return
@@ -265,6 +363,12 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
       
       // Load existing messages for this room
       await loadExistingMessages()
+      
+      // Load online members
+      await loadOnlineMembers()
+      
+      // Subscribe to presence changes
+      subscribeToPresence()
       
       // Join the room (update presence)
       await joinRoom()
@@ -422,16 +526,25 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
         }
       })
     }
-  }, [roomId, currentUser])
+  }, [roomId, currentUser, loadOnlineMembers, subscribeToPresence])
 
   const disconnect = useCallback(() => {
     if (wsServiceRef.current) {
       wsServiceRef.current.disconnect()
       wsServiceRef.current = null
     }
+    
+    // Unsubscribe from presence
+    if (presenceSubscriptionRef.current) {
+      presenceSubscriptionRef.current.unsubscribe()
+      presenceSubscriptionRef.current = null
+    }
+    
     disconnectWebSocket()
     // Clear messages when disconnecting
     dispatch({ type: 'SET_MESSAGES', payload: [] })
+    // Clear online members
+    dispatch({ type: 'SET_ONLINE_MEMBERS', payload: [] })
     // Leave the room
     leaveRoom()
   }, [])
@@ -457,6 +570,9 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
 
       if (error) {
         console.error('Error updating presence:', error)
+      } else {
+        // Add current user to online members
+        dispatch({ type: 'ADD_ONLINE_MEMBER', payload: currentUser.id })
       }
 
       // Send join activity message
@@ -503,6 +619,9 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
 
       if (error) {
         console.error('Error updating presence:', error)
+      } else {
+        // Remove current user from online members
+        dispatch({ type: 'REMOVE_ONLINE_MEMBER', payload: currentUser.id })
       }
       
     } catch (error) {
@@ -808,6 +927,11 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
     }
   }, [roomId])
 
+  // Check if a user is online
+  const isUserOnline = useCallback((userId: string): boolean => {
+    return state.onlineMembers.includes(userId)
+  }, [state.onlineMembers])
+
   // Connect on mount
   useEffect(() => {
     if (roomId && currentUser.id) {
@@ -905,7 +1029,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
     clearErrors,
     connect: connectToWebSocket,
     disconnect,
-    sendActivityMessage
+    sendActivityMessage,
+    isUserOnline
   }
 
   return (
