@@ -12,8 +12,21 @@ export const MemberList = ({ members, currentUserId, adminId }: MemberListProps)
   const { isUserOnline } = useChat()
   
   // Use real online status from ChatContext
-  const onlineMembers = members.filter(member => isUserOnline(member.id))
-  const offlineMembers = members.filter(member => !isUserOnline(member.id))
+  const onlineMembers = members
+    .filter(member => isUserOnline(member.id))
+    .sort((a, b) => {
+      if (a.id === currentUserId) return -1
+      if (b.id === currentUserId) return 1
+      return a.name.localeCompare(b.name)
+    })
+
+  const offlineMembers = members
+    .filter(member => !isUserOnline(member.id))
+    .sort((a, b) => {
+      if (a.id === currentUserId) return -1
+      if (b.id === currentUserId) return 1
+      return a.name.localeCompare(b.name)
+    })
 
   const MemberItem = ({ member, isOnline }: { member: UserType; isOnline: boolean }) => (
     <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-dark-800/50 transition-colors duration-200">

@@ -161,6 +161,7 @@ const StudyRoomContent = ({
       <div className="relative w-full max-w-full overflow-x-hidden">
         <RoomHeader 
           room={room}
+          currentUser={currentUser}
           onBack={onBack}
           audioEnabled={audioEnabled}
           micEnabled={micEnabled}

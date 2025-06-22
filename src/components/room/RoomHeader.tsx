@@ -3,13 +3,14 @@ import {
   ArrowLeft, Settings, Users, Crown, Mic, MicOff, 
   Video, VideoOff, Volume2, VolumeX, MoreVertical 
 } from 'lucide-react'
-import { Room } from '../../types'
+import { Room, User } from '../../types'
 import { useState } from 'react'
 import { MemberList } from './MemberList'
 import { Modal } from '../ui/Modal'
 
 interface RoomHeaderProps {
   room: Room
+  currentUser: User
   onBack: () => void
   audioEnabled: boolean
   micEnabled: boolean
@@ -21,6 +22,7 @@ interface RoomHeaderProps {
 
 export const RoomHeader = ({ 
   room, 
+  currentUser,
   onBack, 
   audioEnabled, 
   micEnabled, 
@@ -116,7 +118,7 @@ export const RoomHeader = ({
       {/* Mobile: MemberList Modal */}
       <Modal isOpen={showMembers} onClose={() => setShowMembers(false)} title="Participants" size="sm">
         <div className="max-h-[60vh] overflow-y-auto">
-          <MemberList members={room.members} currentUserId={room.adminId} adminId={room.adminId} />
+          <MemberList members={room.members} currentUserId={currentUser.id} adminId={room.adminId} />
         </div>
       </Modal>
       {/* Mobile: Room Code Modal */}
