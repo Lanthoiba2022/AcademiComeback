@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Card } from '../components/ui/Card'
@@ -347,12 +347,14 @@ const StudyRoomContent = ({
 }
 
 export const StudyRoom = () => {
-  const { roomId } = useParams()
+  const { roomId } = useParams<{ roomId: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const { user: authUser } = useAuth()
   const {
-    awardTaskCompletion: useGamificationAwardTaskCompletion,
-    awardHelpGiven,
+    awardPoints,
+    awardTaskCompletion,
+    awardDailyStreak,
     pendingNotification,
     pendingAchievement,
     clearNotification,
@@ -371,7 +373,7 @@ export const StudyRoom = () => {
   const [studySession, setStudySession] = useState<StudySession | null>(null)
   const [roomTotalStudyTime, setRoomTotalStudyTime] = useState(0)
   const [userTodayFocusTime, setUserTodayFocusTime] = useState(0)
-  
+
   // Timer state
   const [timerState, setTimerState] = useState({
     minutes: 25,
@@ -394,6 +396,7 @@ export const StudyRoom = () => {
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const currentSessionId = useRef<string | null>(null)
   const sessionStartTime = useRef<Date | null>(null)
+  const roomRef = useRef<Room | null>(null)
 
   // Helper function to reload tasks with user data
   const reloadTasks = async () => {
@@ -424,11 +427,11 @@ export const StudyRoom = () => {
     }
   }
 
-  // Helper function to reload room data
-  const reloadRoomData = async () => {
+  const reloadRoomData = useCallback(async () => {
     if (!roomId) return
     
     try {
+      console.log('🔄 Reloading room data for room:', roomId)
       const { data: roomData, error: roomError } = await getRoomById(roomId)
       if (roomError || !roomData) {
         console.error('Error loading room:', roomError)
@@ -443,9 +446,9 @@ export const StudyRoom = () => {
         description: roomData.description,
         tags: roomData.tags,
         members: roomData.members?.map((member: any) => ({
-          id: member.user?.id || '',
+          id: member.user?.id || member.user_id || '',
           name: member.user?.full_name || 'User',
-          email: '',
+          email: member.user?.email || '',
           avatar: member.user?.avatar_url || undefined,
           totalPoints: member.user?.total_points || 0,
           rank: member.user?.rank || 'Beginner',
@@ -461,66 +464,81 @@ export const StudyRoom = () => {
       }
 
       setRoom(transformedRoom)
-      console.log('✅ Room data reloaded:', transformedRoom.name)
+      roomRef.current = transformedRoom
+      console.log('✅ Room data reloaded:', transformedRoom.name, 'Members:', transformedRoom.members.length)
     } catch (error) {
       console.error('Error reloading room data:', error)
     }
-  }
+  }, [roomId])
 
   // Load room data and setup real-time subscriptions
   useEffect(() => {
     if (!roomId || !authUser) return
 
-    const loadRoomData = async () => {
-      try {
-        console.log('🔄 Loading room data for room:', roomId)
-        
-        // Load current user profile
-        const { data: profile } = await getProfile(authUser.id)
-        if (profile) {
-          setCurrentUser({
-            id: profile.id,
-            name: profile.full_name || 'User',
-            email: authUser.email || '',
-            avatar: profile.avatar_url || undefined,
-            totalPoints: profile.total_points,
-            rank: profile.rank,
-            achievements: profile.achievements,
-            createdAt: profile.created_at
-          })
-        }
+    const loadInitialData = async () => {
+      setLoading(true)
+      console.log('🔄 Loading initial room data for room:', roomId)
 
-        // Load room data
-        await reloadRoomData()
-
-        // Load tasks
-        await reloadTasks()
-
-        // Load room total study time
-        const { data: totalTime } = await getRoomTotalStudyTime(roomId)
-        if (totalTime) {
-          setRoomTotalStudyTime(Number(totalTime))
-        }
-
-        // Load user today focus time
-        if (profile) {
-          getUserRoomTodayFocusTime(profile.id, roomId).then(({ data: todayFocus }) => {
-            setUserTodayFocusTime(Number(todayFocus) || 0)
-          })
-
-          // Update user presence
-          await updateUserPresence(roomId, profile.id, true)
-        }
-
-        setLoading(false)
-        console.log('✅ Room data loaded successfully')
-      } catch (error) {
-        console.error('Error loading room data:', error)
-        navigate('/dashboard')
+      const { data: profile } = await getProfile(authUser.id)
+      if (profile) {
+        setCurrentUser({
+          id: profile.id,
+          name: profile.full_name || 'User',
+          email: authUser.email || '',
+          avatar: profile.avatar_url || undefined,
+          totalPoints: profile.total_points,
+          rank: profile.rank,
+          achievements: profile.achievements,
+          createdAt: profile.created_at
+        })
       }
+
+      await reloadRoomData()
+      
+      // If a new member just joined (data passed from navigation),
+      // add them to the room state immediately to prevent race conditions.
+      if (location.state?.newMember && roomRef.current) {
+        const { newMember } = location.state
+        if (!roomRef.current.members.some(m => m.id === newMember.user.id)) {
+          const transformedMember = {
+            id: newMember.user.id,
+            name: newMember.user.full_name,
+            email: newMember.user.email || '',
+            avatar: newMember.user.avatar_url,
+            totalPoints: newMember.user.total_points,
+            rank: newMember.user.rank,
+            achievements: newMember.user.achievements,
+            createdAt: newMember.user.created_at
+          };
+          
+          setRoom(prevRoom => {
+            if (!prevRoom) return null;
+            const updatedMembers = [...prevRoom.members, transformedMember];
+            const updatedRoom = { ...prevRoom, members: updatedMembers };
+            roomRef.current = updatedRoom;
+            console.log('✅ Instantly added new member to room state:', transformedMember.name)
+            return updatedRoom;
+          });
+        }
+      }
+
+      // Load other data
+      await reloadTasks()
+      const { data: totalTime } = await getRoomTotalStudyTime(roomId)
+      setRoomTotalStudyTime(Number(totalTime) || 0)
+
+      if (profile) {
+        getUserRoomTodayFocusTime(profile.id, roomId).then(({ data: todayFocus }) => {
+          setUserTodayFocusTime(Number(todayFocus) || 0)
+        })
+        await updateUserPresence(roomId, profile.id, true)
+      }
+
+      setLoading(false)
+      console.log('✅ Initial room data loaded.')
     }
 
-    loadRoomData()
+    loadInitialData()
 
     // **ENHANCED real-time subscription with comprehensive callbacks**
     console.log('🔗 Setting up comprehensive real-time subscriptions...')
@@ -594,8 +612,8 @@ export const StudyRoom = () => {
       },
       
       onMemberChange: (payload) => {
-        console.log('👥 Member change received:', payload.eventType)
-        // Reload room data to get updated member list
+        console.log('👥 Member change received:', payload.eventType, payload.new || payload.old)
+        // Simple reload is sufficient now.
         reloadRoomData()
       },
       
@@ -672,10 +690,14 @@ export const StudyRoom = () => {
           const focusTime = Math.floor((Date.now() - sessionStartTime.current.getTime()) / 1000 / 60)
           const completedTasks = tasks.filter(t => t.status === 'Completed').length
           endStudySession(currentSessionId.current, focusTime, completedTasks)
+          // Award points for focus time
+          if (focusTime > 0) {
+            awardPoints(focusTime * 2, 'Focus Session', 'task_complete', { duration: focusTime })
+          }
         }
       }
     }
-  }, [roomId, authUser, navigate])
+  }, [roomId, authUser, reloadRoomData, location.state])
 
   // Timer effect
   useEffect(() => {
@@ -790,7 +812,7 @@ export const StudyRoom = () => {
         setShowAddTask(false)
         
         // Award points for task creation
-        useGamificationAwardTaskCompletion(10)
+        awardTaskCompletion(30)
         
         // Set all users' statuses to 'Todo' for the new task
         if (room && room.members) {
@@ -844,7 +866,7 @@ export const StudyRoom = () => {
         
         // Award points for task completion
         if (updates.status === 'Completed') {
-          useGamificationAwardTaskCompletion(50)
+          awardTaskCompletion(data.duration || 30)
         }
       }
     } catch (error) {
@@ -897,7 +919,7 @@ export const StudyRoom = () => {
           await endStudySession(currentSessionId.current, focusTime, completedTasks)
           // Award points for focus time
           if (focusTime > 0) {
-            useGamificationAwardTaskCompletion(focusTime * 2) // 2 points per minute
+            awardPoints(focusTime * 2, 'Focus Session', 'task_complete', { duration: focusTime })
           }
         }
         currentSessionId.current = null

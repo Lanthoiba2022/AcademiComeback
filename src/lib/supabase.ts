@@ -434,26 +434,35 @@ export const joinRoom = async (roomId: string, userId: string) => {
 }
 
 export const joinRoomWithCode = async (code: string, userId: string) => {
+  console.log('🔗 Attempting to join room with code:', code, 'for user:', userId)
+  
   const { data, error } = await supabase.rpc('join_room_with_code', {
     room_code: code.toUpperCase(),
     user_uuid: userId
   })
   
   if (error) {
+    console.error('❌ Error joining room with code:', error)
     return { data: null, error }
   }
   
-  const result = data?.[0]
+  const result = data
+  console.log('📋 Join room result:', result)
   
   if (!result?.success) {
+    console.error('❌ Failed to join room:', result?.message)
     return { 
       data: null, 
       error: { message: result?.message || 'Failed to join room' }
     }
   }
   
+  console.log('✅ Successfully joined room:', result.room_id)
   return { 
-    data: { room_id: result.room_id }, 
+    data: { 
+      room_id: result.room_id,
+      member: result.member 
+    }, 
     error: null 
   }
 }
@@ -653,11 +662,11 @@ export const subscribeToRoom = (roomId: string, callbacks: {
         console.log('📝 Task change detected:', payload)
         
         // Transform database status to UI status in the payload
-        if (payload.new) {
-          payload.new.status = dbStatusToUiStatus(payload.new.status)
+        if ((payload.new as any)?.status !== undefined) {
+          (payload.new as any).status = dbStatusToUiStatus((payload.new as any).status)
         }
-        if (payload.old) {
-          payload.old.status = dbStatusToUiStatus(payload.old.status)
+        if ((payload.old as any)?.status !== undefined) {
+          (payload.old as any).status = dbStatusToUiStatus((payload.old as any).status)
         }
         
         callbacks.onTaskChange!(payload)
