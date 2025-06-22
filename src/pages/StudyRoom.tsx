@@ -722,6 +722,31 @@ export const StudyRoom = () => {
               // Here you could play a sound notification
             }
             
+            // Handle focus time tracking when timer finishes automatically
+            if (currentSessionId.current && sessionStartTime.current && prev.mode === 'work') {
+              const focusTime = Math.floor((Date.now() - sessionStartTime.current.getTime()) / 1000 / 60)
+              const completedTasks = tasks.filter(t => t.status === 'Completed').length
+              
+              // End the current study session
+              endStudySession(currentSessionId.current, focusTime, completedTasks).then(() => {
+                // Award points for focus time
+                if (focusTime > 0) {
+                  awardPoints(focusTime * 2, 'Focus Session', 'task_complete', { duration: focusTime })
+                }
+                
+                // Update user's today focus time
+                if (authUser && roomId) {
+                  getUserRoomTodayFocusTime(authUser.id, roomId).then(({ data: todayFocus }) => {
+                    setUserTodayFocusTime(Number(todayFocus) || 0)
+                  })
+                }
+              })
+              
+              // Reset session tracking
+              currentSessionId.current = null
+              sessionStartTime.current = null
+            }
+            
             const nextMode = prev.mode === 'work' ? 'break' : 'work'
             const nextMinutes = nextMode === 'work' ? 25 : prev.cycle % 4 === 0 ? 15 : 5
             const nextCycle = prev.mode === 'break' ? prev.cycle + 1 : prev.cycle
@@ -749,7 +774,7 @@ export const StudyRoom = () => {
         clearInterval(timerRef.current)
       }
     }
-  }, [timerState.isRunning, audioEnabled])
+  }, [timerState.isRunning, audioEnabled, tasks, authUser, roomId])
 
   if (loading || !room || !currentUser) {
     return (
