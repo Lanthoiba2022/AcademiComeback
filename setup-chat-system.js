@@ -4,7 +4,7 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-console.log('🚀 Setting up StudySync Chat System...\n');
+console.log('🚀 Setting up AcademiComeback Chat System...\n');
 
 // Colors for console output
 const colors = {
@@ -40,7 +40,7 @@ function logError(message) {
 
 // Check if running in the correct directory
 if (!fs.existsSync('package.json')) {
-  logError('Please run this script from the StudySync project root directory');
+  logError('Please run this script from the AcademiComeback project root directory');
   process.exit(1);
 }
 

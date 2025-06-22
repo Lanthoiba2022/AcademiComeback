@@ -91,7 +91,7 @@ export const Sidebar = () => {
               <div className="p-2 bg-button-gradient rounded-xl">
                 <BookOpen className="w-5 h-5 text-white" />
               </div>
-              <span className="text-lg font-bold text-white">StudySync</span>
+              <span className="text-lg font-bold text-white">AcademiComeback</span>
             </div>
           )}
           <button

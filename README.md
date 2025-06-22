@@ -1,1 +1,1 @@
-StudySync
+AcademiComeback

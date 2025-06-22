@@ -57,7 +57,7 @@ export const PremiumOnboarding = () => {
   const onboardingSteps = [
     {
       icon: Crown,
-      title: 'Welcome to StudySync Premium!',
+      title: 'Welcome to AcademiComeback Premium!',
       description: 'Unlock powerful features designed to supercharge your learning experience.',
       features: [
         'AI-powered study tools',

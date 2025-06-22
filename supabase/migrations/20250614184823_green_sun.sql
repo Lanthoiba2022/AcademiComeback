@@ -1,5 +1,5 @@
 /*
-  # StudySync Database Schema
+  # AcademiComeback Database Schema
 
   1. New Tables
     - `profiles`

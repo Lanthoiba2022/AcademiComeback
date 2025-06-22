@@ -24,10 +24,15 @@ export const Navbar = ({ onLogin, onRegister }: NavbarProps) => {
           {/* Logo */}
           <div className="flex items-center">
             <div className="flex items-center space-x-2">
-              <div className="p-2 bg-button-gradient rounded-xl">
-                <BookOpen className="w-6 h-6 text-white" />
+              <div className="p-2  rounded-xl">
+              <img 
+                  src="/12.webp" 
+                  alt="Your Logo" 
+                  className="w-18 h-9" 
+                />
+
               </div>
-              <span className="text-xl font-bold text-white">StudySync</span>
+              <span className="text-xl font-bold text-white">AcademiComeback</span>
             </div>
           </div>
 
