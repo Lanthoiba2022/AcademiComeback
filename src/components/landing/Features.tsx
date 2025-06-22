@@ -58,9 +58,9 @@ export const Features = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
+          <h2 className="text-4xl sm:text-5xl font-bold text-white mb-10 leading-[1.35]">
             Powerful Features for
-            <span className="block bg-gradient-to-r from-primary-400 to-accent-400 bg-clip-text text-transparent">
+            <span className="block bg-gradient-to-r from-primary-400 to-accent-400 bg-clip-text text-transparent leading-[1.35] mb-2 pb-2">
               Better Learning
             </span>
           </h2>

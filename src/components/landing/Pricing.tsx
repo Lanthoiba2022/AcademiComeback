@@ -65,9 +65,9 @@ export const Pricing = ({ onGetStarted }: PricingProps) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
+          <h2 className="text-4xl sm:text-5xl font-bold text-white mb-10 leading-[1.35]">
             Simple, Transparent
-            <span className="block bg-gradient-to-r from-primary-400 to-accent-400 bg-clip-text text-transparent">
+            <span className="block bg-gradient-to-r from-primary-400 to-accent-400 bg-clip-text text-transparent leading-[1.35] mb-2 pb-2">
               Pricing
             </span>
           </h2>
@@ -77,11 +77,11 @@ export const Pricing = ({ onGetStarted }: PricingProps) => {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8 max-w-6xl mx-auto overflow-x-auto scrollbar-hidden pb-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8 max-w-6xl mx-auto">
           {plans.map((plan, index) => (
             <Card 
               key={index}
-              className={`relative ${plan.popular ? 'ring-2 ring-primary-500 scale-105' : ''} animate-slide-up`}
+              className={`relative min-h-[520px] ${plan.popular ? 'ring-2 ring-primary-500 scale-105' : ''} animate-slide-up`}
               style={{ animationDelay: `${index * 0.1}s` }}
               glow={plan.popular}
             >
@@ -98,7 +98,7 @@ export const Pricing = ({ onGetStarted }: PricingProps) => {
                 <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
                 <div className="flex items-baseline justify-center mb-2">
                   <span className="text-4xl font-bold text-white">{plan.price}</span>
-                  <span className="text-dark-400 ml-2">/{plan.period}</span>
+                  <span className="text-dark-400 ml-2 leading-[1.2]">/{plan.period}</span>
                 </div>
                 <p className="text-dark-400">{plan.description}</p>
               </div>
