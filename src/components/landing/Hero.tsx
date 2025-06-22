@@ -1,8 +1,46 @@
 import { Button } from '../ui/Button'
 import { ArrowRight, Play, Users, Zap, Shield } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 
 interface HeroProps {
   onGetStarted: () => void
+}
+
+// CountUp component for animated numbers
+const CountUp = ({ end, duration = 2, suffix = '', prefix = '', decimals = 0 }: { end: number, duration?: number, suffix?: string, prefix?: string, decimals?: number }) => {
+  const [count, setCount] = useState(0)
+  const start = useRef(0)
+  const raf = useRef<number | null>(null)
+  const startTime = useRef<number>()
+
+  useEffect(() => {
+    const animate = (timestamp: number) => {
+      if (!startTime.current) startTime.current = timestamp
+      const progress = Math.min((timestamp - startTime.current) / (duration * 1000), 1)
+      const value = start.current + (end - start.current) * progress
+      setCount(value)
+      if (progress < 1) {
+        raf.current = requestAnimationFrame(animate)
+      } else {
+        setCount(end)
+      }
+    }
+    raf.current = requestAnimationFrame(animate)
+    return () => {
+      if (raf.current !== null) {
+        cancelAnimationFrame(raf.current)
+      }
+    }
+  }, [end, duration])
+
+  let displayValue: string
+  if (decimals > 0) {
+    displayValue = count.toFixed(decimals)
+  } else {
+    displayValue = Math.floor(count).toLocaleString()
+  }
+
+  return <span>{prefix}{displayValue}{suffix}</span>
 }
 
 export const Hero = ({ onGetStarted }: HeroProps) => {
@@ -61,17 +99,23 @@ export const Hero = ({ onGetStarted }: HeroProps) => {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 max-w-2xl mx-auto">
-            <div className="animate-float">
-              <div className="text-2xl sm:text-3xl font-bold text-white mb-2">50K+</div>
+          <div className="flex flex-col sm:flex-row gap-16 justify-center items-center mt-8">
+            <div className="animate-float text-center">
+              <div className="text-2xl sm:text-3xl font-bold text-white mb-2">
+                <CountUp end={29000} duration={3.5} suffix="+" />
+              </div>
               <div className="text-dark-400">Active Students</div>
             </div>
-            <div className="animate-float" style={{ animationDelay: '1s' }}>
-              <div className="text-2xl sm:text-3xl font-bold text-white mb-2">100K+</div>
+            <div className="animate-float text-center" style={{ animationDelay: '1s' }}>
+              <div className="text-2xl sm:text-3xl font-bold text-white mb-2">
+                <CountUp end={85000} duration={3.5} suffix="+" />
+              </div>
               <div className="text-dark-400">Study Sessions</div>
             </div>
-            <div className="animate-float" style={{ animationDelay: '2s' }}>
-              <div className="text-2xl sm:text-3xl font-bold text-white mb-2">99.9%</div>
+            <div className="animate-float text-center" style={{ animationDelay: '2s' }}>
+              <div className="text-2xl sm:text-3xl font-bold text-white mb-2">
+                <CountUp end={99.9} duration={3.5} suffix="%" decimals={1} />
+              </div>
               <div className="text-dark-400">Uptime</div>
             </div>
           </div>
