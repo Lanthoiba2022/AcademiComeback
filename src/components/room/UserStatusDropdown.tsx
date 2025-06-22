@@ -119,8 +119,7 @@ export const UserStatusDropdown = ({ taskId, members, currentUserId, currentUser
           {/* Centered Dialog */}
           <div
             ref={dialogRef}
-            className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-dark-900 border border-dark-700 rounded shadow-lg p-4"
-            style={{ width: 'auto' }}
+            className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-dark-900 border border-dark-700 rounded shadow-lg p-4 w-[90vw] sm:w-auto"
           >
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-semibold">Task Statuses</span>
@@ -133,9 +132,9 @@ export const UserStatusDropdown = ({ taskId, members, currentUserId, currentUser
                 ✕
               </button>
             </div>
-            <div className="flex flex-row flex-nowrap items-start gap-6">
+            <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
               {statusOptions.map(status => (
-                <div key={status} className="flex flex-col items-center min-w-[120px]">
+                <div key={status} className="flex flex-col items-start sm:items-center w-full sm:min-w-[120px]">
                   <div className="flex items-center gap-1 mb-1">
                     {statusIcon(status)}
                     <span className="text-xs font-semibold">{status}</span>
