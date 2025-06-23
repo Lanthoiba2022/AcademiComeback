@@ -124,7 +124,7 @@ export const StudyStreakCard: React.FC<StudyStreakCardProps> = ({
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="flex flex-row justify-between gap-2 sm:grid sm:grid-cols-3 sm:gap-4">
               <div className="text-center">
                 <div className="flex items-center justify-center w-8 h-8 bg-dark-800 rounded-lg mx-auto mb-2">
                   <Target className="w-4 h-4 text-primary-400" />

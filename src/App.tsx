@@ -97,12 +97,13 @@ function App() {
         <Router>
           <ScrollToTop />
           <Routes>
-            <Route path="/" element={<Landing />} />
+            <Route path="/" element={<><Landing /><Footer /></>} />
             <Route 
               path="/dashboard" 
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                  <Footer />
                 </ProtectedRoute>
               } 
             />
@@ -111,6 +112,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Profile />
+                  <Footer />
                 </ProtectedRoute>
               } 
             />
@@ -119,6 +121,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Premium />
+                  <Footer />
                 </ProtectedRoute>
               } 
             />
@@ -127,6 +130,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Settings />
+                  <Footer />
                 </ProtectedRoute>
               } 
             />
@@ -135,6 +139,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <PricingPage />
+                  <Footer />
                 </ProtectedRoute>
               } 
             />
@@ -151,6 +156,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <StudyRooms />
+                  <Footer />
                 </ProtectedRoute>
               } 
             />
@@ -159,6 +165,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <QuizPage />
+                  <Footer />
                 </ProtectedRoute>
               } 
             />
@@ -167,6 +174,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AnalyticsPage />
+                  <Footer />
                 </ProtectedRoute>
               } 
             />
@@ -175,6 +183,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <CalendarPage />
+                  <Footer />
                 </ProtectedRoute>
               } 
             />
@@ -183,6 +192,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <FilesPage />
+                  <Footer />
                 </ProtectedRoute>
               } 
             />
@@ -191,6 +201,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AchievementsPage />
+                  <Footer />
                 </ProtectedRoute>
               } 
             />
@@ -199,6 +210,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <RewardsPage />
+                  <Footer />
                 </ProtectedRoute>
               } 
             />
@@ -207,6 +219,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <LeaderboardPage />
+                  <Footer />
                 </ProtectedRoute>
               } 
             />
@@ -215,12 +228,12 @@ function App() {
               element={
                 <ProtectedRoute>
                   <UnderDevelopment />
+                  <Footer />
                 </ProtectedRoute>
               } 
             />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-          <Footer />
           <ToastContainer />
           <PremiumOnboarding />
         </Router>
