@@ -13,6 +13,9 @@ export default defineConfig({
         drop_console: true,   // Removes console.log, console.debug, etc.
         drop_debugger: true   // Removes debugger statements
       }
+    },
+    rollupOptions: {
+      external: ['@tsparticles/slim']
     }
   }
 });
