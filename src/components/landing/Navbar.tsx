@@ -33,7 +33,13 @@ export const Navbar = ({ onLogin, onRegister }: NavbarProps) => {
                 />
               </div>
               <div className="h-10 flex items-center">
-                <BrandTitle size="sm" noGlow />
+                <button
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                  className="focus:outline-none hover:scale-105 active:scale-95 transition-transform duration-200"
+                  aria-label="Go to top"
+                >
+                  <BrandTitle size="sm" noGlow />
+                </button>
               </div>
             </div>
           </div>
