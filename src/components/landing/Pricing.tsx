@@ -81,7 +81,7 @@ export const Pricing = ({ onGetStarted }: PricingProps) => {
           {plans.map((plan, index) => (
             <Card 
               key={index}
-              className={`relative min-h-[520px] ${plan.popular ? 'ring-2 ring-primary-500 scale-105' : ''} animate-slide-up`}
+              className={`relative min-h-[520px] p-2 sm:p-6 ${plan.popular ? 'ring-2 ring-primary-500 scale-105' : ''} animate-slide-up`}
               style={{ animationDelay: `${index * 0.1}s` }}
               glow={plan.popular}
             >

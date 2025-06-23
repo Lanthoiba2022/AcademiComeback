@@ -70,45 +70,43 @@ export const BrandTitle = ({ size, noGlow }: { size?: 'sm' | 'xs' | 'xxs', noGlo
 
 export const Footer = () => {
   return (
-    <footer className="w-full bg-dark-900 border-t border-dark-800 px-2 md:px-8 py-4 md:py-3 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-0 text-dark-200">
+    <footer className="w-full bg-dark-900 border-t border-dark-800 px-2 md:px-8 py-4 md:py-3 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-0 text-dark-200 md:pl-28">
       {/* Left: (empty or can add something else later) */}
       <div className="flex flex-row items-center gap-2 md:gap-3 min-w-0" />
       {/* Center: Brand, Built with Bolt, and Icons */}
-      <div className="flex flex-col items-center justify-center flex-1 min-w-0">
-        <div className="flex flex-row items-center gap-1 md:gap-2 mb-2 md:mb-3">
+      <div className="flex flex-col md:flex-row items-center justify-center flex-1 min-w-0 w-full md:w-auto gap-2 md:gap-2">
+        <img
+          src="/11.png"
+          alt="AcademiComeback Logo"
+          className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 rounded-lg object-contain shadow-md"
+        />
+        <BrandTitle size="sm" />
+        <span className="text-xs md:text-sm text-dark-400 font-medium mx-0 md:mx-8">Built with</span>
+        <a href="https://bolt.new/" target="_blank" rel="noopener noreferrer" className="block">
           <img
-            src="/11.png"
-            alt="AcademiComeback Logo"
-            className="w-12 h-12 md:w-16 md:h-16 rounded-lg object-contain shadow-md"
+            src="/bolt_powered.png"
+            alt="Powered by Bolt"
+            className="w-16 sm:w-20 md:w-28 h-auto mx-auto opacity-90 hover:opacity-100 transition-opacity"
+            style={{ maxWidth: '120px' }}
           />
-          <BrandTitle size="sm" />
-          <span className="text-xs md:text-sm text-dark-400 font-medium mx-8">Built with</span>
-          <a href="https://bolt.new/" target="_blank" rel="noopener noreferrer" className="block">
-            <img
-              src="/bolt_powered.png"
-              alt="Powered by Bolt"
-              className="w-20 md:w-28 h-auto mx-auto opacity-90 hover:opacity-100 transition-opacity"
-              style={{ maxWidth: '120px' }}
-            />
+        </a>
+        <div className="flex flex-row flex-wrap items-center justify-center gap-2 sm:gap-3 md:gap-4 ml-0 md:ml-8">
+          <a href="https://www.netlify.com/" target="_blank" rel="noopener noreferrer">
+            <img src="/Netlify_Logo_1.png" alt="Netlify" className="w-8 h-8 sm:w-12 sm:h-12 md:w-16 md:h-16 object-contain rounded hover:scale-110 transition-transform" />
           </a>
-          <div className="flex flex-row items-center justify-center gap-3 md:gap-4 ml-2">
-            <a href="https://www.netlify.com/" target="_blank" rel="noopener noreferrer">
-              <img src="/Netlify_Logo_1.png" alt="Netlify" className="w-12 h-12 md:w-16 md:h-16 object-contain rounded hover:scale-110 transition-transform" />
-            </a>
-            <a href="https://www.revenuecat.com/" target="_blank" rel="noopener noreferrer">
-              <img src="/RevenueCat.png" alt="RevenueCat" className="w-12 h-12 md:w-16 md:h-16 object-contain rounded hover:scale-110 transition-transform" />
-            </a>
-            <a href="https://supabase.com/" target="_blank" rel="noopener noreferrer">
-              <img src="/supabase-dark.png" alt="Supabase" className="w-12 h-12 md:w-16 md:h-16 object-contain rounded hover:scale-110 transition-transform" />
-            </a>
-            <a href="https://21st.dev/" target="_blank" rel="noopener noreferrer">
-              <img src="/21st.png" alt="21st" className="w-8 h-8 md:w-10 md:h-10 object-contain rounded hover:scale-110 transition-transform" />
-            </a>
-          </div>
+          <a href="https://www.revenuecat.com/" target="_blank" rel="noopener noreferrer">
+            <img src="/RevenueCat.png" alt="RevenueCat" className="w-8 h-8 sm:w-12 sm:h-12 md:w-16 md:h-16 object-contain rounded hover:scale-110 transition-transform" />
+          </a>
+          <a href="https://supabase.com/" target="_blank" rel="noopener noreferrer">
+            <img src="/supabase-dark.png" alt="Supabase" className="w-8 h-8 sm:w-12 sm:h-12 md:w-16 md:h-16 object-contain rounded hover:scale-110 transition-transform" />
+          </a>
+          <a href="https://21st.dev/" target="_blank" rel="noopener noreferrer">
+            <img src="/21st.png" alt="21st" className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 object-contain rounded hover:scale-110 transition-transform" />
+          </a>
         </div>
       </div>
       {/* Right: Copyright, vertically centered */}
-      <div className="flex items-center h-full">
+      <div className="flex items-center h-full mt-2 md:mt-0">
         <span className="text-xs text-dark-500 opacity-80 select-none whitespace-nowrap">© {new Date().getFullYear()} AcademiComeback</span>
       </div>
     </footer>

@@ -58,13 +58,13 @@ export const Hero = ({ onGetStarted }: HeroProps) => {
       <div className="relative z-10 max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 text-center">
         <div className="animate-slide-up">
           {/* Badge */}
-          <div className="inline-flex items-center px-4 py-2 bg-card-gradient backdrop-blur-xl border border-dark-700/50 rounded-full text-sm text-dark-300 mb-6 sm:mb-8">
+          <div className="inline-flex items-center px-4 py-2 bg-card-gradient backdrop-blur-xl border border-dark-700/50 rounded-full text-sm text-dark-300 mb-4 sm:mb-8">
             <Zap className="w-4 h-4 mr-2 text-primary-400" />
             Revolutionizing Study Collaboration
           </div>
 
           {/* Main Heading */}
-          <h1 className="text-3xl sm:text-5xl lg:text-7xl font-bold text-white mb-4 sm:mb-6 leading-tight">
+          <h1 className="text-2xl sm:text-5xl lg:text-7xl font-bold text-white mb-3 sm:mb-6 leading-tight">
             Study Together,
             <span className="block bg-gradient-to-r from-primary-400 via-secondary-400 to-accent-400 bg-clip-text text-transparent">
               Achieve More
@@ -72,16 +72,16 @@ export const Hero = ({ onGetStarted }: HeroProps) => {
           </h1>
 
           {/* Subtitle */}
-          <p className="text-base sm:text-xl text-dark-300 mb-8 sm:mb-12 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-sm sm:text-xl text-dark-300 mb-6 sm:mb-12 max-w-3xl mx-auto leading-relaxed">
             Join thousands of students collaborating in real-time study sessions. 
             Share notes, solve problems together, and accelerate your learning journey.
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-10 sm:mb-16">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-center items-center mb-8 sm:mb-16">
             <Button 
               size="lg" 
-              className="text-lg px-8 py-4"
+              className="text-base sm:text-lg px-6 py-3 sm:px-8 sm:py-4"
               icon={ArrowRight}
               iconPosition="right"
               onClick={onGetStarted}
@@ -91,7 +91,7 @@ export const Hero = ({ onGetStarted }: HeroProps) => {
             <Button 
               variant="ghost" 
               size="lg" 
-              className="text-lg px-8 py-4"
+              className="text-base sm:text-lg px-6 py-3 sm:px-8 sm:py-4"
               icon={Play}
             >
               Watch Demo
@@ -99,24 +99,24 @@ export const Hero = ({ onGetStarted }: HeroProps) => {
           </div>
 
           {/* Stats */}
-          <div className="flex flex-col sm:flex-row gap-16 justify-center items-center mt-8">
+          <div className="flex flex-col sm:flex-row gap-8 sm:gap-16 justify-center items-center mt-6 sm:mt-8">
             <div className="animate-float text-center">
-              <div className="text-2xl sm:text-3xl font-bold text-white mb-2">
+              <div className="text-xl sm:text-3xl font-bold text-white mb-1 sm:mb-2">
                 <CountUp end={29000} duration={3.5} suffix="+" />
               </div>
-              <div className="text-dark-400">Active Students</div>
+              <div className="text-dark-400 text-xs sm:text-base">Active Students</div>
             </div>
             <div className="animate-float text-center" style={{ animationDelay: '1s' }}>
-              <div className="text-2xl sm:text-3xl font-bold text-white mb-2">
+              <div className="text-xl sm:text-3xl font-bold text-white mb-1 sm:mb-2">
                 <CountUp end={85000} duration={3.5} suffix="+" />
               </div>
-              <div className="text-dark-400">Study Sessions</div>
+              <div className="text-dark-400 text-xs sm:text-base">Study Sessions</div>
             </div>
             <div className="animate-float text-center" style={{ animationDelay: '2s' }}>
-              <div className="text-2xl sm:text-3xl font-bold text-white mb-2">
+              <div className="text-xl sm:text-3xl font-bold text-white mb-1 sm:mb-2">
                 <CountUp end={99.9} duration={3.5} suffix="%" decimals={1} />
               </div>
-              <div className="text-dark-400">Uptime</div>
+              <div className="text-dark-400 text-xs sm:text-base">Uptime</div>
             </div>
           </div>
         </div>

@@ -523,7 +523,7 @@ export const Dashboard = () => {
         )}
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-6 sm:mb-8 overflow-x-auto scrollbar-hidden">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 mb-6 sm:mb-8 overflow-x-auto scrollbar-hidden">
           {stats.map((stat, index) => (
             <div key={index} className="animate-slide-up min-w-[140px]" style={{ animationDelay: `${index * 0.1}s` }}>
               <Card className="p-3 sm:p-6">
@@ -660,7 +660,7 @@ export const Dashboard = () => {
             {/* Quick Actions Grid */}
             <div>
               <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-white mb-4 sm:mb-6">Quick Actions</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4">
                 <button
                   onClick={() => setCreateRoomModal(true)}
                   className="p-3 sm:p-4 lg:p-6 bg-dark-800/50 rounded-lg hover:bg-dark-800/70 transition-colors duration-200 text-center group"

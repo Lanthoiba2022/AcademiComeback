@@ -194,4 +194,53 @@ html {
     -moz-appearance: textfield;
   }
 }
+
+@media (max-width: 640px) {
+  html, body {
+    font-size: 15px;
+    overflow-x: hidden;
+  }
+  h1, .text-5xl, .text-6xl, .text-7xl {
+    font-size: 2rem !important;
+    line-height: 2.3rem !important;
+  }
+  h2, .text-4xl {
+    font-size: 1.5rem !important;
+    line-height: 2rem !important;
+  }
+  .grid-cols-2, .sm\:grid-cols-2, .md\:grid-cols-2, .lg\:grid-cols-2, .xl\:grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+  .grid-cols-3, .sm\:grid-cols-3, .md\:grid-cols-3, .lg\:grid-cols-3, .xl\:grid-cols-3 {
+    grid-template-columns: 1fr !important;
+  }
+  .grid-cols-4, .sm\:grid-cols-4, .md\:grid-cols-4, .lg\:grid-cols-4, .xl\:grid-cols-4 {
+    grid-template-columns: 1fr !important;
+  }
+  .gap-4, .sm\:gap-4, .md\:gap-4, .lg\:gap-4, .xl\:gap-4 {
+    gap: 1rem !important;
+  }
+  .gap-6, .sm\:gap-6, .md\:gap-6, .lg\:gap-6, .xl\:gap-6 {
+    gap: 1.25rem !important;
+  }
+  .gap-8, .sm\:gap-8, .md\:gap-8, .lg\:gap-8, .xl\:gap-8 {
+    gap: 1.5rem !important;
+  }
+  .rounded-2xl, .sm\:rounded-2xl, .md\:rounded-2xl, .lg\:rounded-2xl, .xl\:rounded-2xl {
+    border-radius: 1rem !important;
+  }
+  .p-6, .sm\:p-6, .md\:p-6, .lg\:p-6, .xl\:p-6 {
+    padding: 0.75rem !important;
+  }
+  .mb-8, .sm\:mb-8, .md\:mb-8, .lg\:mb-8, .xl\:mb-8 {
+    margin-bottom: 1.5rem !important;
+  }
+  .py-24 {
+    padding-top: 2.5rem !important;
+    padding-bottom: 2.5rem !important;
+  }
+  .min-h-screen {
+    min-height: 100dvh !important;
+  }
+}
   

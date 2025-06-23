@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   Home, 
   Users, 
@@ -60,6 +60,17 @@ export const Sidebar = () => {
     return location.pathname === href
   }
 
+  useEffect(() => {
+    if (isMobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileOpen]);
+
   return (
     <>
       {/* Mobile Menu Button */}
@@ -73,7 +84,7 @@ export const Sidebar = () => {
       {/* Mobile Overlay */}
       {isMobileOpen && (
         <div 
-          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          className="lg:hidden fixed inset-0 bg-black/60 z-40"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
@@ -84,6 +95,7 @@ export const Sidebar = () => {
         transition-all duration-300 z-40 flex flex-col
         ${isCollapsed ? 'w-16' : 'w-64'}
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        shadow-2xl
       `}>
         {/* Header */}
         <div className="flex items-center justify-between p-2 md:p-2 md:gap-1.5 border-b border-dark-700/50 flex-shrink-0">

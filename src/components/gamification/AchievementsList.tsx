@@ -90,7 +90,7 @@ export const AchievementsList = ({ achievements, onAchievementClick }: Achieveme
       </div>
 
       {/* Achievements Grid */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {filteredAchievements.map((achievement, index) => {
           const Icon = getAchievementIcon(achievement.icon)
           const progress = achievement.progress || 0
@@ -101,7 +101,7 @@ export const AchievementsList = ({ achievements, onAchievementClick }: Achieveme
             <Card 
               key={achievement.id}
               className={`
-                cursor-pointer transition-all duration-200 animate-slide-up p-3 sm:p-6
+                cursor-pointer transition-all duration-200 animate-slide-up p-2 sm:p-6
                 ${achievement.isUnlocked 
                   ? 'hover:scale-105 border-accent-500/30 bg-gradient-to-br from-accent-500/10 to-primary-500/10' 
                   : 'hover:scale-102 opacity-75'

@@ -31,9 +31,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     }
     
     const sizes = {
-      sm: 'px-3 py-1.5 text-sm rounded-md',
-      md: 'px-4 py-2 text-sm rounded-lg',
-      lg: 'px-4 py-3 sm:px-6 text-base rounded-xl min-h-[44px]'
+      sm: 'px-2 py-1 text-xs rounded-md sm:px-3 sm:py-1.5 sm:text-sm',
+      md: 'px-3 py-1.5 text-sm rounded-lg sm:px-4 sm:py-2',
+      lg: 'px-3 py-2 text-base rounded-xl min-h-[40px] sm:px-6 sm:py-3 sm:min-h-[44px]'
     }
 
     const isDisabled = disabled || loading
