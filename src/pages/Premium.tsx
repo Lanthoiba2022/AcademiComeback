@@ -105,6 +105,14 @@ const plans = [
   }
 ]
 
+// Sandbox/test mode callout
+const SandboxNotice = () => (
+  <div className="bg-yellow-500/20 border border-yellow-500/40 text-yellow-900 px-4 py-3 rounded-lg mb-8 text-center font-semibold">
+    <span className="mr-2">⚠️</span>
+    <span>This app is running in <b> Sandbox/Test Mode</b>. All purchases are for testing only and no real money will be charged.</span>
+  </div>
+);
+
 export const Premium = () => {
   const {
     offerings,
@@ -210,6 +218,7 @@ export const Premium = () => {
       <Sidebar />
       <div className="lg:ml-64 p-4 lg:p-8">
         <div className="max-w-7xl mx-auto">
+          <SandboxNotice />
           {/* Header */}
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-white mb-4">

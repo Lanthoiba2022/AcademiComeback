@@ -16,11 +16,11 @@ const REVENUECAT_SANDBOX_API_KEY = import.meta.env.VITE_REVENUECAT_SANDBOX_API_K
 
 // Use sandbox key in development, public key in production
 const getApiKey = () => {
-  const key = import.meta.env.DEV ? REVENUECAT_SANDBOX_API_KEY : REVENUECAT_PUBLIC_API_KEY
+  const key = REVENUECAT_SANDBOX_API_KEY;
   if (!key) {
-    throw new Error('RevenueCat API key not found. Please check your environment variables.')
+    throw new Error('RevenueCat SANDBOX API key not found. Please check your environment variables.')
   }
-  return key
+  return key;
 }
 
 // **CORRECTED ENTITLEMENTS - Match your RevenueCat dashboard**
