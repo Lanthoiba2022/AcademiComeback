@@ -64,11 +64,11 @@ const getSubscriptionLevel = (info: CustomerInfo | null): SubscriptionLevel => {
   const entitlements = Object.keys(info.entitlements.active)
   console.log('Active entitlements:', entitlements)
   
-  if (entitlements.includes('student')) {
-    return 'student'
-  }
   if (entitlements.includes('pro')) {
     return 'pro'
+  }
+  if (entitlements.includes('student')) {
+    return 'student'
   }
   
   // If no entitlements, check active subscriptions
@@ -151,31 +151,25 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
     try {
       // Update customer info
       setCustomerInfo(customerInfo)
-      
-      // Determine new subscription level from the active entitlement
-      const premiumEntitlement = customerInfo.entitlements.active[ENTITLEMENTS.PREMIUM]
-      if (premiumEntitlement) {
-        const productId = premiumEntitlement.productIdentifier.toLowerCase()
-        const newLevel = productId.includes('pro') || productId.includes('19') 
-          ? 'pro' 
-          : productId.includes('student') || productId.includes('9')
-            ? 'student'
-            : 'free'
-        setSubscriptionLevel(newLevel)
+      // Determine new subscription level from the active entitlements
+      const entitlements = Object.keys(customerInfo.entitlements.active)
+      let newLevel: SubscriptionLevel = 'free'
+      if (entitlements.includes('pro')) {
+        newLevel = 'pro'
+      } else if (entitlements.includes('student')) {
+        newLevel = 'student'
       }
-
+      setSubscriptionLevel(newLevel)
       // Verify the payment was successful
       const isPaymentVerified = await verifyPaymentSuccess(customerInfo)
       if (!isPaymentVerified) {
         throw new Error('Payment verification failed')
       }
-
       console.log('✅ Payment verified and subscription level updated:', {
-        subscriptionLevel,
+        subscriptionLevel: newLevel,
         entitlements: Object.keys(customerInfo.entitlements.active),
-        expirationDate: premiumEntitlement?.expirationDate
+        expirationDate: null
       })
-
       return true
     } catch (error) {
       console.error('❌ Failed to handle successful payment:', error)

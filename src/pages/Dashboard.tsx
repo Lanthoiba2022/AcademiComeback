@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Sidebar } from '../components/dashboard/Sidebar'
 import { Card } from '../components/ui/Card'
@@ -197,16 +197,15 @@ export const Dashboard = () => {
     }
   }
 
-  const loadRooms = async () => {
+  const loadRooms = useCallback(async () => {
+    if (!authUser) return
     try {
       const { data: roomsData, error } = await getRooms(filters)
-      
       if (error) {
         console.error('Error loading rooms:', error)
         setRooms([])
         return
       }
-      
       if (roomsData) {
         const formattedRooms: Room[] = roomsData.map((room: any) => ({
           id: room.id,
@@ -237,14 +236,14 @@ export const Dashboard = () => {
       console.error('Error loading rooms:', error)
       setRooms([])
     }
-  }
+  }, [filters, authUser, user])
 
   // Reload rooms when filters change
   useEffect(() => {
     if (authUser && user) {
       loadRooms()
     }
-  }, [filters, authUser, user])
+  }, [loadRooms])
 
   // Setup real-time subscriptions
   useEffect(() => {
