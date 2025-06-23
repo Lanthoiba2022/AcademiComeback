@@ -15,7 +15,7 @@ export default defineConfig({
       }
     },
     rollupOptions: {
-      external: ['@tsparticles/slim']
+      // external: ['@tsparticles/slim']
     }
   }
 });
