@@ -368,7 +368,7 @@ export const Settings = () => {
                 </div>
                 <h2 className="text-xl font-semibold text-white">Notifications</h2>
               </div>
-              <p className="text-dark-300">Coming soon...</p>
+              <p className="text-dark-300">Personalized notification controls are coming soon to help you stay informed your way!</p>
             </Card>
 
             <Card>
@@ -378,7 +378,7 @@ export const Settings = () => {
                 </div>
                 <h2 className="text-xl font-semibold text-white">Privacy</h2>
               </div>
-              <p className="text-dark-300">Coming soon...</p>
+              <p className="text-dark-300">Exciting privacy features are on the way to give you more control and peace of mind!</p>
             </Card>
 
             <Card>
@@ -388,7 +388,7 @@ export const Settings = () => {
                 </div>
                 <h2 className="text-xl font-semibold text-white">Study Preferences</h2>
               </div>
-              <p className="text-dark-300">Coming soon...</p>
+              <p className="text-dark-300">Soon you'll be able to customize your study experience to fit your unique learning style!</p>
             </Card>
           </div>
         </div>
