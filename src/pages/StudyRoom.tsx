@@ -9,7 +9,7 @@ import {
   Users, Settings, MessageSquare, Plus, Play, Pause, RotateCcw, 
   Clock, CheckCircle, Circle, AlertCircle, Send, Mic, MicOff,
   Video, VideoOff, MoreVertical, Edit3, Trash2, User, Timer,
-  Volume2, VolumeX, ArrowLeft, Crown, Dot, Menu
+  Volume2, VolumeX, ArrowLeft, Crown, Dot, Menu, X
 } from 'lucide-react'
 import { Task, ChatMessage, StudySession, User as UserType, Room, TaskStatus, TaskPriority } from '../types'
 import { TaskItem } from '../components/room/TaskItem'
@@ -188,7 +188,7 @@ const StudyRoomContent = ({
       <div className={`fixed right-0 top-0 h-full w-full max-w-full bg-card-gradient z-50 shadow-xl transition-transform duration-300 ${showChat ? 'translate-x-0' : 'translate-x-full'} sm:hidden`}>
         <div className="flex items-center justify-between p-3 border-b border-dark-700/50">
           <h3 className="text-base font-semibold text-white">Chat</h3>
-          <Button variant="ghost" size="sm" icon={Menu} onClick={() => setShowChat(false)} />
+          <Button variant="ghost" size="sm" icon={X} onClick={() => setShowChat(false)} />
         </div>
         <div className="h-[calc(100vh-64px)] overflow-y-auto custom-scrollbar">
           <ChatArea currentUser={currentUser} roomId={roomId || ''} />
