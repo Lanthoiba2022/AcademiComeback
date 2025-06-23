@@ -14,7 +14,9 @@
   "dependencies": {
     "@revenuecat/purchases-js": "^1.5.3",
     "@supabase/supabase-js": "^2.45.4",
+    "@tsparticles/engine": "^3.8.1",
     "@tsparticles/react": "^3.0.0",
+    "@tsparticles/slim": "^3.8.1",
     "date-fns": "^4.1.0",
     "libphonenumber-js": "^1.12.9",
     "lucide-react": "^0.344.0",
