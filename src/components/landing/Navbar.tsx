@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button } from '../ui/Button'
 import { Menu, X, BookOpen } from 'lucide-react'
+import { BrandTitle } from "../ui/Footer"
 
 interface NavbarProps {
   onLogin: () => void
@@ -20,39 +21,33 @@ export const Navbar = ({ onLogin, onRegister }: NavbarProps) => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-dark-900/80 backdrop-blur-xl border-b border-dark-800/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <div className="flex items-center">
+        <div className="flex items-center h-16 w-full justify-between">
+          {/* Logo + BrandTitle to far left (desktop) */}
+          <div className="flex items-center flex-shrink-0">
             <div className="flex items-center space-x-2">
-              <div className="p-2  rounded-xl">
-              <img 
+              <div className="p-2 rounded-xl">
+                <img 
                   src="/12.webp" 
                   alt="Your Logo" 
                   className="w-18 h-9" 
                 />
-
               </div>
-              <span className="text-xl font-bold text-white">AcademiComeback</span>
+              <div className="h-10 flex items-center">
+                <BrandTitle size="sm" noGlow />
+              </div>
             </div>
           </div>
-
-          {/* Desktop Navigation */}
-          <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-8">
-              {navigation.map((item) => (
-                <a
-                  key={item.name}
-                  href={item.href}
-                  className="text-dark-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors duration-200"
-                >
-                  {item.name}
-                </a>
-              ))}
-            </div>
-          </div>
-
-          {/* Desktop CTA Buttons */}
-          <div className="hidden md:flex items-center space-x-4">
+          {/* Navigation and buttons to far right (desktop) */}
+          <div className="hidden md:flex items-center space-x-8 ml-auto">
+            {navigation.map((item) => (
+              <a
+                key={item.name}
+                href={item.href}
+                className="text-dark-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors duration-200"
+              >
+                {item.name}
+              </a>
+            ))}
             <Button variant="ghost" onClick={onLogin}>
               Sign In
             </Button>
@@ -60,7 +55,6 @@ export const Navbar = ({ onLogin, onRegister }: NavbarProps) => {
               Sign Up
             </Button>
           </div>
-
           {/* Mobile menu button */}
           <div className="md:hidden">
             <button

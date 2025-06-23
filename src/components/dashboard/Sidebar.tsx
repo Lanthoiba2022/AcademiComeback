@@ -23,6 +23,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom'
 import { signOut } from '../../lib/supabase'
 import { PremiumStatusBadge } from '../premium/PremiumStatusBadge'
+import { BrandTitle } from "../ui/Footer"
 
 const navigation = [
   { name: 'Dashboard', icon: Home, href: '/dashboard' },
@@ -85,13 +86,15 @@ export const Sidebar = () => {
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b border-dark-700/50 flex-shrink-0">
+        <div className="flex items-center justify-between p-2 md:p-2 md:gap-1.5 border-b border-dark-700/50 flex-shrink-0">
           {!isCollapsed && (
-            <div className="flex items-center space-x-2">
-              <div className="p-2 bg-button-gradient rounded-xl">
-                <BookOpen className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-lg font-bold text-white">AcademiComeback</span>
+            <div className="flex items-center gap-1 md:gap-1.5">
+              <img 
+                src="/12.webp" 
+                alt="AcademiComeback Logo" 
+                className="w-10 h-10 md:w-12 md:h-12 object-contain rounded-lg shadow"
+              />
+              <div className="h-8 flex items-center md:h-6"><BrandTitle size="xxs" noGlow /></div>
             </div>
           )}
           <button

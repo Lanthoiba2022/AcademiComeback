@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 import { AuthProvider } from './contexts/AuthContext'
 import { PremiumProvider } from './contexts/PremiumContext'
@@ -25,6 +25,7 @@ import { PremiumOnboarding } from './components/premium/PremiumOnboarding'
 import { useGamification } from './hooks/useGamification'
 import { Premium } from './pages/Premium'
 import { scheduleChatCleanup } from './lib/chatCleanup'
+import { Footer } from './components/ui/Footer'
 
 // Gamification Pages
 export const AchievementsPage = () => {
@@ -76,6 +77,15 @@ export const LeaderboardPage = () => {
   )
 }
 
+// ScrollTo component
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
 function App() {
   useEffect(() => {
     scheduleChatCleanup()
@@ -85,6 +95,7 @@ function App() {
     <AuthProvider>
       <PremiumProvider>
         <Router>
+          <ScrollToTop />
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route 
@@ -209,6 +220,7 @@ function App() {
             />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          <Footer />
           <ToastContainer />
           <PremiumOnboarding />
         </Router>
