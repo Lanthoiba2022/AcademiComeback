@@ -115,7 +115,7 @@ export const QuizDashboard = ({ onStartQuiz, userStats, recentAttempts = [] }: Q
         <PremiumFeatureTooltip
           feature="ai"
           title="AI Quiz Generation"
-          description="Create personalized quizzes using artificial intelligence based on your study topics and difficulty preferences."
+          description="Create personalized quizzes using AI based on your study topics and difficulty preferences."
         >
           <button
             onClick={() => setShowGenerator(true)}
