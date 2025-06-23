@@ -182,25 +182,23 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
     try {
       setIsLoading(true)
       setError(null)
-      
-      // Initialize RevenueCat with user ID
       const finalUserId = userIdOverride || userId
       await initializeRevenueCat(finalUserId)
-      
-      // Load initial customer info and offerings
       const [initialCustomerInfo, initialOfferings] = await Promise.all([
         getCustomerInfo(),
         getOfferings()
       ])
-      
       if (initialCustomerInfo) {
         setCustomerInfo(initialCustomerInfo)
         const newLevel = getSubscriptionLevel(initialCustomerInfo)
         setSubscriptionLevel(newLevel)
       }
-      
       setOfferings(initialOfferings)
       setIsInitialized(true)
+      // Defensive: check for no offerings or no packages
+      if (!initialOfferings || !initialOfferings.current || !initialOfferings.current.availablePackages || initialOfferings.current.availablePackages.length === 0) {
+        setError('No subscription plans are currently available. Please try again later or contact support.')
+      }
       console.log('✅ Premium context initialized successfully')
     } catch (error) {
       console.error('❌ Failed to initialize premium context:', error)
@@ -278,6 +276,15 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
     }
   }, [isPremium, isTrialActive, trialDaysRemaining, isInitialized, offerings])
 
+  if (error) {
+    return (
+      <div className="p-4 text-red-500">
+        Error initializing premium features: {error}
+        <button className="ml-4 px-3 py-1 bg-primary-500 text-white rounded" onClick={() => initializePremium()}>Retry</button>
+      </div>
+    )
+  }
+
   const value: PremiumContextType = {
     // Premium status
     isPremium,
@@ -351,14 +358,6 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
         setPurchasing(null)
       }
     },
-  }
-
-  if (error) {
-    return (
-      <div className="p-4 text-red-500">
-        Error initializing premium features: {error}
-      </div>
-    )
   }
 
   return (

@@ -120,7 +120,7 @@ export const Premium = () => {
   const handleUpgrade = async (planIndex: number) => {
     try {
       setError(null)
-      if (!offerings?.current?.availablePackages) {
+      if (!offerings || !offerings.current || !offerings.current.availablePackages || offerings.current.availablePackages.length === 0) {
         throw new Error('No subscription plans available')
       }
 
@@ -175,6 +175,19 @@ export const Premium = () => {
       console.error('Purchase error:', err)
       setError(err instanceof Error ? err.message : 'Failed to process purchase. Please try again.')
     }
+  }
+
+  if (!offerings || !offerings.current || !offerings.current.availablePackages || offerings.current.availablePackages.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-hero-gradient text-white">
+        <Sidebar />
+        <div className="max-w-xl mx-auto text-center">
+          <h2 className="text-2xl font-bold mb-4">No subscription plans available</h2>
+          <p className="mb-6">We couldn't load any subscription plans at this time. This may be a temporary issue. Please try again later or contact support if the problem persists.</p>
+          <Button onClick={() => window.location.reload()} className="mb-2">Retry</Button>
+        </div>
+      </div>
+    )
   }
 
   return (

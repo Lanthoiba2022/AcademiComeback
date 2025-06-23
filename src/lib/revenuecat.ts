@@ -79,37 +79,28 @@ async function storeRevenueCatId(userId: string, revenueCatId: string): Promise<
   }
 }
 
+let isConfigured = false;
+
 // **CORRECTED Initialize RevenueCat**
 export async function initializeRevenueCat(): Promise<void> {
+  if (isConfigured) return;
   try {
     const apiKey = getApiKey()
-    
-    // Get current user
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       console.log('No user found, cannot initialize RevenueCat')
       return
     }
-
-    console.log('🔧 Initializing RevenueCat for user:', user.id)
-
-    // Check if we have a stored RevenueCat ID
     let revenueCatUserId = await getStoredRevenueCatId(user.id)
-    
-    // If no stored ID, use the user's UUID
     if (!revenueCatUserId) {
       revenueCatUserId = user.id
       await storeRevenueCatId(user.id, revenueCatUserId)
     }
-
-    // Configure RevenueCat with the user ID
     await Purchases.configure(apiKey, revenueCatUserId)
-
-    // Set log level to debug in development
     if (import.meta.env.DEV) {
       Purchases.setLogLevel(LogLevel.Debug)
     }
-
+    isConfigured = true;
     console.log('✅ RevenueCat initialized successfully for user:', revenueCatUserId)
   } catch (error) {
     console.error('❌ Error initializing RevenueCat:', error)
@@ -120,6 +111,7 @@ export async function initializeRevenueCat(): Promise<void> {
 // Get customer info with entitlements
 export const getCustomerInfo = async (): Promise<CustomerInfo | null> => {
   try {
+    if (!isConfigured) await initializeRevenueCat();
     const customerInfo = await Purchases.getSharedInstance().getCustomerInfo()
     console.log('📊 Customer info retrieved:', {
       originalAppUserId: customerInfo.originalAppUserId,
@@ -137,6 +129,7 @@ export const getCustomerInfo = async (): Promise<CustomerInfo | null> => {
 // Get available offerings
 export const getOfferings = async (): Promise<Offerings | null> => {
   try {
+    if (!isConfigured) await initializeRevenueCat();
     const offerings = await Purchases.getSharedInstance().getOfferings()
     console.log('🛍️ Offerings retrieved:', {
       current: offerings.current?.identifier,
