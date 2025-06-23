@@ -79,7 +79,10 @@ export const createProfile = async (userId: string, fullName: string, email: str
       email: email,
       total_points: 0,
       rank: 'Beginner',
-      achievements: []
+      achievements: [],
+      revenuecat_id: userId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     })
     .select()
     .single()
@@ -104,6 +107,7 @@ export const updateProfile = async (userId: string, updates: any, email?: string
         total_points: 0,
         rank: 'Beginner',
         achievements: [],
+        revenuecat_id: userId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
