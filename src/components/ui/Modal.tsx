@@ -32,10 +32,10 @@ export const Modal = ({ isOpen, onClose, title, children, size = 'md' }: ModalPr
   if (!isOpen) return null
 
   const sizes = {
-    sm: 'max-w-[400px]',
-    md: 'max-w-[500px]',
-    lg: 'max-w-[600px]',
-    xl: 'max-w-[700px]'
+    sm: 'max-w-[98vw] sm:max-w-[400px]',
+    md: 'max-w-[98vw] sm:max-w-[500px]',
+    lg: 'max-w-[98vw] sm:max-w-[600px]',
+    xl: 'max-w-[98vw] sm:max-w-[700px]'
   }
 
   return createPortal(

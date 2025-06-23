@@ -70,21 +70,21 @@ export const Features = () => {
         </div>
 
         {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8 overflow-x-auto scrollbar-hidden pb-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-8 overflow-x-auto scrollbar-hidden pb-2">
           {features.map((feature, index) => (
             <Card 
               key={index} 
-              className="animate-slide-up" 
+              className="animate-slide-up p-2 sm:p-6" 
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               <div className="text-center">
-                <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl bg-dark-800 mb-4 ${feature.color}`}>
+                <div className={`inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-dark-800 mb-3 sm:mb-4 ${feature.color}`}>
                   <feature.icon className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-3">
+                <h3 className="text-base sm:text-lg font-semibold text-white mb-2 sm:mb-3">
                   {feature.title}
                 </h3>
-                <p className="text-dark-400 text-sm leading-relaxed">
+                <p className="text-dark-400 text-xs sm:text-sm leading-relaxed">
                   {feature.description}
                 </p>
               </div>

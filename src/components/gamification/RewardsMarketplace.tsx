@@ -83,7 +83,7 @@ export const RewardsMarketplace = ({
       </div>
 
       {/* Rewards Grid */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
         {filteredRewards.map((reward, index) => {
           const Icon = getRewardIcon(reward.icon)
           const canAfford = availablePoints >= reward.cost
@@ -92,7 +92,7 @@ export const RewardsMarketplace = ({
           return (
             <Card 
               key={reward.id} 
-              className="animate-slide-up hover:scale-105 transition-transform duration-200 p-3 sm:p-6"
+              className="animate-slide-up hover:scale-105 transition-transform duration-200 p-2 sm:p-6"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               <div className="text-center">

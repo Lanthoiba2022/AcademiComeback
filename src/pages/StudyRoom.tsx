@@ -186,8 +186,8 @@ const StudyRoomContent = ({
       {/* Mobile Chat Drawer */}
       <div className={`fixed inset-0 z-50 bg-black/60 transition-all duration-300 ${showChat ? 'block' : 'hidden'}`} onClick={() => setShowChat(false)} />
       <div className={`fixed right-0 top-0 h-full w-full max-w-full bg-card-gradient z-50 shadow-xl transition-transform duration-300 ${showChat ? 'translate-x-0' : 'translate-x-full'} sm:hidden`}>
-        <div className="flex items-center justify-between p-4 border-b border-dark-700/50">
-          <h3 className="text-lg font-semibold text-white">Chat</h3>
+        <div className="flex items-center justify-between p-3 border-b border-dark-700/50">
+          <h3 className="text-base font-semibold text-white">Chat</h3>
           <Button variant="ghost" size="sm" icon={Menu} onClick={() => setShowChat(false)} />
         </div>
         <div className="h-[calc(100vh-64px)] overflow-y-auto custom-scrollbar">
@@ -207,10 +207,10 @@ const StudyRoomContent = ({
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0 w-full max-w-full overflow-x-hidden">
           {/* Study Plan Header */}
-          <div className="p-3 sm:p-6 border-b border-dark-700/50 bg-dark-900/50 w-full max-w-full">
+          <div className="p-2 sm:p-6 border-b border-dark-700/50 bg-dark-900/50 w-full max-w-full">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 w-full max-w-full">
               <div>
-                <h2 className="text-lg sm:text-xl font-semibold text-white">Study Plan</h2>
+                <h2 className="text-base sm:text-xl font-semibold text-white">Study Plan</h2>
                 <p className="text-xs sm:text-sm text-dark-300">
                   {completedTasksCount} of {totalTasks} tasks completed
                 </p>
@@ -233,7 +233,7 @@ const StudyRoomContent = ({
             </div>
           </div>
           {/* Tasks List */}
-          <div className="flex-1 p-3 sm:p-6 overflow-y-auto custom-scrollbar w-full max-w-full pb-24 sm:pb-0">
+          <div className="flex-1 p-2 sm:p-6 overflow-y-auto custom-scrollbar w-full max-w-full pb-24 sm:pb-0">
             {showAddTask && (
               <Card className="mb-4 animate-slide-down">
                 <div className="flex flex-col gap-3">
