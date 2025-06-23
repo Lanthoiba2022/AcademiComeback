@@ -33,6 +33,22 @@ export const Landing = () => {
         onLogin={() => openAuthModal('login')}
         onRegister={() => openAuthModal('register')}
       />
+
+      {/* Floating Badge */}
+      <a
+        href="https://bolt.new/" // TODO: Replace with actual URL
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed z-[60] top-40 right-4 sm:top-24 sm:right-8 flex items-center"
+        style={{ pointerEvents: 'auto' }}
+      >
+        <img
+          src="/bolt_badge_black.png"
+          alt="Special Badge"
+          className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 drop-shadow-lg transition-transform duration-200 hover:scale-105"
+          style={{ maxWidth: '90vw', height: 'auto' }}
+        />
+      </a>
       
       <main>
         <Hero onGetStarted={() => openAuthModal('register')} />
