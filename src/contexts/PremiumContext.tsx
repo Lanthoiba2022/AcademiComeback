@@ -10,8 +10,10 @@ import {
   getOfferings,
   purchasePackage,
   ENTITLEMENTS,
-  PRODUCTS
+  PRODUCTS,
+  isRevenueCatConfigured
 } from '../lib/revenuecat'
+import { useAuth } from './AuthContext'
 
 export type SubscriptionLevel = 'free' | 'student' | 'pro'
 
@@ -105,6 +107,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
   children, 
   userId 
 }) => {
+  const { user } = useAuth();
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null)
   const [offerings, setOfferings] = useState<Offerings | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -196,7 +199,10 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
       setOfferings(initialOfferings)
       setIsInitialized(true)
       // Defensive: check for no offerings or no packages
-      if (!initialOfferings || !initialOfferings.current || !initialOfferings.current.availablePackages || initialOfferings.current.availablePackages.length === 0) {
+      if (
+        isRevenueCatConfigured() &&
+        (!initialOfferings || !initialOfferings.current || !initialOfferings.current.availablePackages || initialOfferings.current.availablePackages.length === 0)
+      ) {
         setError('No subscription plans are currently available. Please try again later or contact support.')
       }
       console.log('✅ Premium context initialized successfully')
@@ -244,10 +250,12 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
     }
   }, [customerInfo])
 
-  // Initialize on mount
+  // Initialize when user changes
   useEffect(() => {
-    initializePremium()
-  }, [userId])
+    if (user) {
+      initializePremium(user.id);
+    }
+  }, [user]);
 
   // Set up customer info listener for real-time updates
   useEffect(() => {
@@ -277,12 +285,17 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
   }, [isPremium, isTrialActive, trialDaysRemaining, isInitialized, offerings])
 
   if (error) {
-    return (
-      <div className="p-4 text-red-500">
-        Error initializing premium features: {error}
-        <button className="ml-4 px-3 py-1 bg-primary-500 text-white rounded" onClick={() => initializePremium()}>Retry</button>
-      </div>
-    )
+    // Only show the error if RevenueCat is configured (i.e., user is logged in)
+    if (isRevenueCatConfigured()) {
+      return (
+        <div className="p-4 text-red-500">
+          Error initializing premium features: {error}
+          <button className="ml-4 px-3 py-1 bg-primary-500 text-white rounded" onClick={() => initializePremium()}>Retry</button>
+        </div>
+      )
+    }
+    // If not configured, just render children (free mode)
+    return <>{children}</>;
   }
 
   const value: PremiumContextType = {

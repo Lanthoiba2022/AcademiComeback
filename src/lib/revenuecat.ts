@@ -82,36 +82,43 @@ async function storeRevenueCatId(userId: string, revenueCatId: string): Promise<
 let isConfigured = false;
 
 // **CORRECTED Initialize RevenueCat**
-export async function initializeRevenueCat(): Promise<void> {
+export async function initializeRevenueCat(userIdOverride?: string): Promise<void> {
   if (isConfigured) return;
   try {
-    const apiKey = getApiKey()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      console.log('No user found, cannot initialize RevenueCat')
-      return
+    const apiKey = getApiKey();
+    let userId = userIdOverride;
+    if (!userId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log('No user found, cannot initialize RevenueCat');
+        return;
+      }
+      userId = user.id;
     }
-    let revenueCatUserId = await getStoredRevenueCatId(user.id)
+    let revenueCatUserId = await getStoredRevenueCatId(userId);
     if (!revenueCatUserId) {
-      revenueCatUserId = user.id
-      await storeRevenueCatId(user.id, revenueCatUserId)
+      revenueCatUserId = userId;
+      await storeRevenueCatId(userId, revenueCatUserId);
     }
-    await Purchases.configure(apiKey, revenueCatUserId)
+    await Purchases.configure(apiKey, revenueCatUserId);
     if (import.meta.env.DEV) {
-      Purchases.setLogLevel(LogLevel.Debug)
+      Purchases.setLogLevel(LogLevel.Debug);
     }
     isConfigured = true;
-    console.log('✅ RevenueCat initialized successfully for user:', revenueCatUserId)
+    console.log('✅ RevenueCat initialized successfully for user:', revenueCatUserId);
   } catch (error) {
-    console.error('❌ Error initializing RevenueCat:', error)
-    throw error
+    console.error('❌ Error initializing RevenueCat:', error);
+    throw error;
   }
 }
 
 // Get customer info with entitlements
 export const getCustomerInfo = async (): Promise<CustomerInfo | null> => {
+  if (!isConfigured) {
+    console.warn('RevenueCat not configured, skipping getCustomerInfo');
+    return null;
+  }
   try {
-    if (!isConfigured) await initializeRevenueCat();
     const customerInfo = await Purchases.getSharedInstance().getCustomerInfo()
     console.log('📊 Customer info retrieved:', {
       originalAppUserId: customerInfo.originalAppUserId,
@@ -128,8 +135,11 @@ export const getCustomerInfo = async (): Promise<CustomerInfo | null> => {
 
 // Get available offerings
 export const getOfferings = async (): Promise<Offerings | null> => {
+  if (!isConfigured) {
+    console.warn('RevenueCat not configured, skipping getOfferings');
+    return null;
+  }
   try {
-    if (!isConfigured) await initializeRevenueCat();
     const offerings = await Purchases.getSharedInstance().getOfferings()
     console.log('🛍️ Offerings retrieved:', {
       current: offerings.current?.identifier,
@@ -359,6 +369,10 @@ export const getSubscriptionStatus = (customerInfo: CustomerInfo | null) => {
 
 // Listener for customer info updates (polling-based for web)
 export function setupCustomerInfoListener(callback: (info: CustomerInfo | null) => void): () => void {
+  if (!isConfigured) {
+    console.warn('RevenueCat not configured, skipping setupCustomerInfoListener');
+    return () => {};
+  }
   let isActive = true;
   let lastInfo: CustomerInfo | null = null;
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -367,22 +381,18 @@ export function setupCustomerInfoListener(callback: (info: CustomerInfo | null) 
     if (!isActive) return;
     try {
       const info = await getCustomerInfo();
-      // Only call callback if info changed
       if (JSON.stringify(info) !== JSON.stringify(lastInfo)) {
         lastInfo = info;
         callback(info);
       }
-    } catch (e) {
-      // Optionally log error
-    }
+    } catch (e) {}
     if (isActive) {
-      timeoutId = setTimeout(poll, 30000); // poll every 30 seconds
+      timeoutId = setTimeout(poll, 30000);
     }
   }
 
   poll();
 
-  // Return cleanup function
   return () => {
     isActive = false;
     if (timeoutId) clearTimeout(timeoutId);
