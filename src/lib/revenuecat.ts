@@ -368,6 +368,7 @@ export const getSubscriptionStatus = (customerInfo: CustomerInfo | null) => {
 export function setupCustomerInfoListener(callback: (info: CustomerInfo | null) => void): () => void {
   let isActive = true;
   let lastInfo: CustomerInfo | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
   async function poll() {
     if (!isActive) return;
@@ -382,7 +383,7 @@ export function setupCustomerInfoListener(callback: (info: CustomerInfo | null) 
       // Optionally log error
     }
     if (isActive) {
-      setTimeout(poll, 30000); // poll every 30 seconds
+      timeoutId = setTimeout(poll, 30000); // poll every 30 seconds
     }
   }
 
@@ -391,5 +392,6 @@ export function setupCustomerInfoListener(callback: (info: CustomerInfo | null) 
   // Return cleanup function
   return () => {
     isActive = false;
+    if (timeoutId) clearTimeout(timeoutId);
   };
 }

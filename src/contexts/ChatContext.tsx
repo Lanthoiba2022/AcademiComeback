@@ -547,7 +547,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
     dispatch({ type: 'SET_ONLINE_MEMBERS', payload: [] })
     // Leave the room
     leaveRoom()
-  }, [])
+  }, [dispatch])
 
   const joinRoom = useCallback(async () => {
     if (!roomId || !currentUser.id) return
@@ -943,6 +943,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current)
       }
+      dispatch({ type: 'SET_MESSAGES', payload: [] }); // Also clear messages on cleanup
     }
   }, [roomId, currentUser.id, connectToWebSocket, disconnect])
 
