@@ -138,13 +138,12 @@ export const getCustomerInfo = async (): Promise<CustomerInfo | null> => {
 export const getOfferings = async (): Promise<Offerings | null> => {
   try {
     const offerings = await Purchases.getSharedInstance().getOfferings()
-    
     console.log('🛍️ Offerings retrieved:', {
       current: offerings.current?.identifier,
       all: Object.keys(offerings.all),
       packages: offerings.current?.availablePackages.map(pkg => ({
         identifier: pkg.identifier,
-        product: pkg.product
+        rcBillingProduct: pkg.rcBillingProduct
       })) || []
     })
     return offerings
@@ -163,10 +162,12 @@ export const purchasePackage = async (packageToPurchase: Package): Promise<{
   try {
     console.log('💳 Attempting to purchase package:', {
       identifier: packageToPurchase.identifier,
-      product: packageToPurchase.product
+      rcBillingProduct: packageToPurchase.rcBillingProduct
     })
     
-    const { customerInfo } = await Purchases.getSharedInstance().purchasePackage(packageToPurchase)
+    const { customerInfo } = await Purchases.getSharedInstance().purchase({
+      rcPackage: packageToPurchase
+    })
     
     console.log('✅ Purchase successful:', {
       activeSubscriptions: Object.keys(customerInfo.activeSubscriptions),
@@ -203,20 +204,42 @@ export const purchasePackage = async (packageToPurchase: Package): Promise<{
   }
 }
 
-// Restore purchases
-export const restorePurchases = async (): Promise<CustomerInfo | null> => {
+// **CORRECTED Login user to RevenueCat - Web SDK uses changeUser**
+export const loginRevenueCat = async (appUserId: string): Promise<CustomerInfo | null> => {
   try {
-    console.log('🔄 Restoring purchases...')
-    const customerInfo = await Purchases.getSharedInstance().restorePurchases()
-    
-    console.log('✅ Purchases restored:', {
-      activeSubscriptions: Object.keys(customerInfo.activeSubscriptions),
-      entitlements: Object.keys(customerInfo.entitlements.active)
-    })
-    
+    // Web SDK uses changeUser() to switch users
+    const customerInfo = await Purchases.getSharedInstance().changeUser(appUserId)
+    console.log('✅ RevenueCat login successful for user:', appUserId)
     return customerInfo
   } catch (error) {
-    console.error('❌ Failed to restore purchases:', error)
+    console.error('❌ RevenueCat login failed:', error)
+    return null
+  }
+}
+
+// **CORRECTED Logout user from RevenueCat - Web SDK workaround**
+export const logoutRevenueCat = async (): Promise<CustomerInfo | null> => {
+  try {
+    // Web SDK does not support true logout/reset. Use changeUser with a random UUID to simulate logout.
+    const randomId = 'anon_' + Math.random().toString(36).substring(2, 15)
+    const customerInfo = await Purchases.getSharedInstance().changeUser(randomId)
+    console.log('✅ RevenueCat logout simulated by switching to anonymous user')
+    return customerInfo
+  } catch (error) {
+    console.error('❌ RevenueCat logout failed:', error)
+    return null
+  }
+}
+
+// **CORRECTED Restore purchases - Web SDK workaround**
+export const restorePurchases = async (): Promise<CustomerInfo | null> => {
+  try {
+    // Web SDK does not support restore/sync. Just refetch customer info.
+    console.log('ℹ️ Restore purchases is not supported on RevenueCat Web SDK. Returning latest customer info.')
+    const customerInfo = await getCustomerInfo()
+    return customerInfo
+  } catch (error) {
+    console.error('❌ Failed to get customer info for restore:', error)
     return null
   }
 }
@@ -292,30 +315,6 @@ export const getTrialDaysRemaining = (customerInfo: CustomerInfo | null): number
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
   
   return Math.max(0, diffDays)
-}
-
-// Login user to RevenueCat
-export const loginRevenueCat = async (appUserId: string): Promise<CustomerInfo | null> => {
-  try {
-    const customerInfo = await Purchases.getSharedInstance().logIn(appUserId)
-    console.log('✅ RevenueCat login successful for user:', appUserId)
-    return customerInfo.customerInfo
-  } catch (error) {
-    console.error('❌ RevenueCat login failed:', error)
-    return null
-  }
-}
-
-// Logout user from RevenueCat
-export const logoutRevenueCat = async (): Promise<CustomerInfo | null> => {
-  try {
-    const customerInfo = await Purchases.getSharedInstance().logOut()
-    console.log('✅ RevenueCat logout successful')
-    return customerInfo
-  } catch (error) {
-    console.error('❌ RevenueCat logout failed:', error)
-    return null
-  }
 }
 
 // Check if RevenueCat is properly configured
