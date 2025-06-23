@@ -24,6 +24,7 @@ import {
   AlertCircle
 } from 'lucide-react'
 import { PRODUCTS } from '../lib/revenuecat'
+import { CardSkeleton } from '../components/ui/LoadingSkeleton'
 
 const features = [
   {
@@ -111,7 +112,8 @@ export const Premium = () => {
     purchasing,
     handlePurchase,
     trialDaysRemaining,
-    refreshCustomerInfo
+    refreshCustomerInfo,
+    isLoading
   } = usePremium()
   const navigate = useNavigate()
   const [selectedPlan, setSelectedPlan] = useState<'student' | 'pro' | null>(null)
@@ -175,6 +177,19 @@ export const Premium = () => {
       console.error('Purchase error:', err)
       setError(err instanceof Error ? err.message : 'Failed to process purchase. Please try again.')
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-hero-gradient text-white">
+        <Sidebar />
+        <div className="max-w-2xl w-full mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+          <CardSkeleton />
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+      </div>
+    );
   }
 
   if (!offerings || !offerings.current || !offerings.current.availablePackages || offerings.current.availablePackages.length === 0) {
