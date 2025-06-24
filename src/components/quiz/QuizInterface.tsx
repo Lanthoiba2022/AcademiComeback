@@ -58,6 +58,17 @@ export const QuizInterface = ({ quiz, onComplete, onExit }: QuizInterfaceProps) 
     }
   }, [timeRemaining, isPaused, isReviewMode])
 
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+      }
+      // Clear answers and other large objects
+      setAnswers({})
+      setHintsUsed({})
+    }
+  }, [])
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60

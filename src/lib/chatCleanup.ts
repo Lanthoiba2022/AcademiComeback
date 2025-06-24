@@ -97,14 +97,27 @@ export const cleanupInactiveChats = async () => {
 /**
  * Schedule periodic cleanup (run every hour)
  */
+let cleanupInterval: NodeJS.Timeout | null = null
+
 export const scheduleChatCleanup = () => {
+  // Clear existing interval to prevent duplicates
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval)
+  }
   // Run cleanup every hour
-  setInterval(cleanupInactiveChats, 60 * 60 * 1000)
-  
+  cleanupInterval = setInterval(cleanupInactiveChats, 60 * 60 * 1000)
   // Also run cleanup immediately
   cleanupInactiveChats()
-  
   console.log('⏰ Chat cleanup scheduled to run every hour')
+}
+
+// Add cleanup function to clear interval
+export const stopChatCleanup = () => {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval)
+    cleanupInterval = null
+    console.log('🛑 Chat cleanup stopped')
+  }
 }
 
 /**

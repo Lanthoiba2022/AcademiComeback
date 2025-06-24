@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { 
   GamificationStats, 
@@ -21,11 +21,16 @@ export const useGamification = () => {
     reason: string
   } | null>(null)
   const [pendingAchievement, setPendingAchievement] = useState<Achievement | null>(null)
+  const isMountedRef = useRef(true)
 
   // Initialize gamification data
   useEffect(() => {
+    isMountedRef.current = true
     if (user) {
       loadGamificationData()
+    }
+    return () => {
+      isMountedRef.current = false
     }
   }, [user])
 
@@ -39,7 +44,7 @@ export const useGamification = () => {
     const savedRewards = localStorage.getItem(`redeemed_rewards_${user.id}`)
 
     if (savedStats) {
-      setStats(JSON.parse(savedStats))
+      if (isMountedRef.current) setStats(JSON.parse(savedStats))
     } else {
       // Initialize new user stats
       const initialStats: GamificationStats = {
@@ -56,16 +61,17 @@ export const useGamification = () => {
         quizzesCompleted: 0,
         helpGiven: 0
       }
-      setStats(initialStats)
+      if (isMountedRef.current) setStats(initialStats)
       localStorage.setItem(`gamification_${user.id}`, JSON.stringify(initialStats))
     }
 
     if (savedAchievements) {
-      setAchievements(JSON.parse(savedAchievements))
+      const loaded = JSON.parse(savedAchievements)
+      if (isMountedRef.current) setAchievements(Array.isArray(loaded) ? loaded.slice(0, 10) : [])
     }
 
     if (savedRewards) {
-      setRedeemedRewards(JSON.parse(savedRewards))
+      if (isMountedRef.current) setRedeemedRewards(JSON.parse(savedRewards))
     }
 
     // Load leaderboard (mock data for now)
@@ -116,7 +122,7 @@ export const useGamification = () => {
       mockEntries.push(userEntry)
     }
 
-    setLeaderboard(mockEntries)
+    if (isMountedRef.current) setLeaderboard(mockEntries.slice(0, 10))
   }
 
   const awardPoints = useCallback((points: number, reason: string, type: PointEarning['type'], metadata?: any) => {

@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
     exclude: ['lucide-react'],
+    include: ['@supabase/supabase-js', 'recharts'],
   },
   build: {
     minify: 'terser',
@@ -15,7 +16,15 @@ export default defineConfig({
       }
     },
     rollupOptions: {
-      // external: ['@tsparticles/slim']
-    }
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'supabase-vendor': ['@supabase/supabase-js'],
+          'chart-vendor': ['recharts', 'react-calendar-heatmap'],
+          'animation-vendor': ['framer-motion', '@tsparticles/react']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000
   }
 });

@@ -1,5 +1,5 @@
 "use client";
-import React, { useId, useMemo } from "react";
+import React, { useId, useMemo, useRef } from "react";
 import { useEffect, useState } from "react";
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import type { Container, SingleOrMultiple } from "@tsparticles/engine";
@@ -33,6 +33,7 @@ export const SparklesCore = (props: ParticlesProps) => {
     particleDensity,
   } = props;
   const [init, setInit] = useState(false);
+  const particlesRef = useRef<Container | null>(null);
   useEffect(() => {
     initParticlesEngine(async (engine) => {
       await loadSlim(engine);
@@ -44,6 +45,7 @@ export const SparklesCore = (props: ParticlesProps) => {
 
   const particlesLoaded = async (container?: Container) => {
     if (container) {
+      particlesRef.current = container;
       controls.start({
         opacity: 1,
         transition: {
@@ -52,6 +54,15 @@ export const SparklesCore = (props: ParticlesProps) => {
       });
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (particlesRef.current) {
+        particlesRef.current.destroy();
+        particlesRef.current = null;
+      }
+    };
+  }, []);
 
   const generatedId = useId();
   return (

@@ -86,25 +86,23 @@ const initialState: ChatState = {
 const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
   switch (action.type) {
     case 'SET_MESSAGES':
-      // Remove duplicates based on message ID
-      const uniqueMessages = action.payload.filter((message, index, self) => 
-        index === self.findIndex(m => m.id === message.id)
-      )
-      return { ...state, messages: uniqueMessages }
-    
+      // Only keep the last 50 messages
+      return { ...state, messages: action.payload.slice(-50) }
     case 'ADD_MESSAGE':
-      // Check if message already exists to prevent duplicates
-      const messageExists = state.messages.some(msg => msg.id === action.payload.id)
-      if (messageExists) {
-        console.warn('Duplicate message detected, skipping:', action.payload.id)
+      if (!state.connectionStatus || state.connectionStatus === 'disconnected') {
         return state
       }
-      return { 
-        ...state, 
-        messages: [...state.messages, action.payload],
+      const messageExists = state.messages.some(msg => msg.id === action.payload.id)
+      if (messageExists) {
+        return state
+      }
+      // Add and trim to last 50
+      const newMessages = [...state.messages, action.payload]
+      return {
+        ...state,
+        messages: newMessages.slice(-50),
         unreadCount: state.unreadCount + 1
       }
-    
     case 'UPDATE_MESSAGE':
       return {
         ...state,
@@ -937,13 +935,13 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
     if (roomId && currentUser.id) {
       connectToWebSocket()
     }
-
     return () => {
       disconnect()
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current)
       }
-      dispatch({ type: 'SET_MESSAGES', payload: [] }); // Also clear messages on cleanup
+      // Clear messages immediately on disconnect/room leave
+      dispatch({ type: 'SET_MESSAGES', payload: [] })
     }
   }, [roomId, currentUser.id, connectToWebSocket, disconnect])
 

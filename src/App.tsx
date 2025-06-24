@@ -25,7 +25,9 @@ import { PremiumOnboarding } from './components/premium/PremiumOnboarding'
 import { useGamification } from './hooks/useGamification'
 import { Premium } from './pages/Premium'
 import { scheduleChatCleanup } from './lib/chatCleanup'
+import { stopChatCleanup } from './lib/chatCleanup'
 import { Footer } from './components/ui/Footer'
+import { MemoryMonitor } from './components/dev/MemoryMonitor'
 
 // Gamification Pages
 export const AchievementsPage = () => {
@@ -89,12 +91,17 @@ function ScrollToTop() {
 function App() {
   useEffect(() => {
     scheduleChatCleanup()
+    // Cleanup function
+    return () => {
+      stopChatCleanup()
+    }
   }, [])
 
   return (
     <AuthProvider>
       <PremiumProvider>
         <Router>
+          {process.env.NODE_ENV === 'development' && <MemoryMonitor />}
           <ScrollToTop />
           <Routes>
             <Route path="/" element={<><Landing /><Footer /></>} />
