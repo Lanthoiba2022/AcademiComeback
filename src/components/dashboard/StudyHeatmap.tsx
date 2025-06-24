@@ -90,60 +90,81 @@ export const StudyHeatmap: React.FC<StudyHeatmapProps> = ({ data, className = ''
         <p className="text-base text-dark-300">Past 12 months</p>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        {/* Month labels */}
-        <div style={{ display: 'flex', marginLeft: 40, marginBottom: 4, width: 53 * 18 + 40 }}> {/* 53 weeks * (16px cell + 2px gap) + left margin for day labels */}
-          {monthLabels.map((label, i) => (
-            <div key={i} style={{ width: 18, textAlign: 'left', fontSize: 15, color: '#b0b7c3', fontWeight: 700 }}>{label}</div>
-          ))}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'row' }}>
-          {/* Day labels */}
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', marginRight: 8 }}>
-            {dayLabels.map((label, i) => (
-              <div key={i} style={{ height: 20, fontSize: 15, color: '#b0b7c3', fontWeight: 700, marginTop: i === 0 ? 18 : 0 }}>{label}</div>
+        {/* Month labels and heatmap grid - mobile scrollable wrapper */}
+        <div
+          className="heatmap-scroll-wrapper"
+          style={{
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            maxWidth: '100%',
+            marginLeft: 0,
+            marginRight: 0,
+          }}
+        >
+          {/* Month labels */}
+          <div
+            style={{
+              display: 'flex',
+              marginLeft: 40,
+              marginBottom: 4,
+              width: 53 * 18 + 40,
+              minWidth: 700,
+            }}
+            className="heatmap-month-labels"
+          >
+            {monthLabels.map((label, i) => (
+              <div key={i} style={{ width: 18, textAlign: 'left', fontSize: 15, color: '#b0b7c3', fontWeight: 700 }}>{label}</div>
             ))}
           </div>
-          {/* Heatmap grid */}
-          <div style={{ display: 'flex', gap: 2, width: 53 * 18 }}> {/* 53 weeks * (16px cell + 2px gap) */}
-            {weeks.map((week, wi) => (
-              <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {week.map((day, di) => (
-                  day.isFuture ? (
-                    <div
-                      key={day.date}
-                      style={{
-                        width: 16,
-                        height: 16,
-                        borderRadius: 3,
-                        background: 'transparent',
-                        border: '1px solid transparent',
-                      }}
-                    />
-                  ) : (
-                    <div
-                      key={day.date}
-                      title={getTitle(day.date, day.value)}
-                      style={{
-                        width: 16,
-                        height: 16,
-                        borderRadius: 3,
-                        background: getColor(day.value),
-                        border: '1px solid #2d3748',
-                        transition: 'background 0.2s',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
-                        cursor: day.value > 0 ? 'pointer' : 'default',
-                      }}
-                      onMouseOver={e => {
-                        (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 0 2px #38b2ac';
-                      }}
-                      onMouseOut={e => {
-                        (e.currentTarget as HTMLDivElement).style.boxShadow = '0 1px 2px rgba(0,0,0,0.08)';
-                      }}
-                    />
-                  )
-                ))}
-              </div>
-            ))}
+          <div style={{ display: 'flex', flexDirection: 'row' }}>
+            {/* Day labels */}
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', marginRight: 8 }}>
+              {dayLabels.map((label, i) => (
+                <div key={i} style={{ height: 20, fontSize: 15, color: '#b0b7c3', fontWeight: 700, marginTop: i === 0 ? 18 : 0 }}>{label}</div>
+              ))}
+            </div>
+            {/* Heatmap grid */}
+            <div style={{ display: 'flex', gap: 2, width: 53 * 18, minWidth: 53 * 18 }}>
+              {weeks.map((week, wi) => (
+                <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {week.map((day, di) => (
+                    day.isFuture ? (
+                      <div
+                        key={day.date}
+                        style={{
+                          width: 16,
+                          height: 16,
+                          borderRadius: 3,
+                          background: 'transparent',
+                          border: '1px solid transparent',
+                        }}
+                      />
+                    ) : (
+                      <div
+                        key={day.date}
+                        title={getTitle(day.date, day.value)}
+                        style={{
+                          width: 16,
+                          height: 16,
+                          borderRadius: 3,
+                          background: getColor(day.value),
+                          border: '1px solid #2d3748',
+                          transition: 'background 0.2s',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
+                          cursor: day.value > 0 ? 'pointer' : 'default',
+                        }}
+                        onMouseOver={e => {
+                          (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 0 2px #38b2ac';
+                        }}
+                        onMouseOut={e => {
+                          (e.currentTarget as HTMLDivElement).style.boxShadow = '0 1px 2px rgba(0,0,0,0.08)';
+                        }}
+                      />
+                    )
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
