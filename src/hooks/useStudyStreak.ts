@@ -15,7 +15,7 @@ export interface StreakStats {
   averageMinutesPerDay: number
 }
 
-export const useStudyStreak = (userId: string, totalFocusMinutes: number = 0, userCreatedAt?: string) => {
+export const useStudyStreak = (userId: string, _totalFocusMinutes: number = 0, userCreatedAt?: string) => {
   const [streakData, setStreakData] = useState<StudyStreakData[]>([])
   const [streakStats, setStreakStats] = useState<StreakStats>({
     currentStreak: 0,
@@ -25,35 +25,6 @@ export const useStudyStreak = (userId: string, totalFocusMinutes: number = 0, us
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  // Calculate average independently when totalFocusMinutes changes
-  const calculateAverageOnly = useCallback(() => {
-    if (!userCreatedAt) return
-    
-    let totalDays = 365 // Default to 365 days if no userCreatedAt
-    
-    const joinDate = new Date(userCreatedAt)
-    const today = new Date()
-    totalDays = differenceInDays(today, joinDate) + 1 // +1 to include both join date and today
-    totalDays = Math.max(totalDays, 1) // Ensure at least 1 day
-    
-    // Ensure totalDays is not zero to avoid division by zero
-    const averageMinutesPerDay = totalDays > 0 ? Math.round(totalFocusMinutes / totalDays) : 0
-    
-    setStreakStats(prev => ({
-      ...prev,
-      averageMinutesPerDay
-    }))
-    
-    console.log('Updated average only - Total focus minutes:', totalFocusMinutes, 'Total active days:', totalDays, 'Average:', averageMinutesPerDay)
-  }, [totalFocusMinutes, userCreatedAt])
-
-  // Initialize average immediately when hook mounts and recalculate on every render
-  useEffect(() => {
-    if (userCreatedAt) {
-      calculateAverageOnly()
-    }
-  }, [totalFocusMinutes, userCreatedAt, calculateAverageOnly])
 
   const loadStreakData = useCallback(async () => {
     if (!userId) {
@@ -97,7 +68,8 @@ export const useStudyStreak = (userId: string, totalFocusMinutes: number = 0, us
           ...prev,
           currentStreak: 0,
           longestStreak: 0,
-          totalStudyDays: 0
+          totalStudyDays: 0,
+          averageMinutesPerDay: 0
         }))
       }
     } catch (error) {
@@ -114,9 +86,9 @@ export const useStudyStreak = (userId: string, totalFocusMinutes: number = 0, us
     // Sort data by date
     const sortedData = data.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     
-    // Filter days with at least 30 minutes of study
-    const studyDays = sortedData.filter(day => day.count >= 30)
-    console.log('Study days with >= 30 minutes:', studyDays)
+    // Filter days with at least 1 minute of study (was 30 before)
+    const studyDays = sortedData.filter(day => day.count > 0)
+    console.log('Study days with > 0 minutes:', studyDays)
     
     let currentStreak = 0
     let longestStreak = 0
@@ -161,17 +133,22 @@ export const useStudyStreak = (userId: string, totalFocusMinutes: number = 0, us
       lastDate = currentDate
     }
     
-    // Calculate average minutes per day using total focus time and user join date
-    let totalDays = 365 // Default to 365 days if no userCreatedAt
-    
+    // Calculate average minutes per day using the actual loaded data
+    let totalDays = 0
+    let startDate: Date | null = null
+    const todayDate = new Date()
     if (userCreatedAt) {
-      const joinDate = new Date(userCreatedAt)
-      const today = new Date()
-      totalDays = differenceInDays(today, joinDate) + 1 // +1 to include both join date and today
-      totalDays = Math.max(totalDays, 1) // Ensure at least 1 day
+      startDate = new Date(userCreatedAt)
+    } else if (data.length > 0) {
+      startDate = new Date(data[0].date)
     }
-    
-    const averageMinutesPerDay = Math.round(totalFocusMinutes / totalDays)
+    if (startDate) {
+      totalDays = differenceInDays(todayDate, startDate) + 1 // +1 to include both start and today
+      totalDays = Math.max(totalDays, 1)
+    }
+    // Sum all minutes from the loaded data
+    const totalMinutes = data.reduce((sum, d) => sum + (d.count || 0), 0)
+    const averageMinutesPerDay = totalDays > 0 ? Math.round(totalMinutes / totalDays) : 0
     
     const finalStats = {
       currentStreak,
@@ -181,21 +158,12 @@ export const useStudyStreak = (userId: string, totalFocusMinutes: number = 0, us
     }
     
     console.log('Calculated streak stats:', finalStats)
-    console.log('Total focus minutes:', totalFocusMinutes, 'Total active days:', totalDays, 'Average:', averageMinutesPerDay)
     setStreakStats(finalStats)
-  }, [totalFocusMinutes, userCreatedAt])
+  }, [userCreatedAt])
 
   useEffect(() => {
     loadStreakData()
   }, [loadStreakData])
-
-  // Recalculate average when totalFocusMinutes changes (e.g., after page refresh)
-  useEffect(() => {
-    // Always recalculate average when totalFocusMinutes changes
-    if (userCreatedAt) {
-      calculateAverageOnly()
-    }
-  }, [totalFocusMinutes, userCreatedAt, calculateAverageOnly])
 
   return {
     streakData,
