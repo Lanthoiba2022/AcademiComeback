@@ -23,6 +23,7 @@ import {
 import { getRankProgress, getRankColor } from '../utils/roomUtils'
 import { Room, RoomFilters as RoomFiltersType, User, RoomData, Profile } from '../types'
 import { StudyStreakCard } from '../components/dashboard/StudyStreakCard'
+import { StudyHeatmap } from '../components/dashboard/StudyHeatmap'
 import { StudyHeatmapModal } from '../components/dashboard/StudyHeatmapModal'
 import { useStudyStreak } from '../hooks/useStudyStreak'
 import { getTodayStudyMinutes } from '../lib/supabase'
@@ -74,11 +75,11 @@ export const Dashboard = () => {
     streakStats,
     loading: streakLoading,
     error: streakError,
-    refreshStreak
-  } = useStudyStreak(user?.id || '', studyStats.totalFocusMinutes, user?.createdAt)
+    loadStreakData: refreshStreak
+  } = useStudyStreak(authUser?.id || '', studyStats.totalFocusMinutes, user?.createdAt)
 
   // Debug log to verify streak stats
-  console.log('Dashboard - streakStats:', streakStats, 'user?.id:', user?.id)
+  console.log('Dashboard - streakStats:', streakStats, 'user?.id:', authUser?.id)
 
   const loadTodayMinutes = async () => {
     if (!authUser) return
@@ -230,7 +231,7 @@ export const Dashboard = () => {
           createdAt: room.created_at,
           lastActivity: room.updated_at
         }))
-        setRooms(formattedRooms)
+        setRooms(formattedRooms.slice(0, 20)) // Only keep the most recent 20 rooms
       }
     } catch (error) {
       console.error('Error loading rooms:', error)
@@ -284,15 +285,6 @@ export const Dashboard = () => {
       }
     })
 
-    // Set up periodic refresh for streak data (every 2 minutes)
-    const streakRefreshInterval = setInterval(() => {
-      if (authUser && user) {
-        console.log('Periodic streak refresh...')
-        refreshStreak()
-        loadTodayMinutes()
-      }
-    }, 2 * 60 * 1000) // 2 minutes
-
     return () => {
       if (roomsSubscription) {
         roomsSubscription.unsubscribe()
@@ -300,7 +292,6 @@ export const Dashboard = () => {
       if (userStatsSubscription) {
         userStatsSubscription.unsubscribe()
       }
-      clearInterval(streakRefreshInterval)
     }
   }, [authUser, user])
 
@@ -339,29 +330,24 @@ export const Dashboard = () => {
   const rankProgress = getRankProgress(user.totalPoints)
   const userRooms = rooms.filter(room => room.members.some(member => member.id === user.id))
   const recentRooms = userRooms.slice(0, 4)
-
-  // Filter rooms for discovery
+  // Limit filteredRooms to 20 for rendering
   const filteredRooms = rooms.filter(room => {
     if (filters.search && !room.name.toLowerCase().includes(filters.search.toLowerCase()) && 
         !room.description.toLowerCase().includes(filters.search.toLowerCase())) {
       return false
     }
-    
     if (filters.tags.length > 0 && !filters.tags.some(tag => room.tags.includes(tag))) {
       return false
     }
-    
     if (filters.isActive !== undefined && room.isActive !== filters.isActive) {
       return false
     }
-    
     if (filters.maxMembers !== undefined) {
       if (filters.maxMembers === 10 && room.maxMembers > 10) return false
       if (filters.maxMembers === 25 && room.maxMembers <= 10) return false
     }
-    
     return true
-  })
+  }).slice(0, 20)
 
   // Convert focus time from minutes to hours for display
   const studyHours = Math.round(studyStats.totalFocusMinutes / 60 * 10) / 10 // Round to 1 decimal place
@@ -395,13 +381,6 @@ export const Dashboard = () => {
       ),
       icon: Clock,
       color: 'text-accent-400'
-    },
-    {
-      name: 'Study Streak',
-      value: `${streakStats.currentStreak}d`,
-      change: streakStats.currentStreak > 0 ? 'Keep it up!' : 'Start today!',
-      icon: Flame,
-      color: 'text-primary-400'
     }
   ]
 
@@ -543,18 +522,38 @@ export const Dashboard = () => {
               </Card>
             </div>
           ))}
+          {/* Add Study Days as a fourth stat */}
+          <div className="animate-slide-up min-w-[140px]" style={{ animationDelay: `${stats.length * 0.1}s` }}>
+            <Card className="p-3 sm:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs sm:text-sm text-dark-400 mb-1">Study Days</p>
+                  <p className="text-base sm:text-lg font-bold text-white">{streakStats.totalStudyDays}</p>
+                  <div className="text-xs sm:text-sm text-accent-400">Days with activity</div>
+                </div>
+                <div className="p-2 sm:p-3 bg-dark-800 rounded-xl text-primary-400">
+                  <Calendar className="w-4 h-4 sm:w-6 sm:h-6" />
+                </div>
+              </div>
+            </Card>
+          </div>
         </div>
 
         <div className="mb-6 sm:mb-8 animate-slide-up" style={{ animationDelay: '0.4s' }}>
           <StudyStreakCard
             streakStats={streakStats}
-            todayMinutes={todayStudyMinutes}
+            todayMinutes={todayMinutes}
             totalVisitDays={studyStats.totalVisitDays}
             loading={streakLoading}
             error={streakError}
-            onViewHeatmap={() => setShowHeatmapModal(true)}
             onRefresh={refreshStreak}
+            onViewHeatmap={() => setShowHeatmapModal(true)}
           />
+        </div>
+
+        {/* Show heatmap only below streak card */}
+        <div className="mb-8 animate-slide-up" style={{ animationDelay: '0.5s' }}>
+          <StudyHeatmap data={Array.isArray(streakData) ? streakData : []} />
         </div>
 
         {/* Recent Achievements */}
@@ -766,17 +765,18 @@ export const Dashboard = () => {
         onComplete={clearNotification}
       />
 
-<StudyHeatmapModal
-  isOpen={showHeatmapModal}
-  onClose={() => setShowHeatmapModal(false)}
-  data={streakData}
-  streakStats={streakStats}
-/>
-
       <AchievementUnlock
         achievement={pendingAchievement}
         isOpen={!!pendingAchievement}
         onClose={clearAchievement}
+      />
+
+      {/* Study Heatmap Modal */}
+      <StudyHeatmapModal
+        isOpen={showHeatmapModal}
+        onClose={() => setShowHeatmapModal(false)}
+        data={streakData}
+        streakStats={streakStats}
       />
     </div>
   )

@@ -95,6 +95,7 @@ export class WebSocketService extends EventEmitter {
   private roomId: string
   private subscriptions: any[] = []
   private typingTimeout: NodeJS.Timeout | null = null
+  private isDestroyed = false
 
   constructor(
     userId: string,
@@ -119,11 +120,18 @@ export class WebSocketService extends EventEmitter {
     }
   }
 
+  // Add destroy method for robust cleanup
+  destroy(): void {
+    this.isDestroyed = true
+    this.disconnect()
+    this.removeAllListeners()
+  }
+
   /**
    * Connect to Supabase real-time
    */
   async connect(): Promise<void> {
-    if (this.isConnecting || this.isConnected) {
+    if (this.isDestroyed || this.isConnecting || this.isConnected) {
       return
     }
 
@@ -219,8 +227,12 @@ export class WebSocketService extends EventEmitter {
     
     // Unsubscribe from all channels
     this.subscriptions.forEach(subscription => {
-      if (subscription && typeof subscription.unsubscribe === 'function') {
-        subscription.unsubscribe()
+      try {
+        if (subscription && typeof subscription.unsubscribe === 'function') {
+          subscription.unsubscribe()
+        }
+      } catch (error) {
+        console.error('Error unsubscribing:', error)
       }
     })
     
@@ -228,6 +240,8 @@ export class WebSocketService extends EventEmitter {
     this.isConnected = false
     this.isConnecting = false
     this.messageQueue = []
+    // Clean up event emitter listeners
+    this.removeAllListeners()
   }
 
   /**
@@ -608,10 +622,11 @@ export const createWebSocketService = (
   callbacks: WebSocketCallbacks = {},
   config?: Partial<WebSocketConfig>
 ): WebSocketService => {
+  // Properly cleanup previous instance
   if (wsInstance) {
-    wsInstance.disconnect()
+    wsInstance.destroy()
+    wsInstance = null
   }
-  
   wsInstance = new WebSocketService(userId, roomId, token, callbacks, config)
   return wsInstance
 }
@@ -622,7 +637,7 @@ export const getWebSocketService = (): WebSocketService | null => {
 
 export const disconnectWebSocket = (): void => {
   if (wsInstance) {
-    wsInstance.disconnect()
+    wsInstance.destroy()
     wsInstance = null
   }
 } 

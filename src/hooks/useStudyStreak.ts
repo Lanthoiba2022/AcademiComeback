@@ -37,7 +37,8 @@ export const useStudyStreak = (userId: string, totalFocusMinutes: number = 0, us
     totalDays = differenceInDays(today, joinDate) + 1 // +1 to include both join date and today
     totalDays = Math.max(totalDays, 1) // Ensure at least 1 day
     
-    const averageMinutesPerDay = Math.round(totalFocusMinutes / totalDays)
+    // Ensure totalDays is not zero to avoid division by zero
+    const averageMinutesPerDay = totalDays > 0 ? Math.round(totalFocusMinutes / totalDays) : 0
     
     setStreakStats(prev => ({
       ...prev,
@@ -52,7 +53,7 @@ export const useStudyStreak = (userId: string, totalFocusMinutes: number = 0, us
     if (userCreatedAt) {
       calculateAverageOnly()
     }
-  })
+  }, [totalFocusMinutes, userCreatedAt, calculateAverageOnly])
 
   const loadStreakData = useCallback(async () => {
     if (!userId) {
@@ -160,7 +161,7 @@ export const useStudyStreak = (userId: string, totalFocusMinutes: number = 0, us
       lastDate = currentDate
     }
     
-    // Calculate average minutes per day using total focus time and user's active days
+    // Calculate average minutes per day using total focus time and user join date
     let totalDays = 365 // Default to 365 days if no userCreatedAt
     
     if (userCreatedAt) {
@@ -191,26 +192,17 @@ export const useStudyStreak = (userId: string, totalFocusMinutes: number = 0, us
   // Recalculate average when totalFocusMinutes changes (e.g., after page refresh)
   useEffect(() => {
     // Always recalculate average when totalFocusMinutes changes
-    calculateAverageOnly()
-  }, [totalFocusMinutes, calculateAverageOnly])
-
-  // Auto-refresh every 5 minutes to keep data fresh
-  useEffect(() => {
-    if (!userId) return
-
-    const interval = setInterval(() => {
-      console.log('Auto-refreshing streak data...')
-      loadStreakData()
-    }, 5 * 60 * 1000) // 5 minutes
-
-    return () => clearInterval(interval)
-  }, [userId, loadStreakData])
+    if (userCreatedAt) {
+      calculateAverageOnly()
+    }
+  }, [totalFocusMinutes, userCreatedAt, calculateAverageOnly])
 
   return {
     streakData,
     streakStats,
     loading,
     error,
-    refreshStreak: loadStreakData
+    loadStreakData,
+    calculateStreakStats
   }
 }

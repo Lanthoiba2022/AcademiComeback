@@ -59,14 +59,6 @@ export const StudyStreakCard: React.FC<StudyStreakCardProps> = ({
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               </Button>
             )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onViewHeatmap}
-              className="text-primary-400 hover:text-primary-300"
-            >
-              View Heatmap
-            </Button>
           </div>
         </div>
 
