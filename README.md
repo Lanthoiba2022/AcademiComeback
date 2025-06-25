@@ -98,7 +98,7 @@ AcademiComeback is on a mission to revolutionize collaborative learning. We blen
 ---
 ## AcademiComeback User Guide Flowchart
 
-![Preview](/AcademiComeback%20User%20Guide%20Flowchart.png) 
+![Preview](/AcademiComebackUserGuideFlowchart.png) 
 
 ## 🔮 Future Plans & Scope
 
