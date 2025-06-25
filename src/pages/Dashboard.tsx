@@ -770,11 +770,11 @@ export const Dashboard = () => {
         onClose={() => setDetailsModalOpen(false)}
         title={selectedRoom?.name || 'Room Details'}
         size="md"
+        titleClassName="text-3xl font-bold text-white"
       >
         {selectedRoom && (
           <div className="space-y-4">
             <div>
-              <h3 className="text-lg font-semibold text-white mb-1">{selectedRoom.name}</h3>
               <p className="text-dark-200 mb-2">{selectedRoom.description}</p>
             </div>
             <div>
