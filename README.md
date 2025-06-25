@@ -128,6 +128,8 @@ We welcome contributions! Please open issues or pull requests for suggestions, b
 
 ---
 
-## 📝 License
 
-MIT License
+
+---
+
+© AcademiComeback
