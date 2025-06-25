@@ -18,6 +18,7 @@ import {
   subscribeToRooms, subscribeToUserStats, joinRoom
 } from '../lib/supabase'
 import { Room, RoomFilters as RoomFiltersType, User, Profile, RoomData } from '../types'
+import { Modal } from '../components/ui/Modal'
 
 export const StudyRooms = () => {
   const navigate = useNavigate()
@@ -35,6 +36,8 @@ export const StudyRooms = () => {
     isActive: undefined,
     maxMembers: undefined
   })
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false)
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null)
 
   useEffect(() => {
     const initializeUser = async () => {
@@ -194,7 +197,11 @@ export const StudyRooms = () => {
   }
 
   const handleViewRoom = (roomId: string) => {
-    navigate(`/room/${roomId}`)
+    const room = rooms.find(r => r.id === roomId)
+    if (room) {
+      setSelectedRoom(room)
+      setDetailsModalOpen(true)
+    }
   }
 
   const handleJoinRoom = async (roomCode: string) => {
@@ -215,6 +222,10 @@ export const StudyRooms = () => {
     } catch (error) {
       console.error('Error joining room:', error)
     }
+  }
+
+  const handleEnterRoom = (roomId: string) => {
+    navigate(`/room/${roomId}`)
   }
 
   if (loading) {
@@ -425,7 +436,7 @@ export const StudyRooms = () => {
                       <RoomCard
                         room={room}
                         onJoinRoom={handleJoinRoomById}
-                        onViewRoom={handleViewRoom}
+                        onViewRoom={handleEnterRoom}
                         currentUserId={user.id}
                       />
                     </div>
@@ -555,6 +566,46 @@ export const StudyRooms = () => {
           onClose={() => setJoinRoomModal(false)}
           onJoinRoom={handleJoinRoom}
         />
+
+        {activeTab === 'discover' && (
+          <Modal
+            isOpen={detailsModalOpen}
+            onClose={() => setDetailsModalOpen(false)}
+            title={selectedRoom?.name || 'Room Details'}
+            size="md"
+          >
+            {selectedRoom && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-1">{selectedRoom.name}</h3>
+                  <p className="text-dark-200 mb-2">{selectedRoom.description}</p>
+                </div>
+                <div>
+                  <span className="font-semibold text-white">Tags: </span>
+                  {selectedRoom.tags.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {selectedRoom.tags.map(tag => (
+                        <span key={tag} className="inline-flex items-center px-2 py-1 bg-primary-500/20 text-primary-300 rounded text-xs">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-dark-400">No tags</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="font-semibold text-white">Members:</span>
+                  <span className="text-dark-200">{selectedRoom.members.length} / {selectedRoom.maxMembers}</span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="font-semibold text-white">Room Code:</span>
+                  <span className="text-dark-200">{selectedRoom.code}</span>
+                </div>
+              </div>
+            )}
+          </Modal>
+        )}
       </div>
     </div>
   )
