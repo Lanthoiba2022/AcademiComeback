@@ -8,9 +8,10 @@ interface ModalProps {
   title?: string
   children: React.ReactNode
   size?: 'sm' | 'md' | 'lg' | 'xl'
+  titleClassName?: string
 }
 
-export const Modal = ({ isOpen, onClose, title, children, size = 'md' }: ModalProps) => {
+export const Modal = ({ isOpen, onClose, title, children, size = 'md', titleClassName }: ModalProps) => {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -68,7 +69,7 @@ export const Modal = ({ isOpen, onClose, title, children, size = 'md' }: ModalPr
         {/* Header */}
         {title && (
           <div className="flex items-center justify-between p-2 border-b border-dark-700/50">
-            <h2 className="text-sm font-semibold text-white">{title}</h2>
+            <h2 className={titleClassName ? titleClassName : "text-sm font-semibold text-white"}>{title}</h2>
             <button
               onClick={onClose}
               className="p-1 text-dark-400 hover:text-white hover:bg-dark-700 rounded-lg transition-colors duration-200"
