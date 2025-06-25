@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { Navbar } from '../components/landing/Navbar'
 import { Hero } from '../components/landing/Hero'
@@ -10,10 +10,22 @@ import { Mail, Info, Linkedin, Twitter, Github, Sparkles, Users, Shield } from '
 
 export const Landing = () => {
   const { user } = useAuth()
+  const [searchParams] = useSearchParams()
   const [authModal, setAuthModal] = useState<{ isOpen: boolean; mode: 'login' | 'register' }>({
     isOpen: false,
     mode: 'login'
   })
+
+  // Check for auth query parameter and open modal automatically
+  useEffect(() => {
+    const authParam = searchParams.get('auth')
+    if (authParam === 'register') {
+      setAuthModal({ isOpen: true, mode: 'register' })
+      // Clean up the URL by removing the query parameter
+      const newUrl = window.location.pathname
+      window.history.replaceState({}, '', newUrl)
+    }
+  }, [searchParams])
 
   // Redirect to dashboard if user is already authenticated
   if (user) {
@@ -106,9 +118,9 @@ export const Landing = () => {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row justify-center items-center gap-8 animate-float">
-              <a href="mailto:hello@academicomback.com" className="flex items-center space-x-2 px-6 py-3 bg-primary-500/10 rounded-lg border border-primary-500 text-primary-300 hover:bg-primary-500/20 transition-all duration-300 shadow-lg hover:scale-105">
+              <a href="mailto:hello@academicomeback.online" className="flex items-center space-x-2 px-6 py-3 bg-primary-500/10 rounded-lg border border-primary-500 text-primary-300 hover:bg-primary-500/20 transition-all duration-300 shadow-lg hover:scale-105">
                 <Mail className="w-6 h-6 animate-pulse" />
-                <span className="font-medium">hello@academicomback.com</span>
+                <span className="font-medium">hello@academicomeback.online</span>
               </a>
               <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-2 px-6 py-3 bg-secondary-500/10 rounded-lg border border-secondary-500 text-secondary-300 hover:bg-secondary-500/20 transition-all duration-300 shadow-lg hover:scale-105">
                 <Linkedin className="w-6 h-6 animate-bounce" />

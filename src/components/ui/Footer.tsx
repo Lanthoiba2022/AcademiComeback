@@ -103,6 +103,9 @@ export const Footer = () => {
           <a href="https://21st.dev/" target="_blank" rel="noopener noreferrer">
             <img src="/21st.png" alt="21st" className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 object-contain rounded hover:scale-110 transition-transform" />
           </a>
+          <a href="https://www.entri.com/" target="_blank" rel="noopener noreferrer">
+            <img src="/entri.jpg" alt="21st" className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 object-contain rounded hover:scale-110 transition-transform" />
+          </a>
         </div>
       </div>
       {/* Right: Copyright, vertically centered */}

@@ -27,6 +27,7 @@ import { StudyHeatmap } from '../components/dashboard/StudyHeatmap'
 import { StudyHeatmapModal } from '../components/dashboard/StudyHeatmapModal'
 import { useStudyStreak } from '../hooks/useStudyStreak'
 import { getTodayStudyMinutes } from '../lib/supabase'
+import { Modal } from '../components/ui/Modal'
 
 export const Dashboard = () => {
   const navigate = useNavigate()
@@ -69,6 +70,8 @@ export const Dashboard = () => {
 
   const [showHeatmapModal, setShowHeatmapModal] = useState(false)
   const [todayStudyMinutes, setTodayStudyMinutes] = useState(0)
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false)
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null)
 
   const {
     streakData,
@@ -446,7 +449,11 @@ export const Dashboard = () => {
   }
 
   const handleViewRoom = (roomId: string) => {
-    navigate(`/room/${roomId}`)
+    const room = rooms.find(r => r.id === roomId)
+    if (room) {
+      setSelectedRoom(room)
+      setDetailsModalOpen(true)
+    }
   }
 
   return (
@@ -756,6 +763,45 @@ export const Dashboard = () => {
         onClose={() => setJoinRoomModal(false)}
         onJoinRoom={handleJoinRoom}
       />
+
+      {/* Room Details Modal */}
+      <Modal
+        isOpen={detailsModalOpen}
+        onClose={() => setDetailsModalOpen(false)}
+        title={selectedRoom?.name || 'Room Details'}
+        size="md"
+      >
+        {selectedRoom && (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold text-white mb-1">{selectedRoom.name}</h3>
+              <p className="text-dark-200 mb-2">{selectedRoom.description}</p>
+            </div>
+            <div>
+              <span className="font-semibold text-white">Tags: </span>
+              {selectedRoom.tags.length > 0 ? (
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {selectedRoom.tags.map(tag => (
+                    <span key={tag} className="inline-flex items-center px-2 py-1 bg-primary-500/20 text-primary-300 rounded text-xs">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-dark-400">No tags</span>
+              )}
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="font-semibold text-white">Members:</span>
+              <span className="text-dark-200">{selectedRoom.members.length} / {selectedRoom.maxMembers}</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="font-semibold text-white">Room Code:</span>
+              <span className="text-dark-200">{selectedRoom.code}</span>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Gamification Notifications */}
       <PointsNotification

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { usePremium } from '../../contexts/PremiumContext'
-import { PremiumUpgradeModal } from './PremiumUpgradeModal'
 import { 
   Crown, X, Zap, Star, Users, Award, ArrowRight, 
   CheckCircle, Clock, Sparkles 
@@ -12,17 +12,18 @@ export const PremiumOnboarding = () => {
   const [isVisible, setIsVisible] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
   const [isDismissed, setIsDismissed] = useState(false)
+  const navigate = useNavigate()
   
   const { 
     isPremium, 
     isTrialActive, 
     trialDaysRemaining, 
-    loading 
+    isLoading 
   } = usePremium()
 
   // Show onboarding for new users or trial users
   useEffect(() => {
-    if (loading || isPremium || isDismissed) return
+    if (isLoading || isPremium || isDismissed) return
 
     // Check if user has seen onboarding before
     const hasSeenOnboarding = localStorage.getItem('premium-onboarding-seen')
@@ -34,7 +35,7 @@ export const PremiumOnboarding = () => {
       
       return () => clearTimeout(timer)
     }
-  }, [loading, isPremium, isDismissed])
+  }, [isLoading, isPremium, isDismissed])
 
   const handleDismiss = () => {
     setIsVisible(false)
@@ -52,6 +53,12 @@ export const PremiumOnboarding = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1)
     }
+  }
+
+  const handleStartFreeTrial = () => {
+    // Redirect to landing page with signup modal open
+    navigate('/?auth=register')
+    handleDismiss()
   }
 
   const onboardingSteps = [
@@ -105,7 +112,7 @@ export const PremiumOnboarding = () => {
     }
   ]
 
-  if (!isVisible || isPremium || loading) {
+  if (!isVisible || isPremium || isLoading) {
     return null
   }
 
@@ -188,17 +195,14 @@ export const PremiumOnboarding = () => {
 
             <div className="flex space-x-2">
               {isLastStep ? (
-                <PremiumUpgradeModal
-                  trigger={
-                    <Button 
-                      size="sm"
-                      className="bg-gradient-to-r from-primary-500 to-secondary-500"
-                      icon={Sparkles}
-                    >
-                      {isTrialActive ? 'Continue Premium' : 'Start Free Trial'}
-                    </Button>
-                  }
-                />
+                <Button 
+                  size="sm"
+                  className="bg-gradient-to-r from-primary-500 to-secondary-500"
+                  icon={Sparkles}
+                  onClick={handleStartFreeTrial}
+                >
+                  {isTrialActive ? 'Continue Premium' : 'Start Free Trial'}
+                </Button>
               ) : (
                 <Button
                   onClick={handleNext}
