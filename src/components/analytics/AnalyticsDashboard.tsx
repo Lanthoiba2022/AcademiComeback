@@ -7,16 +7,17 @@ import {
   TrendingUp, Clock, Target, Trophy, Calendar, BookOpen,
   BarChart3, PieChart, Activity, Zap, Users, Brain, Crown, Lock
 } from 'lucide-react'
-import { StudyAnalytics, DailyStudyStats, TopicMasteryData } from '../../types/analytics'
+import { StudyAnalytics, DailyStudyStats, TopicMasteryData, StudyGoal } from '../../types/analytics'
 import { LineChart, BarChart, PieChart as RechartsPieChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Line, Bar, Cell } from 'recharts'
 
 interface AnalyticsDashboardProps {
   analytics: StudyAnalytics
   timeframe: 'week' | 'month' | 'year'
   onTimeframeChange: (timeframe: 'week' | 'month' | 'year') => void
+  completedGoals: StudyGoal[]
 }
 
-export const AnalyticsDashboard = ({ analytics, timeframe, onTimeframeChange }: AnalyticsDashboardProps) => {
+export const AnalyticsDashboard = ({ analytics, timeframe, onTimeframeChange, completedGoals }: AnalyticsDashboardProps) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'performance' | 'topics' | 'goals'>('overview')
   // Defensive: ref for chart containers
   const chartRef = useRef<any>(null)

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Sidebar } from '../components/dashboard/Sidebar'
 import { AnalyticsDashboard } from '../components/analytics/AnalyticsDashboard'
-import { StudyAnalytics } from '../types/analytics'
+import { StudyAnalytics, StudyGoal } from '../types/analytics'
+import { useAuth } from '../contexts/AuthContext'
+import { getUserGoals } from '../lib/supabase'
 
 // Mock data generator
 const generateMockAnalytics = (): StudyAnalytics => {
@@ -101,24 +103,28 @@ const generateMockAnalytics = (): StudyAnalytics => {
         title: 'Daily Focus Goal',
         description: 'Study for at least 2 hours every day',
         type: 'daily',
+        challenge: 'Study for 2 hours',
         target: 120,
         current: 95,
         unit: 'minutes',
         deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         isCompleted: false,
-        createdAt: today.toISOString()
+        createdAt: today.toISOString(),
+        priority: 'medium',
       },
       {
         id: '2',
         title: 'Weekly Quiz Challenge',
         description: 'Complete 5 quizzes this week',
         type: 'weekly',
+        challenge: 'Complete 5 quizzes',
         target: 5,
         current: 3,
         unit: 'quizzes',
         deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         isCompleted: false,
-        createdAt: today.toISOString()
+        createdAt: today.toISOString(),
+        priority: 'high',
       }
     ],
     streaks: {
@@ -161,15 +167,30 @@ const generateMockAnalytics = (): StudyAnalytics => {
 }
 
 export const AnalyticsPage = () => {
+  const { user: authUser } = useAuth()
   const [analytics, setAnalytics] = useState<StudyAnalytics | null>(null)
   const [timeframe, setTimeframe] = useState<'week' | 'month' | 'year'>('month')
+  const [completedGoals, setCompletedGoals] = useState<StudyGoal[]>([])
 
   useEffect(() => {
     // In a real app, this would fetch from the API
-    setAnalytics(generateMockAnalytics())
+    const data = generateMockAnalytics()
+    setAnalytics(data)
   }, [])
 
-  if (!analytics) {
+  useEffect(() => {
+    if (!authUser) return;
+    // Fetch real user goals from Supabase
+    const fetchGoals = async () => {
+      const { data, error } = await getUserGoals(authUser.id);
+      if (!error && Array.isArray(data)) {
+        setCompletedGoals(data.filter((g: StudyGoal) => g.isCompleted));
+      }
+    };
+    fetchGoals();
+  }, [authUser]);
+
+  if (!analytics || !authUser) {
     return (
       <div className="min-h-screen bg-hero-gradient">
         <Sidebar />
@@ -188,6 +209,7 @@ export const AnalyticsPage = () => {
           analytics={analytics}
           timeframe={timeframe}
           onTimeframeChange={setTimeframe}
+          completedGoals={completedGoals}
         />
       </div>
     </div>

@@ -18,7 +18,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { useGamification } from '../hooks/useGamification'
 import { 
   getRooms, getProfile, createRoom, joinRoomWithCode, createProfile,
-  getUserStudyStats, subscribeToRooms, subscribeToUserStats, joinRoom
+  getUserStudyStats, subscribeToRooms, subscribeToUserStats, joinRoom,
+  getUserGoals, addUserGoal, updateUserGoal, completeUserGoal
 } from '../lib/supabase'
 import { getRankProgress, getRankColor } from '../utils/roomUtils'
 import { Room, RoomFilters as RoomFiltersType, User, RoomData, Profile } from '../types'
@@ -28,6 +29,17 @@ import { StudyHeatmapModal } from '../components/dashboard/StudyHeatmapModal'
 import { useStudyStreak } from '../hooks/useStudyStreak'
 import { getTodayStudyMinutes } from '../lib/supabase'
 import { Modal } from '../components/ui/Modal'
+import { Goal } from '../components/ui/Goal'
+import { GoalForm } from '../components/ui/GoalForm'
+import { StudyGoal } from '../types/analytics'
+
+// Add local uuidv4 generator
+function uuidv4() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
 
 export const Dashboard = () => {
   const navigate = useNavigate()
@@ -298,6 +310,76 @@ export const Dashboard = () => {
     }
   }, [authUser, user])
 
+  // Add goals state
+  const [goals, setGoals] = useState<StudyGoal[]>([])
+  const [showGoalForm, setShowGoalForm] = useState(false)
+  const [editingGoal, setEditingGoal] = useState<StudyGoal | null>(null)
+
+  // Only show incomplete goals in dashboard
+  const activeGoals = goals.filter(g => !g.iscompleted)
+
+  // Fetch goals from Supabase for this user (refetch after add/edit/complete)
+  const fetchGoals = useCallback(async () => {
+    if (!user) return;
+    const { data, error } = await getUserGoals(user.id);
+    if (error) {
+      console.error('Supabase getUserGoals error:', error);
+      alert('Failed to fetch goals: ' + error.message);
+    }
+    if (!error && Array.isArray(data)) {
+      setGoals(data);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchGoals();
+  }, [fetchGoals]);
+
+  // Add or update goal
+  const handleSaveGoal = async (goal: Partial<StudyGoal>) => {
+    if (!user) return;
+    if (editingGoal) {
+      // Update in Supabase
+      const updatedGoal = { ...editingGoal, ...goal };
+      await updateUserGoal(user.id, updatedGoal);
+      setShowGoalForm(false);
+      setEditingGoal(null);
+      fetchGoals();
+    } else {
+      // Add to Supabase (let Supabase generate the id)
+      // Remove id if present
+      const { id, ...goalWithoutId } = goal;
+      const newGoal: Omit<StudyGoal, 'id'> = {
+        ...goalWithoutId,
+        current: 0,
+        iscompleted: false,
+        createdat: new Date().toISOString(),
+        userid: user.id,
+      } as Omit<StudyGoal, 'id'>;
+      const { data, error } = await addUserGoal(user.id, newGoal);
+      if (error) {
+        console.error('Supabase addUserGoal error:', error);
+        alert('Failed to add goal: ' + error.message);
+      }
+      setShowGoalForm(false);
+      setEditingGoal(null);
+      fetchGoals();
+    }
+  };
+
+  // Edit goal
+  const handleEditGoal = (goal: StudyGoal) => {
+    setEditingGoal(goal)
+    setShowGoalForm(true)
+  }
+
+  // Mark goal as complete
+  const handleCompleteGoal = async (goal: StudyGoal) => {
+    if (!user) return;
+    await completeUserGoal(user.id, goal.id);
+    fetchGoals(); // Always reload from DB
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-hero-gradient flex items-center justify-center">
@@ -451,6 +533,12 @@ export const Dashboard = () => {
   const handleViewRoom = (roomId: string) => {
     const room = rooms.find(r => r.id === roomId)
     if (room) {
+      // Check if the current user is a member
+      const isMember = room.members.some(member => member.id === user?.id)
+      if (isMember) {
+        navigate(`/room/${roomId}`)
+        return
+      }
       setSelectedRoom(room)
       setDetailsModalOpen(true)
     }
@@ -506,6 +594,31 @@ export const Dashboard = () => {
             />
           </div>
         )}
+
+        {/* Goals Section */}
+        <div className="mb-8 animate-slide-up" style={{ animationDelay: '0.3s' }}>
+          <Card className="p-0 bg-gradient-to-br from-dark-800/80 to-dark-900/90 shadow-2xl border-0">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-6 pt-6 pb-2 gap-2">
+              <div className="flex items-center gap-3">
+                <Target className="w-7 h-7 text-primary-400" />
+                <h3 className="text-xl font-bold text-white tracking-tight">Your Active Study Goals</h3>
+              </div>
+              <Button size="lg" icon={Target} className="bg-gradient-to-r from-primary-500 to-accent-500 text-white shadow-lg hover:scale-105 transition-transform" onClick={() => { setShowGoalForm(true); setEditingGoal(null); }}>
+                Add Goal
+              </Button>
+            </div>
+            {activeGoals.length === 0 && (
+              <div className="text-dark-300 text-center py-10 text-lg">No active goals. Add a new goal to get started!</div>
+            )}
+            <div className={`flex flex-row gap-4 px-6 pb-6 overflow-x-auto scrollbar-thin scrollbar-thumb-dark-700 scrollbar-track-dark-900 ${activeGoals.length === 1 ? 'justify-stretch' : ''}`}>
+              {activeGoals.map(goal => (
+                <div className={activeGoals.length === 1 ? 'w-full' : 'min-w-[340px] max-w-full flex-shrink-0'} key={goal.id}>
+                  <Goal goal={goal} onEdit={handleEditGoal} onComplete={handleCompleteGoal} />
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 mb-6 sm:mb-8 overflow-x-auto scrollbar-hidden">
@@ -824,6 +937,11 @@ export const Dashboard = () => {
         data={streakData}
         streakStats={streakStats}
       />
+
+      {/* Goal Form Modal */}
+      <Modal isOpen={showGoalForm} onClose={() => { setShowGoalForm(false); setEditingGoal(null); }} title={editingGoal ? 'Edit Goal' : 'Add Goal'}>
+        <GoalForm initialGoal={editingGoal || {}} onSave={handleSaveGoal} onCancel={() => { setShowGoalForm(false); setEditingGoal(null); }} />
+      </Modal>
     </div>
   )
 }

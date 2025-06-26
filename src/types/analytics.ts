@@ -82,15 +82,19 @@ export interface CollaborationStats {
 
 export interface StudyGoal {
   id: string
+  userid: string
   title: string
   description: string
   type: 'daily' | 'weekly' | 'monthly' | 'custom'
+  challenge: string
   target: number
   current: number
   unit: 'minutes' | 'tasks' | 'quizzes' | 'points'
   deadline: string
-  isCompleted: boolean
-  createdAt: string
+  iscompleted: boolean
+  createdat: string
+  priority: 'low' | 'medium' | 'high'
+  updatedat: string
 }
 
 export interface StreakData {
