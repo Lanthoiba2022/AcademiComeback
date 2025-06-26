@@ -484,7 +484,7 @@ export const StudyRooms = () => {
                 </button>
                 
                 <button 
-                  onClick={() => navigate('/under-development')}
+                  onClick={() => navigate('/notes')}
                   className="p-4 lg:p-6 bg-dark-800/50 rounded-lg hover:bg-dark-800/70 transition-colors duration-200 text-center group"
                 >
                   <BookOpen className="w-6 lg:w-8 h-6 lg:h-8 text-accent-400 mx-auto mb-3 group-hover:scale-110 transition-transform duration-200" />

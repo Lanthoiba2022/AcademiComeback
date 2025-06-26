@@ -35,7 +35,7 @@ const navigation = [
   { name: 'Achievements', icon: Trophy,  href: '/achievements' },
   { name: 'Rewards', icon: Gift, href: '/rewards' },
   { name: 'Leaderboard', icon: TrendingUp, href: '/leaderboard' },
-  { name: 'Notes', icon: FileText, href: '/under-development' },
+  { name: 'Notes', icon: FileText, href: '/notes' },
   { name: 'Premium', icon: Crown, href: '/premium', isPremium: true },
   { name: 'Settings', icon: Settings, href: '/settings' },
 ]
