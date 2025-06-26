@@ -285,16 +285,8 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({
   }, [isPremium, isTrialActive, trialDaysRemaining, isInitialized, offerings])
 
   if (error) {
-    // Only show the error if RevenueCat is configured (i.e., user is logged in)
-    if (isRevenueCatConfigured()) {
-      return (
-        <div className="p-4 text-red-500">
-          Error initializing premium features: {error}
-          <button className="ml-4 px-3 py-1 bg-primary-500 text-white rounded" onClick={() => initializePremium()}>Retry</button>
-        </div>
-      )
-    }
-    // If not configured, just render children (free mode)
+    // Do not block the UI or show a site-breaking error. Optionally, you can log or show a non-intrusive warning in premium-only areas.
+    // Always render children so the rest of the app works.
     return <>{children}</>;
   }
 

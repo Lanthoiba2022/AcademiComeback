@@ -969,3 +969,41 @@ export const getTodayStudyMinutes = async (userId: string) => {
     return { data: 0, error }
   }
 }
+
+// --- GOALS (per user) ---
+export const getUserGoals = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('goals')
+    .select('*')
+    .eq('userid', userId)
+    .order('createdat', { ascending: false });
+  return { data, error };
+};
+
+export const addUserGoal = async (userId: string, goal: any) => {
+  const { data, error } = await supabase
+    .from('goals')
+    .insert([{ ...goal, userid: userId }])
+    .select();
+  return { data: data ? data[0] : null, error };
+};
+
+export const updateUserGoal = async (userId: string, goal: any) => {
+  const { data, error } = await supabase
+    .from('goals')
+    .update(goal)
+    .eq('userid', userId)
+    .eq('id', goal.id)
+    .select();
+  return { data: data ? data[0] : null, error };
+};
+
+export const completeUserGoal = async (userId: string, goalId: string) => {
+  const { data, error } = await supabase
+    .from('goals')
+    .update({ iscompleted: true })
+    .eq('userid', userId)
+    .eq('id', goalId)
+    .select();
+  return { data: data ? data[0] : null, error };
+};
