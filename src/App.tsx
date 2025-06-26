@@ -12,7 +12,6 @@ import { QuizPage } from './pages/QuizPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
 import { CalendarPage } from './pages/CalendarPage'
 import { FilesPage } from './pages/FilesPage'
-import { UnderDevelopment } from './pages/UnderDevelopment'
 import { PremiumSettingsPage } from './pages/PremiumSettingsPage'
 import { PricingPage } from './pages/PricingPage'
 import { Settings } from './pages/Settings'
@@ -28,6 +27,7 @@ import { scheduleChatCleanup } from './lib/chatCleanup'
 import { stopChatCleanup } from './lib/chatCleanup'
 import { Footer } from './components/ui/Footer'
 import { MemoryMonitor } from './components/dev/MemoryMonitor'
+import { NotesPage } from './pages/UnderDevelopment'
 
 // Gamification Pages
 export const AchievementsPage = () => {
@@ -194,6 +194,14 @@ function App() {
               } 
             />
             <Route 
+              path="/notes" 
+              element={
+                <ProtectedRoute>
+                  <NotesPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
               path="/achievements" 
               element={
                 <ProtectedRoute>
@@ -214,14 +222,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <LeaderboardPage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/under-development" 
-              element={
-                <ProtectedRoute>
-                  <UnderDevelopment />
                 </ProtectedRoute>
               } 
             />

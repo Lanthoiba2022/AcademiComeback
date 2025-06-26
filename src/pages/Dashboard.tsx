@@ -796,7 +796,7 @@ export const Dashboard = () => {
                   <p className="text-xs text-dark-400">Find study partners</p>
                 </button>
                 <button 
-                  onClick={() => navigate('/under-development')}
+                  onClick={() => navigate('/notes')}
                   className="p-3 sm:p-4 lg:p-6 bg-dark-800/50 rounded-lg hover:bg-dark-800/70 transition-colors duration-200 text-center group"
                 >
                   <FileText className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-accent-400 mx-auto mb-2 sm:mb-3 group-hover:scale-110 transition-transform duration-200" />
