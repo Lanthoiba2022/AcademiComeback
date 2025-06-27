@@ -61,7 +61,7 @@ export const useStudyStreak = (userId: string, _totalFocusMinutes: number = 0, u
 
         console.log('Formatted streak data:', formattedData)
         setStreakData(formattedData)
-        calculateStreakStats(formattedData)
+        calculateStreakStats(formattedData, _totalFocusMinutes)
       } else {
         setStreakData([])
         setStreakStats(prev => ({
@@ -78,9 +78,9 @@ export const useStudyStreak = (userId: string, _totalFocusMinutes: number = 0, u
     } finally {
       setLoading(false)
     }
-  }, [userId])
+  }, [userId, _totalFocusMinutes])
 
-  const calculateStreakStats = useCallback((data: StudyStreakData[]) => {
+  const calculateStreakStats = useCallback((data: StudyStreakData[], totalFocusMinutesOverride?: number) => {
     console.log('Calculating streak stats from data:', data)
     
     // Sort data by date
@@ -133,22 +133,10 @@ export const useStudyStreak = (userId: string, _totalFocusMinutes: number = 0, u
       lastDate = currentDate
     }
     
-    // Calculate average minutes per day using the actual loaded data
-    let totalDays = 0
-    let startDate: Date | null = null
-    const todayDate = new Date()
-    if (userCreatedAt) {
-      startDate = new Date(userCreatedAt)
-    } else if (data.length > 0) {
-      startDate = new Date(data[0].date)
-    }
-    if (startDate) {
-      totalDays = differenceInDays(todayDate, startDate) + 1 // +1 to include both start and today
-      totalDays = Math.max(totalDays, 1)
-    }
-    // Sum all minutes from the loaded data
-    const totalMinutes = data.reduce((sum, d) => sum + (d.count || 0), 0)
-    const averageMinutesPerDay = totalDays > 0 ? Math.round(totalMinutes / totalDays) : 0
+    // Calculate average minutes per day: use totalFocusMinutes divided by study days (days with activity)
+    const totalMinutes = typeof totalFocusMinutesOverride === 'number' ? totalFocusMinutesOverride : _totalFocusMinutes || 0
+    const totalStudyDays = studyDays.length
+    const averageMinutesPerDay = totalStudyDays > 0 ? Math.round(totalMinutes / totalStudyDays) : 0
     
     const finalStats = {
       currentStreak,
@@ -159,11 +147,11 @@ export const useStudyStreak = (userId: string, _totalFocusMinutes: number = 0, u
     
     console.log('Calculated streak stats:', finalStats)
     setStreakStats(finalStats)
-  }, [userCreatedAt])
+  }, [userCreatedAt, _totalFocusMinutes])
 
   useEffect(() => {
     loadStreakData()
-  }, [loadStreakData])
+  }, [loadStreakData, _totalFocusMinutes])
 
   return {
     streakData,

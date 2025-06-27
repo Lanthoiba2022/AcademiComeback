@@ -126,11 +126,11 @@ export const StudyStreakCard: React.FC<StudyStreakCardProps> = ({
               </div>
               
               <div className="text-center">
-                <div className="flex items-center justify-center w-8 h-8 bg-dark-800 rounded-lg mx-auto mb-2">
+                <div className="flex items-center justify-center w-8 h-8 bg-dark-800 rounded-lg mx-auto mb-2" title="Unique days you visited/logged in">
                   <Calendar className="w-4 h-4 text-secondary-400" />
                 </div>
                 <p className="text-lg font-semibold text-white">{totalVisitDays || streakStats.totalStudyDays}</p>
-                <p className="text-xs text-dark-400">Total days</p>
+                <p className="text-xs text-dark-400">Total Days</p>
               </div>
               
               <div className="text-center">

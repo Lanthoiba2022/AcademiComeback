@@ -171,6 +171,10 @@ export const Dashboard = () => {
         // Load study statistics
         await loadStudyStats()
         
+        // Calculate total days since signup
+        const createdAt = profile?.created_at || user?.createdAt;
+        setStudyStats(prev => ({ ...prev, totalVisitDays: calculateTotalVisitDays(createdAt) }));
+        
         // Load rooms
         await loadRooms()
       } catch (error) {
@@ -379,6 +383,26 @@ export const Dashboard = () => {
     await completeUserGoal(user.id, goal.id);
     fetchGoals(); // Always reload from DB
   };
+
+  // Helper to calculate total days since signup
+  const calculateTotalVisitDays = (createdAt: string | undefined) => {
+    if (!createdAt) return 1;
+    const signupDate = new Date(createdAt);
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    signupDate.setHours(0,0,0,0);
+    const diff = Math.floor((today.getTime() - signupDate.getTime()) / (1000 * 60 * 60 * 24));
+    return diff + 1;
+  };
+
+  // Helper to refresh streak and stats together
+  const handleRefreshStreak = async () => {
+    await loadStudyStats(); // update studyStats (including totalFocusMinutes)
+    // Recalculate totalVisitDays after refresh
+    const createdAt = user?.createdAt;
+    setStudyStats(prev => ({ ...prev, totalVisitDays: calculateTotalVisitDays(createdAt) }));
+    refreshStreak(); // then refresh streak with latest totalFocusMinutes
+  }
 
   if (loading) {
     return (
@@ -666,7 +690,7 @@ export const Dashboard = () => {
             totalVisitDays={studyStats.totalVisitDays}
             loading={streakLoading}
             error={streakError}
-            onRefresh={refreshStreak}
+            onRefresh={handleRefreshStreak}
             onViewHeatmap={() => setShowHeatmapModal(true)}
           />
         </div>
