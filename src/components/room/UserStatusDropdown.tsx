@@ -88,7 +88,7 @@ export const UserStatusDropdown = ({ taskId, members, currentUserId, currentUser
   return (
     <div className="flex flex-col gap-2 w-full relative">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-xs font-medium">Your Status:</span>
+        <span className="text-xs font-medium text-white">Your Status:</span>
         <select
           value={currentUserStatus}
           onChange={e => handleStatusChange(e.target.value as TaskStatus)}
@@ -102,7 +102,7 @@ export const UserStatusDropdown = ({ taskId, members, currentUserId, currentUser
           ))}
         </select>
         <button
-          className="ml-2 px-2 py-1 rounded bg-dark-700 text-xs text-white border border-dark-500 hover:bg-dark-600 transition"
+          className="ml-2 px-2 py-1 rounded text-xs text-white bg-button-gradient hover:shadow-lg hover:shadow-primary-500/25 hover:scale-105 focus:ring-2 focus:ring-primary-500 transition"
           onClick={() => setShowDialog(true)}
           type="button"
         >
@@ -122,7 +122,7 @@ export const UserStatusDropdown = ({ taskId, members, currentUserId, currentUser
             className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-dark-900 border border-dark-700 rounded shadow-lg p-4 w-[90vw] sm:w-auto"
           >
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-semibold">Task Statuses</span>
+              <span className="text-sm font-semibold text-white">Task Statuses</span>
               <button
                 className="text-xs text-dark-300 hover:text-white"
                 onClick={() => setShowDialog(false)}
@@ -137,7 +137,17 @@ export const UserStatusDropdown = ({ taskId, members, currentUserId, currentUser
                 <div key={status} className="flex flex-col items-start sm:items-center w-full sm:min-w-[120px]">
                   <div className="flex items-center gap-1 mb-1">
                     {statusIcon(status)}
-                    <span className="text-xs font-semibold">{status}</span>
+                    <span
+                      className={`text-xs font-semibold
+                        ${status === 'Todo' ? 'text-gray-300'
+                        : status === 'In Progress' ? 'text-yellow-300'
+                        : status === 'In Review' ? 'text-blue-300'
+                        : status === 'Completed' ? 'text-green-300'
+                        : ''}
+                      `}
+                    >
+                      {status}
+                    </span>
                   </div>
                   <div className="flex flex-col gap-1">
                     {usersByStatus[status].length === 0 && (
