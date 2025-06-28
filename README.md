@@ -67,6 +67,10 @@ AcademiComeback is on a mission to revolutionize collaborative learning. We blen
 
 ## 📚 Documentation of Technologies Used
 
+- **Bolt.new:**
+  used to make 90% of this platform, the UI, seamless integration of different features to work consistently across each other
+  [Bolt.new](https://bolt.new/)
+
 - **Supabase:**  
   Used for authentication, database, storage, and real-time features.  
   [Supabase Docs](https://supabase.com/docs)
